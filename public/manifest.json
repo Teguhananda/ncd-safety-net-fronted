@@ -1,0 +1,9 @@
+{
+  "name": "NCD Safety Net",
+  "short_name": "NCD Safety Net",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F7F8",
+  "theme_color": "#3B5670",
+  "icons": []
+}
