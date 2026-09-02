@@ -1,23 +1,41 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, query, limit } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
 import QRScanner from "../components/QRScanner";
+import PatientQRModal from "../components/PatientQRModal";
 import { Link, useNavigate } from "react-router-dom";
+
+const NCD_OPTIONS = ["Hipertensi", "Diabetes Mellitus", "Dislipidemia", "Obesitas", "Penyakit Jantung", "Stroke", "CKD", "Lainnya"];
 
 export default function Patients() {
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [scanning, setScanning] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [qrPatient, setQrPatient] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const navigate = useNavigate();
+
+  const [form, setForm] = useState({
+    mrn: "", name: "", dob: "", gender: "Laki-laki", conditions: [],
+  });
+
+  const toggleCondition = (c) => {
+    setForm((f) => ({
+      ...f,
+      conditions: f.conditions.includes(c)
+        ? f.conditions.filter((x) => x !== c)
+        : [...f.conditions, c],
+    }));
+  };
 
   const handleDetected = (rawValue) => {
     setScanning(false);
-    // Asumsi QR pasien berisi patientId (ID dokumen Firestore) langsung,
-    // atau bisa berupa No. RM — sesuaikan dengan format QR yang RS pakai
-    // saat mencetak label pasien.
     const match = rows.find((r) => r.id === rawValue || r.mrn === rawValue);
     if (match) {
       navigate(`/screening?patientId=${match.id}`);
@@ -26,8 +44,10 @@ export default function Patients() {
     }
   };
 
-  useEffect(() => {
-    async function load() {
+  async function loadPatients() {
+    setLoading(true);
+    setLoadError("");
+    try {
       const [patientsSnap, assessmentsSnap] = await Promise.all([
         getDocs(query(collection(db, "patients"), limit(100))),
         getDocs(query(collection(db, "risk_assessments"), orderBy("createdAt", "desc"), limit(200))),
@@ -45,10 +65,45 @@ export default function Patients() {
         return { ...p, riskStatus: risk ? risk.riskStatus : null };
       });
       setRows(merged);
+    } catch (err) {
+      console.error(err);
+      setLoadError("Gagal memuat data pasien: " + (err.message || "terjadi kesalahan."));
+    } finally {
       setLoading(false);
     }
-    load();
+  }
+
+  useEffect(() => {
+    loadPatients();
   }, []);
+
+  const handleAddPatient = async (e) => {
+    e.preventDefault();
+    if (!form.mrn || !form.name) {
+      setSaveError("No. RM dan Nama wajib diisi.");
+      return;
+    }
+    setSaving(true);
+    setSaveError("");
+    try {
+      await addDoc(collection(db, "patients"), {
+        mrn: form.mrn,
+        name: form.name,
+        dob: form.dob || null,
+        gender: form.gender,
+        conditions: form.conditions,
+        createdAt: serverTimestamp(),
+      });
+      setForm({ mrn: "", name: "", dob: "", gender: "Laki-laki", conditions: [] });
+      setAdding(false);
+      await loadPatients();
+    } catch (err) {
+      console.error(err);
+      setSaveError("Gagal menyimpan pasien: " + (err.message || "terjadi kesalahan."));
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const filtered = rows.filter(
     (r) =>
@@ -60,17 +115,71 @@ export default function Patients() {
   return (
     <Layout title="Daftar Pasien" meta="Seluruh pasien yang sudah discan/discreen">
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
           <input
             placeholder="Cari nama / No. RM"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, width: 260 }}
           />
-          <button className="btn btn-primary" onClick={() => setScanning(true)}>
-            + Scan QR
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn btn-primary" onClick={() => setAdding(true)}>
+              + Tambah Pasien
+            </button>
+            <button className="btn btn-primary" onClick={() => setScanning(true)}>
+              + Scan QR
+            </button>
+          </div>
         </div>
+
+        {adding && (
+          <div className="card" style={{ marginBottom: 14, background: "var(--surface-2)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+              <h3>Tambah Pasien Baru</h3>
+              <button className="btn btn-ghost" onClick={() => setAdding(false)}>Tutup</button>
+            </div>
+            <form onSubmit={handleAddPatient}>
+              <div className="field">
+                <label>No. Rekam Medis</label>
+                <input value={form.mrn} onChange={(e) => setForm({ ...form, mrn: e.target.value })} required />
+              </div>
+              <div className="field">
+                <label>Nama Pasien</label>
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              </div>
+              <div className="field">
+                <label>Tanggal Lahir</label>
+                <input type="date" value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} />
+              </div>
+              <div className="field">
+                <label>Jenis Kelamin</label>
+                <select value={form.gender} onChange={(e) => setForm({ ...form, gender: e.target.value })}>
+                  <option>Laki-laki</option>
+                  <option>Perempuan</option>
+                </select>
+              </div>
+              <div className="field">
+                <label>Kondisi NCD</label>
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                  {NCD_OPTIONS.map((c) => (
+                    <label key={c} style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}>
+                      <input
+                        type="checkbox"
+                        checked={form.conditions.includes(c)}
+                        onChange={() => toggleCondition(c)}
+                      />
+                      {c}
+                    </label>
+                  ))}
+                </div>
+              </div>
+              {saveError && <div className="error-text">{saveError}</div>}
+              <button className="btn btn-primary" style={{ width: "100%", marginTop: 8 }} disabled={saving}>
+                {saving ? "Menyimpan..." : "Simpan Pasien"}
+              </button>
+            </form>
+          </div>
+        )}
 
         {scanning && (
           <div className="card" style={{ marginBottom: 14, background: "var(--surface-2)" }}>
@@ -81,8 +190,11 @@ export default function Patients() {
             <QRScanner onDetected={handleDetected} />
           </div>
         )}
+
         {loading ? (
           <div className="stat-sub">Memuat data pasien...</div>
+        ) : loadError ? (
+          <div className="error-text">{loadError}</div>
         ) : (
           <table>
             <thead>
@@ -99,10 +211,13 @@ export default function Patients() {
                   <td>{p.name}</td>
                   <td className="mono">{p.mrn}</td>
                   <td>{p.riskStatus ? <RiskBadge status={p.riskStatus} /> : <span className="stat-sub">Belum discreen</span>}</td>
-                  <td>
+                  <td style={{ display: "flex", gap: 6 }}>
                     <Link className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} to={`/screening?patientId=${p.id}`}>
                       Screening
                     </Link>
+                    <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setQrPatient(p)}>
+                      QR
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -110,6 +225,8 @@ export default function Patients() {
           </table>
         )}
       </div>
+
+      {qrPatient && <PatientQRModal patient={qrPatient} onClose={() => setQrPatient(null)} />}
     </Layout>
   );
 }
