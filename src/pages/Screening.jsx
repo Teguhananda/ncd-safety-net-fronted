@@ -160,8 +160,8 @@ export default function Screening() {
             <div className="alert redflag">
               <span>🚨</span>
               <div>
-                <strong>RED FLAG TERDETEKSI</strong>
-                Pasien memerlukan penilaian klinis segera sesuai SOP fasilitas pelayanan kesehatan.
+                <strong style={{ display: "block", marginBottom: 4 }}>RED FLAG TERDETEKSI</strong>
+                <span>Pasien memerlukan penilaian klinis segera sesuai SOP fasilitas pelayanan kesehatan.</span>
               </div>
             </div>
           )}
