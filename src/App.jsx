@@ -13,6 +13,7 @@ import Analytics from "./pages/Analytics";
 import BeforeAfter from "./pages/BeforeAfter";
 import AuditTrail from "./pages/AuditTrail";
 import Administration from "./pages/Administration";
+import PatientHistory from "./pages/PatientHistory";
 
 function withProtection(element) {
   return <ProtectedRoute>{element}</ProtectedRoute>;
@@ -35,6 +36,7 @@ export default function App() {
           <Route path="/before-after" element={withProtection(<BeforeAfter />)} />
           <Route path="/audit-trail" element={withProtection(<AuditTrail />)} />
           <Route path="/admin" element={withProtection(<Administration />)} />
+          <Route path="/patient-history" element={withProtection(<PatientHistory />)} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

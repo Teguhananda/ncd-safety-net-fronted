@@ -240,6 +240,9 @@ export default function Patients() {
                     <Link className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} to={`/screening?patientId=${p.id}`}>
                       Screening
                     </Link>
+                    <Link className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} to={`/patient-history?patientId=${p.id}`}>
+                      Riwayat
+                    </Link>
                     <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setQrPatient(p)}>
                       QR
                     </button>
