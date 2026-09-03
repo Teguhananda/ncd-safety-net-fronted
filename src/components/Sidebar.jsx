@@ -2,17 +2,17 @@ import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dashboard", roles: ["admin", "petugas", "dokter", "manajemen"] },
+  { to: "/", label: "Dasbor", roles: ["admin", "petugas", "dokter", "manajemen"] },
   { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter"] },
-  { to: "/screening", label: "NCD Screening", roles: ["admin", "petugas"] },
-  { to: "/clinical-review", label: "Clinical Review", roles: ["admin", "dokter"] },
-  { to: "/followup", label: "Follow-up", roles: ["admin", "petugas", "dokter"] },
-  { to: "/incident", label: "Incident Reporting", roles: ["admin", "petugas", "dokter"] },
+  { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas"] },
+  { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter"] },
+  { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter"] },
+  { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter"] },
   { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter"] },
-  { to: "/analytics", label: "Analytics PMKP", roles: ["admin", "manajemen"] },
+  { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen"] },
   { to: "/before-after", label: "Before–After", roles: ["admin", "manajemen"] },
-  { to: "/audit-trail", label: "Audit Trail", roles: ["admin", "manajemen"] },
-  { to: "/admin", label: "Administration", roles: ["admin"] },
+  { to: "/audit-trail", label: "Jejak Audit", roles: ["admin", "manajemen"] },
+  { to: "/admin", label: "Administrasi", roles: ["admin"] },
 ];
 
 export default function Sidebar() {

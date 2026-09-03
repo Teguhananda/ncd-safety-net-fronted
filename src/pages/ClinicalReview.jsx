@@ -103,7 +103,7 @@ export default function ClinicalReview() {
         </div>
 
         <div className="card">
-          <h3>Form Clinical Review</h3>
+          <h3>Form Tinjauan Klinis</h3>
           {!selected ? (
             <div className="stat-sub">Pilih pasien dari daftar di sebelah kiri.</div>
           ) : (

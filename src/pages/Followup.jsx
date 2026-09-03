@@ -55,7 +55,7 @@ export default function Followup() {
             <thead>
               <tr>
                 <th>Pasien</th>
-                <th>Due Date</th>
+                <th>Tenggat Waktu</th>
                 <th>Status</th>
                 <th></th>
               </tr>

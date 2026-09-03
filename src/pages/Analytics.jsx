@@ -69,15 +69,15 @@ export default function Analytics() {
         <>
           <div className="grid cols-3">
             <div className="card">
-              <div className="stat-label">Total Screening (periode)</div>
+              <div className="stat-label">Total Skrining (periode)</div>
               <div className="stat-value mono">{totalScreeningPeriod}</div>
             </div>
             <div className="card">
-              <div className="stat-label">Safety Events (periode)</div>
+              <div className="stat-label">Kejadian Keselamatan (periode)</div>
               <div className="stat-value mono">{totalSafetyEvents}</div>
             </div>
             <div className="card">
-              <div className="stat-label">Lost to Follow-up (periode)</div>
+              <div className="stat-label">Hilang dari Tindak Lanjut (periode)</div>
               <div className="stat-value mono" style={{ color: "var(--moderate)" }}>{totalLost}</div>
             </div>
           </div>
@@ -85,10 +85,10 @@ export default function Analytics() {
           <div className="grid cols-2" style={{ marginTop: 16 }}>
             <div className="card">
               <h3>Rata-rata Indikator Completion (periode)</h3>
-              <div className="score-row"><span>Medication Reconciliation Rate</span><span className="mono">{pct(avg("medicationReconciliationRate"))}</span></div>
-              <div className="score-row"><span>Red Flag Response Rate</span><span className="mono">{pct(avg("redFlagResponseRate"))}</span></div>
-              <div className="score-row"><span>Education Completion Rate</span><span className="mono">{pct(avg("educationCompletionRate"))}</span></div>
-              <div className="score-row"><span>Follow-up Completion Rate</span><span className="mono">{pct(avg("followupCompletionRate"))}</span></div>
+              <div className="score-row"><span>Tingkat Rekonsiliasi Obat</span><span className="mono">{pct(avg("medicationReconciliationRate"))}</span></div>
+              <div className="score-row"><span>Tingkat Respons Red Flag</span><span className="mono">{pct(avg("redFlagResponseRate"))}</span></div>
+              <div className="score-row"><span>Tingkat Penyelesaian Edukasi</span><span className="mono">{pct(avg("educationCompletionRate"))}</span></div>
+              <div className="score-row"><span>Tingkat Penyelesaian Tindak Lanjut</span><span className="mono">{pct(avg("followupCompletionRate"))}</span></div>
             </div>
             <div className="card">
               <h3>Distribusi Risiko (Snapshot Terbaru — {latest?.periodId})</h3>
@@ -106,18 +106,18 @@ export default function Analytics() {
           </div>
 
           <div className="card" style={{ marginTop: 16 }}>
-            <h3>Tren Total Screening &amp; Lost to Follow-up</h3>
+            <h3>Tren Total Skrining &amp; Hilang dari Tindak Lanjut</h3>
             <TrendChart
               data={chartData}
               lines={[
-                { key: "totalScreenings", label: "Total Screening", color: "#3B5670" },
-                { key: "lostToFollowupCount", label: "Lost to Follow-up", color: "#C8552B" },
+                { key: "totalScreenings", label: "Total Skrining", color: "#3B5670" },
+                { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#C8552B" },
               ]}
             />
           </div>
 
           <div className="card" style={{ marginTop: 16 }}>
-            <h3>Tren Completion Rate</h3>
+            <h3>Tren Tingkat Penyelesaian</h3>
             <TrendChart
               data={chartData.map((r) => ({
                 periodId: r.periodId,
@@ -126,7 +126,7 @@ export default function Analytics() {
                 followup: r.followupCompletionRate !== undefined && r.followupCompletionRate !== null ? Math.round(r.followupCompletionRate * 100) : null,
               }))}
               lines={[
-                { key: "medRecon", label: "Med. Reconciliation %", color: "#2E9E6D" },
+                { key: "medRecon", label: "Rekonsiliasi Obat %", color: "#2E9E6D" },
                 { key: "education", label: "Education %", color: "#B8862E" },
                 { key: "followup", label: "Follow-up %", color: "#3B5670" },
               ]}
@@ -139,11 +139,11 @@ export default function Analytics() {
               <thead>
                 <tr>
                   <th>Tanggal</th>
-                  <th>Total Screening</th>
-                  <th>Med. Reconciliation</th>
-                  <th>Follow-up Completion</th>
-                  <th>Lost to Follow-up</th>
-                  <th>Safety Events</th>
+                  <th>Total Skrining</th>
+                  <th>Rekonsiliasi Obat</th>
+                  <th>Penyelesaian Tindak Lanjut</th>
+                  <th>Hilang dari Tindak Lanjut</th>
+                  <th>Kejadian Keselamatan</th>
                 </tr>
               </thead>
               <tbody>

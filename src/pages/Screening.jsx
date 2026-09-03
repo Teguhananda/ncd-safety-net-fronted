@@ -208,7 +208,7 @@ export default function Screening() {
           </div>
 
           <div className="field">
-            <label>Red Flag Check</label>
+            <label>Cek Red Flag</label>
             <div className="checklist">
               {RED_FLAG_ITEMS.map(([key, label]) => (
                 <label key={key} className="check-item danger-zone">
@@ -254,7 +254,7 @@ export default function Screening() {
 
       {step === "medication" && (
         <div className="card">
-          <h3>Medication Reconciliation</h3>
+          <h3>Rekonsiliasi Obat</h3>
           {medications.map((m, i) => (
             <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
               <div className="grid cols-3" style={{ flex: 1 }}>
@@ -299,7 +299,7 @@ export default function Screening() {
                   </div>
                   {status === "RED_FLAG" && (
                     <div className="stat-sub">
-                      Menunggu Clinical Review oleh dokter — lihat halaman <strong>Clinical Review</strong>.
+                      Menunggu Tinjauan Klinis oleh dokter — lihat halaman <strong>Tinjauan Klinis</strong>.
                     </div>
                   )}
                 </div>

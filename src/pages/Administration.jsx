@@ -8,7 +8,7 @@ function SectionResult({ msg }) {
 }
 
 export default function Administration() {
-  // --- Risk Thresholds ---
+  // --- Ambang Risikos ---
   const [highThreshold, setHighThreshold] = useState(6);
   const [moderateThreshold, setModerateThreshold] = useState(3);
   const [thresholdApprover, setThresholdApprover] = useState("");
@@ -161,7 +161,7 @@ export default function Administration() {
         </div>
         <div className="grid cols-2">
           <div>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>Cek Follow-up Overdue</div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Cek Tindak Lanjut Terlambat</div>
             <div className="stat-sub" style={{ marginBottom: 8 }}>
               Menandai follow-up yang lewat jadwal, dan eskalasi ke dokter kalau sudah lewat batas hari.
             </div>
@@ -225,14 +225,14 @@ export default function Administration() {
 
       <div className="grid cols-2">
         <div className="card">
-          <h3>Risk Threshold</h3>
+          <h3>Ambang Risiko</h3>
           <div className="grid cols-2">
             <div className="field">
-              <label>Moderate Threshold</label>
+              <label>Ambang Sedang</label>
               <input type="number" value={moderateThreshold} onChange={(e) => setModerateThreshold(e.target.value)} />
             </div>
             <div className="field">
-              <label>High Threshold</label>
+              <label>Ambang Tinggi</label>
               <input type="number" value={highThreshold} onChange={(e) => setHighThreshold(e.target.value)} />
             </div>
           </div>

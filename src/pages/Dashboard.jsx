@@ -43,7 +43,7 @@ export default function Dashboard() {
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
       <div className="grid cols-3">
         <div className="card">
-          <div className="stat-label">Total Screening</div>
+          <div className="stat-label">Total Skrining</div>
           <div className="stat-value mono">{summary ? summary.totalScreenings : "-"}</div>
           <div className="stat-sub">Data agregat (snapshot harian)</div>
         </div>
@@ -52,10 +52,10 @@ export default function Dashboard() {
           <div className="stat-value mono" style={{ color: "var(--redflag)" }}>
             {dist.redFlag}
           </div>
-          <div className="stat-sub">Menunggu clinical review</div>
+          <div className="stat-sub">Menunggu tinjauan klinis</div>
         </div>
         <div className="card">
-          <div className="stat-label">Lost to Follow-up</div>
+          <div className="stat-label">Hilang dari Tindak Lanjut</div>
           <div className="stat-value mono" style={{ color: "var(--moderate)" }}>
             {summary ? summary.lostToFollowupCount : "-"}
           </div>
@@ -112,8 +112,8 @@ export default function Dashboard() {
           data={history}
           height={180}
           lines={[
-            { key: "totalScreenings", label: "Total Screening", color: "#3B5670" },
-            { key: "lostToFollowupCount", label: "Lost to Follow-up", color: "#C8552B" },
+            { key: "totalScreenings", label: "Total Skrining", color: "#3B5670" },
+            { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#C8552B" },
           ]}
         />
       </div>
