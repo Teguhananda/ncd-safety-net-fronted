@@ -1,0 +1,230 @@
+:root {
+  --bg-1: #0b3d3a;
+  --bg-2: #145c56;
+  --bg-3: #1f7a6f;
+  --glass-bg: rgba(255, 255, 255, 0.14);
+  --glass-bg-strong: rgba(255, 255, 255, 0.22);
+  --glass-border: rgba(255, 255, 255, 0.35);
+  --ink: #0b2b28;
+  --ink-soft: rgba(11, 43, 40, 0.65);
+  --ink-on-glass: #f4fdfb;
+  --accent: #17b8a6;
+  --accent-strong: #0e8f80;
+  --redflag: #e6553f;
+  --amber: #e6a417;
+  --green: #2fae6f;
+  --shadow: 0 8px 32px rgba(8, 40, 36, 0.25);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 10% 10%, rgba(255,255,255,0.10), transparent 40%),
+    radial-gradient(circle at 90% 20%, rgba(23,184,166,0.35), transparent 45%),
+    radial-gradient(circle at 30% 90%, rgba(11,61,58,0.5), transparent 50%),
+    linear-gradient(135deg, var(--bg-1), var(--bg-2) 45%, var(--bg-3));
+  background-attachment: fixed;
+}
+
+/* ===== Kartu kaca generik (dipakai di dashboard, login, dll) ===== */
+.card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 20px;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: var(--shadow);
+  color: var(--ink-on-glass);
+  padding: 20px;
+}
+
+/* ===== Halaman Login ===== */
+.login-wrap {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: var(--shadow);
+  padding: 32px 28px;
+  color: var(--ink-on-glass);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
+.brand-mark {
+  width: 44px; height: 44px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  box-shadow: 0 4px 14px rgba(23,184,166,0.5);
+}
+.brand-logos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.logo-img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.85);
+  padding: 3px;
+}
+.brand-text .name { font-weight: 700; font-size: 17px; color: var(--ink-on-glass); }
+.brand-text .sub { font-size: 12px; color: rgba(244,253,251,0.7); letter-spacing: 0.3px; }
+
+.field { margin-bottom: 16px; }
+.field label {
+  display: block; font-size: 13px; margin-bottom: 6px;
+  color: rgba(244,253,251,0.85);
+}
+.field input {
+  width: 100%; padding: 12px 14px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.4);
+  background: rgba(255,255,255,0.85);
+  color: var(--ink);
+  font-size: 14px;
+}
+.field input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(23,184,166,0.35);
+}
+
+.error-text { color: #ffd7cf; font-size: 13px; margin: 4px 0 12px; }
+
+/* ===== Tombol ===== */
+.btn {
+  border: none; border-radius: 12px; padding: 12px 20px;
+  font-weight: 600; font-size: 14px; cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.btn:active { transform: scale(0.97); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(23,184,166,0.45);
+}
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-ghost {
+  background: rgba(255,255,255,0.15);
+  color: var(--ink-on-glass);
+  border: 1px solid var(--glass-border);
+}
+
+/* ===== Layout Utama (Sidebar + Konten) ===== */
+.app { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 260px;
+  padding: 24px 18px;
+  background: rgba(255,255,255,0.10);
+  border-right: 1px solid var(--glass-border);
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  color: var(--ink-on-glass);
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar nav { flex: 1; margin-top: 8px; }
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  margin-bottom: 4px;
+  color: rgba(244,253,251,0.85);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+.nav-item:hover { background: rgba(255,255,255,0.12); }
+.nav-item.active {
+  background: rgba(255,255,255,0.22);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px var(--glass-border);
+}
+.nav-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor;
+  opacity: 0.6;
+}
+
+.role-switch {
+  border-top: 1px solid var(--glass-border);
+  padding-top: 16px;
+  margin-top: 12px;
+  font-size: 13px;
+  color: rgba(244,253,251,0.75);
+}
+
+.main { flex: 1; display: flex; flex-direction: column; }
+
+.topbar {
+  padding: 28px 40px 0;
+  color: var(--ink-on-glass);
+}
+.topbar h1 { color: #fff; margin: 0 0 4px; }
+.topbar .meta { color: rgba(244,253,251,0.75); font-size: 14px; }
+
+.net-divider {
+  height: 1px;
+  margin: 20px 40px;
+  background: repeating-linear-gradient(
+    90deg, var(--glass-border) 0 8px, transparent 8px 14px
+  );
+}
+
+.content { padding: 0 40px 40px; }
+
+/* ===== Kartu statistik dashboard ===== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  margin: 6px 0;
+}
+.stat-value.mono { font-family: "SF Mono", monospace; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.stat-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #fff;
+  margin: 6px 0;
+}
+.stat-value.mono { font-family: "SF Mono", monospace; }
+
+/* ===== Scrollbar tipis (opsional, biar makin rapi) ===== */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.25);
+  border-radius: 8px;
+}
