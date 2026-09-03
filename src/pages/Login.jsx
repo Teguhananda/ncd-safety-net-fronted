@@ -6,7 +6,7 @@ export default function Login() {
   const { login } = useAuth();
 const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [password, setKata Sandi] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -41,7 +41,7 @@ navigate("/");
           </div>
           <div className="field">
             <label>Kata Sandi</label>
-            <input type="password" value={password} onChange={(e) => setKata Sandi(e.target.value)} required />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
           </div>
           {error && <div className="error-text">{error}</div>}
           <button className="btn btn-primary" style={{ width: "100%", marginTop: 8 }} disabled={loading}>
