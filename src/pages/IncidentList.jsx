@@ -68,3 +68,30 @@ export default function IncidentList() {
               </tr>
             </thead>
             <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td>{r.reportedAt?.toDate ? r.reportedAt.toDate().toLocaleDateString("id-ID") : "-"}</td>
+                  <td>{JENIS_LABEL[r.jenis] || r.jenis || "-"}</td>
+                  <td>{r.kategori || "-"}</td>
+                  <td>{r.patientId ? (patientNames[r.patientId] || r.patientId) : "-"}</td>
+                  <td>{STATUS_LABEL[r.reviewStatus] || r.reviewStatus || "-"}</td>
+                  <td>
+                    {r.reviewStatus !== "reviewed" && (
+                      <button
+                        className="btn btn-ghost"
+                        disabled={busyId === r.id}
+                        onClick={() => markReviewed(r.id)}
+                      >
+                        {busyId === r.id ? "Memproses..." : "Tandai Direview"}
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </Layout>
+  );
+}
