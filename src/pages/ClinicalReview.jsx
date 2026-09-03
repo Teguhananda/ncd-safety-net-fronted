@@ -11,6 +11,7 @@ export default function ClinicalReview() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
   const [notes, setNotes] = useState("");
+  const [patientNames, setPatientNames] = useState({});
   const [overrideApplied, setOverrideApplied] = useState(false);
   const [overrideReason, setOverrideReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -21,7 +22,13 @@ export default function ClinicalReview() {
     // Ambil assessment RED_FLAG/HIGH yang belum ada clinical_reviews terkait.
     // Pendekatan sederhana untuk versi awal: tampilkan semua RED_FLAG/HIGH
     // terbaru; dokter memilih mana yang memang belum direview.
-    const snap = await getDocs(query(collection(db, "risk_assessments"), orderBy("createdAt", "desc")));
+    const [snap, patientsSnap] = await Promise.all([
+      getDocs(query(collection(db, "risk_assessments"), orderBy("createdAt", "desc"))),
+      getDocs(collection(db, "patients")),
+    ]);
+    const names = {};
+    patientsSnap.docs.forEach((d) => { names[d.id] = d.data().name || d.id; });
+    setPatientNames(names);
     const rows = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
       .filter((r) => (r.riskStatus === "RED_FLAG" || r.riskStatus === "HIGH") && !r.reviewed)
@@ -79,7 +86,7 @@ export default function ClinicalReview() {
               <tbody>
                 {pending.map((r) => (
                   <tr key={r.id} className={r.riskStatus === "RED_FLAG" ? "row-redflag" : ""} style={{ cursor: "pointer" }} onClick={() => openReview(r)}>
-                    <td className="mono">{r.patientId}</td>
+                    <td>{patientNames[r.patientId] || r.patientId}</td>
                     <td>
                       <RiskBadge status={r.riskStatus} />
                     </td>
