@@ -56,7 +56,7 @@ export default function Screening() {
     try {
       // visitId idealnya dibuat dulu lewat alur kunjungan; untuk contoh ini
       // dianggap sudah ada dan dikirim sederhana berdasar patientId+tanggal.
-      const visitId = `${patientId}-${new Date().toISOString().slice(0, 10)}`;
+      const visitId = `${patientId}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
       const res = await callApi("screening", { visitId, patientId, ncdConditions, redFlags });
       setResult(res.data);
       if (res.data.status === "RED_FLAG") {
