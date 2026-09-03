@@ -6,6 +6,7 @@ import RiskBadge from "../components/RiskBadge";
 import QRScanner from "../components/QRScanner";
 import PatientQRModal from "../components/PatientQRModal";
 import { Link, useNavigate } from "react-router-dom";
+import { callApi } from "../lib/api";
 
 const NCD_OPTIONS = ["Hipertensi", "Diabetes Mellitus", "Dislipidemia", "Obesitas", "Penyakit Jantung", "Stroke", "CKD", "Lainnya"];
 
@@ -19,6 +20,8 @@ export default function Patients() {
   const [qrPatient, setQrPatient] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
@@ -102,6 +105,27 @@ export default function Patients() {
       setSaveError("Gagal menyimpan pasien: " + (err.message || "terjadi kesalahan."));
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeletePatient = async (patient) => {
+    const konfirmasi1 = window.confirm(
+      `Yakin hapus PERMANEN data pasien "${patient.name}" (No. RM: ${patient.mrn})? Semua riwayat skrining, obat, dan follow-up ikut terhapus.`
+    );
+    if (!konfirmasi1) return;
+    const konfirmasi2 = window.confirm("Ini tidak bisa dibatalkan. Benar-benar hapus permanen?");
+    if (!konfirmasi2) return;
+
+    setDeletingId(patient.id);
+    setDeleteError("");
+    try {
+      await callApi("adminConfig", { action: "deletePatient", patientId: patient.id });
+      await loadPatients();
+    } catch (err) {
+      console.error(err);
+      setDeleteError("Gagal menghapus: " + (err.message || "terjadi kesalahan."));
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -191,6 +215,7 @@ export default function Patients() {
           </div>
         )}
 
+        {deleteError && <div className="error-text" style={{ marginBottom: 10 }}>{deleteError}</div>}
         {loading ? (
           <div className="stat-sub">Memuat data pasien...</div>
         ) : loadError ? (
@@ -217,6 +242,14 @@ export default function Patients() {
                     </Link>
                     <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setQrPatient(p)}>
                       QR
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: "4px 10px", fontSize: 12, color: "#c0392b" }}
+                      onClick={() => handleDeletePatient(p)}
+                      disabled={deletingId === p.id}
+                    >
+                      {deletingId === p.id ? "Menghapus..." : "🗑️ Hapus"}
                     </button>
                   </td>
                 </tr>
