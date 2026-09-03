@@ -88,7 +88,7 @@ body {
 .brand-text .sub { font-size: 12px; color: rgba(244,253,251,0.7); letter-spacing: 0.3px; }
 
 .field { margin-bottom: 16px; }
-.field label {
+.field > label {
   display: block; font-size: 13px; margin-bottom: 6px;
   color: rgba(244,253,251,0.85);
 }
@@ -227,4 +227,39 @@ body {
 ::-webkit-scrollbar-thumb {
   background: rgba(255,255,255,0.25);
   border-radius: 8px;
+}
+
+
+/* ===== Checklist (Screening: kondisi NCD & red flag) ===== */
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.check-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  font-size: 14px;
+  color: var(--ink-on-glass);
+  cursor: pointer;
+}
+.check-item:last-child { border-bottom: none; }
+
+.check-item input[type="checkbox"] {
+  order: 1;
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.check-item.danger-zone {
+  color: #ffd7cf;
 }
