@@ -160,6 +160,8 @@ export default function Screening() {
     setMedications((prev) => [...prev, { name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true }]);
   const updateMedRow = (i, field, value) =>
     setMedications((prev) => prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)));
+  const removeMedRow = (i) =>
+    setMedications((prev) => prev.filter((_, idx) => idx !== i));
 
   return (
     <Layout title="NCD Screening" meta={patientId ? `Pasien: ${patientId}` : "Pilih pasien dari Daftar Pasien"}>
@@ -254,10 +256,22 @@ export default function Screening() {
         <div className="card">
           <h3>Medication Reconciliation</h3>
           {medications.map((m, i) => (
-            <div key={i} className="grid cols-3" style={{ marginBottom: 8 }}>
-              <input placeholder="Nama obat" value={m.name} onChange={(e) => updateMedRow(i, "name", e.target.value)} />
-              <input placeholder="Dosis" value={m.dose} onChange={(e) => updateMedRow(i, "dose", e.target.value)} />
-              <input placeholder="Frekuensi" value={m.frequency} onChange={(e) => updateMedRow(i, "frequency", e.target.value)} />
+            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <div className="grid cols-3" style={{ flex: 1 }}>
+                <input placeholder="Nama obat" value={m.name} onChange={(e) => updateMedRow(i, "name", e.target.value)} />
+                <input placeholder="Dosis" value={m.dose} onChange={(e) => updateMedRow(i, "dose", e.target.value)} />
+                <input placeholder="Frekuensi" value={m.frequency} onChange={(e) => updateMedRow(i, "frequency", e.target.value)} />
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ padding: "6px 10px", fontSize: 12, color: "#c0392b" }}
+                onClick={() => removeMedRow(i)}
+                disabled={medications.length <= 1}
+                title={medications.length <= 1 ? "Minimal satu baris obat" : "Hapus baris ini"}
+              >
+                🗑️ Hapus
+              </button>
             </div>
           ))}
           <button className="btn btn-ghost" onClick={addMedRow} style={{ marginBottom: 16 }}>
