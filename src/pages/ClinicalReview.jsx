@@ -24,7 +24,7 @@ export default function ClinicalReview() {
     const snap = await getDocs(query(collection(db, "risk_assessments"), orderBy("createdAt", "desc")));
     const rows = snap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
-      .filter((r) => r.riskStatus === "RED_FLAG" || r.riskStatus === "HIGH")
+      .filter((r) => (r.riskStatus === "RED_FLAG" || r.riskStatus === "HIGH") && !r.reviewed)
       .slice(0, 30);
     setPending(rows);
     setLoading(false);
