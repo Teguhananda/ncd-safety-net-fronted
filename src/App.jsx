@@ -9,6 +9,7 @@ import Screening from "./pages/Screening";
 import ClinicalReview from "./pages/ClinicalReview";
 import Followup from "./pages/Followup";
 import IncidentReporting from "./pages/IncidentReporting";
+import IncidentList from "./pages/IncidentList";
 import Analytics from "./pages/Analytics";
 import BeforeAfter from "./pages/BeforeAfter";
 import AuditTrail from "./pages/AuditTrail";
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/clinical-review" element={withProtection(<ClinicalReview />)} />
           <Route path="/followup" element={withProtection(<Followup />)} />
           <Route path="/incident" element={withProtection(<IncidentReporting />)} />
+          <Route path="/incident-list" element={withProtection(<IncidentList />)} />
           <Route path="/analytics" element={withProtection(<Analytics />)} />
           <Route path="/before-after" element={withProtection(<BeforeAfter />)} />
           <Route path="/audit-trail" element={withProtection(<AuditTrail />)} />

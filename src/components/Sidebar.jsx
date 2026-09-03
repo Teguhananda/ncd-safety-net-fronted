@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/clinical-review", label: "Clinical Review", roles: ["admin", "dokter"] },
   { to: "/followup", label: "Follow-up", roles: ["admin", "petugas", "dokter"] },
   { to: "/incident", label: "Incident Reporting", roles: ["admin", "petugas", "dokter"] },
+  { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter"] },
   { to: "/analytics", label: "Analytics PMKP", roles: ["admin", "manajemen"] },
   { to: "/before-after", label: "Before–After", roles: ["admin", "manajemen"] },
   { to: "/audit-trail", label: "Audit Trail", roles: ["admin", "manajemen"] },
