@@ -24,12 +24,20 @@ const RED_FLAG_ITEMS = [
 
 const NCD_ITEMS = ["Hipertensi", "Diabetes Mellitus", "Dislipidemia", "Obesitas", "Penyakit jantung", "Stroke", "CKD"];
 
+const ACCESS_BARRIER_ITEMS = [
+  ["farDistance", "Jarak rumah jauh dari fasilitas kesehatan (>10 km)"],
+  ["noTransport", "Tidak ada transportasi memadai"],
+  ["costBarrier", "Kendala biaya berobat"],
+  ["noCaregiver", "Tidak ada pendamping/keluarga pendukung"],
+];
+
 export default function Screening() {
   const [params] = useSearchParams();
   const patientId = params.get("patientId") || "";
 
   const [ncdConditions, setNcdConditions] = useState([]);
   const [redFlags, setRedFlags] = useState({});
+  const [accessBarriers, setAccessBarriers] = useState({});
   const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true }]);
   const [step, setStep] = useState("screening"); // screening -> medication -> result
   const [result, setResult] = useState(null);
@@ -49,6 +57,7 @@ export default function Screening() {
     setNcdConditions((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
   };
   const toggleRedFlag = (key) => setRedFlags((prev) => ({ ...prev, [key]: !prev[key] }));
+  const toggleAccessBarrier = (key) => setAccessBarriers((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const submitScreeningStep = async () => {
     setBusy(true);
@@ -57,7 +66,7 @@ export default function Screening() {
       // visitId idealnya dibuat dulu lewat alur kunjungan; untuk contoh ini
       // dianggap sudah ada dan dikirim sederhana berdasar patientId+tanggal.
       const visitId = `${patientId}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
-      const res = await callApi("screening", { visitId, patientId, ncdConditions, redFlags });
+      const res = await callApi("screening", { visitId, patientId, ncdConditions, redFlags, accessBarriers });
       setResult(res.data);
       if (res.data.status === "RED_FLAG") {
         setStep("result");
@@ -150,6 +159,18 @@ export default function Screening() {
               {RED_FLAG_ITEMS.map(([key, label]) => (
                 <label key={key} className="check-item danger-zone">
                   <input type="checkbox" checked={!!redFlags[key]} onChange={() => toggleRedFlag(key)} />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Hambatan Akses Layanan</label>
+            <div className="checklist">
+              {ACCESS_BARRIER_ITEMS.map(([key, label]) => (
+                <label key={key} className="check-item">
+                  <input type="checkbox" checked={!!accessBarriers[key]} onChange={() => toggleAccessBarrier(key)} />
                   {label}
                 </label>
               ))}
