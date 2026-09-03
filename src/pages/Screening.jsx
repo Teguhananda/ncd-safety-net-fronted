@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { callApi } from "../lib/api";
+import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
 
@@ -38,6 +39,9 @@ export default function Screening() {
   const [ncdConditions, setNcdConditions] = useState([]);
   const [redFlags, setRedFlags] = useState({});
   const [accessBarriers, setAccessBarriers] = useState({});
+  const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
+  const [pastScreenings, setPastScreenings] = useState([]);
+  const [selectedPastDate, setSelectedPastDate] = useState("");
   const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true }]);
   const [step, setStep] = useState("screening"); // screening -> medication -> result
   const [result, setResult] = useState(null);
@@ -50,6 +54,22 @@ export default function Screening() {
   const [eduDone, setEduDone] = useState(false);
   const [safetyPlan, setSafetyPlan] = useState({ problemsIdentified: "", actionsTaken: "", targetFollowUpDate: "" });
   const [planDone, setPlanDone] = useState(false);
+
+  useEffect(() => {
+    if (!patientId) return;
+    (async () => {
+      try {
+        const res = await callApi("patientHistory", { patientId });
+        const dates = (res.data.timeline || [])
+          .filter((item) => item.type === "screening")
+          .map((item) => item.date)
+          .filter(Boolean);
+        setPastScreenings(dates);
+      } catch (e) {
+        console.error("Gagal memuat riwayat tanggal screening:", e);
+      }
+    })();
+  }, [patientId]);
 
   const hasRedFlag = Object.values(redFlags).some(Boolean);
 
@@ -66,7 +86,7 @@ export default function Screening() {
       // visitId idealnya dibuat dulu lewat alur kunjungan; untuk contoh ini
       // dianggap sudah ada dan dikirim sederhana berdasar patientId+tanggal.
       const visitId = `${patientId}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
-      const res = await callApi("screening", { visitId, patientId, ncdConditions, redFlags, accessBarriers });
+      const res = await callApi("screening", { visitId, patientId, ncdConditions, redFlags, accessBarriers, visitDate });
       setResult(res.data);
       if (res.data.status === "RED_FLAG") {
         setStep("result");
@@ -141,6 +161,34 @@ export default function Screening() {
     <Layout title="NCD Screening" meta={patientId ? `Pasien: ${patientId}` : "Pilih pasien dari Daftar Pasien"}>
       {step === "screening" && (
         <div className="card">
+          <div className="field">
+            <label>Tanggal Screening</label>
+            <input type="date" value={visitDate} onChange={(e) => setVisitDate(e.target.value)} />
+          </div>
+
+          {pastScreenings.length > 0 && (
+            <div className="field">
+              <label>Riwayat Tanggal Screening Pasien Ini</label>
+              <select
+                value={selectedPastDate}
+                onChange={(e) => setSelectedPastDate(e.target.value)}
+              >
+                <option value="">-- Pilih tanggal untuk lihat riwayat --</option>
+                {pastScreenings.map((d, i) => (
+                  <option key={i} value={d}>
+                    {new Date(d).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                  </option>
+                ))}
+              </select>
+              {selectedPastDate && (
+                <div className="stat-sub" style={{ marginTop: 6 }}>
+                  Pasien ini pernah discreening pada tanggal tersebut. Buka menu{" "}
+                  <strong>Riwayat</strong> di Daftar Pasien untuk lihat detail lengkapnya.
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="field">
             <label>Kondisi NCD diketahui</label>
             <div className="checklist">
