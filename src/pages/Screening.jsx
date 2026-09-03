@@ -105,7 +105,11 @@ export default function Screening() {
     setError("");
     try {
       const res = await callApi("medication", { screeningId: result.screeningId, medications });
-      setResult((prev) => ({ ...prev, ...res.data }));
+      setResult((prev) => ({
+        ...prev,
+        ...res.data,
+        status: res.data.riskResult?.riskStatus || prev.status,
+      }));
       setStep("result");
     } catch (e) {
       setError(e.message || "Gagal mengirim data obat.");
