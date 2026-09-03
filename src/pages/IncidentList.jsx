@@ -3,6 +3,7 @@ import { collection, getDocs, orderBy, query } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { callApi } from "../lib/api";
 import Layout from "../components/Layout";
+import { useAuth } from "../context/AuthContext";
 
 const JENIS_LABEL = {
   KPC: "KPC - Kondisi Potensial Cedera",
@@ -18,11 +19,27 @@ const STATUS_LABEL = {
   closed: "Ditutup",
 };
 
+const CATEGORY_LABEL = {
+  medication_error: "Kesalahan Obat",
+  hypoglycemia: "Hipoglikemia",
+  hyperglycemia_dka: "Hiperglikemia/DKA",
+  hypertensive_crisis: "Krisis Hipertensi",
+  monitoring_failure: "Kegagalan Monitoring",
+  delayed_recognition: "Keterlambatan Pengenalan",
+  chronic_complication: "Komplikasi Kronis",
+  lost_to_followup: "Hilang dari Tindak Lanjut",
+  communication_failure: "Kegagalan Komunikasi",
+  identification_issue: "Masalah Identifikasi",
+  documentation_issue: "Masalah Dokumentasi",
+  other: "Lainnya",
+};
+
 export default function IncidentList() {
   const [rows, setRows] = useState([]);
   const [patientNames, setPatientNames] = useState({});
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const { role } = useAuth();
 
   async function load() {
     setLoading(true);
@@ -48,6 +65,18 @@ export default function IncidentList() {
       setBusyId(null);
     }
   };
+
+  const deleteRow = async (id) => {
+    if (!window.confirm("Hapus laporan insiden ini? Tindakan ini tidak bisa dibatalkan.")) return;
+    setBusyId(id);
+    try {
+      await callApi("incident", { action: "delete", incidentId: id });
+      await load();
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   return (
     <Layout title="Daftar Insiden" meta="Rekap laporan keselamatan pasien NCD">
       <div className="card">
@@ -71,8 +100,8 @@ export default function IncidentList() {
               {rows.map((r) => (
                 <tr key={r.id}>
                   <td>{r.reportedAt?.toDate ? r.reportedAt.toDate().toLocaleDateString("id-ID") : "-"}</td>
-                  <td>{JENIS_LABEL[r.jenis] || r.jenis || "-"}</td>
-                  <td>{r.kategori || "-"}</td>
+                  <td>{JENIS_LABEL[r.jenisInsiden] || r.jenisInsiden || "-"}</td>
+                  <td>{CATEGORY_LABEL[r.category] || r.category || "-"}</td>
                   <td>{r.patientId ? (patientNames[r.patientId] || r.patientId) : "-"}</td>
                   <td>{STATUS_LABEL[r.reviewStatus] || r.reviewStatus || "-"}</td>
                   <td>
@@ -83,6 +112,16 @@ export default function IncidentList() {
                         onClick={() => markReviewed(r.id)}
                       >
                         {busyId === r.id ? "Memproses..." : "Tandai Direview"}
+                      </button>
+                    )}
+                    {role === "admin" && (
+                      <button
+                        className="btn btn-ghost"
+                        style={{ marginLeft: 8, color: "#e05252" }}
+                        disabled={busyId === r.id}
+                        onClick={() => deleteRow(r.id)}
+                      >
+                        Hapus
                       </button>
                     )}
                   </td>
