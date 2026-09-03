@@ -14,10 +14,19 @@ export default function Followup() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
+  const [patientNames, setPatientNames] = useState({});
 
   async function load() {
     setLoading(true);
-    const snap = await getDocs(query(collection(db, "followups"), orderBy("dueDate", "asc")));
+    const [snap, patientsSnap] = await Promise.all([
+      getDocs(query(collection(db, "followups"), orderBy("dueDate", "asc"))),
+      getDocs(collection(db, "patients")),
+    ]);
+    const names = {};
+    patientsSnap.docs.forEach((d) => {
+      names[d.id] = d.data().name || d.id;
+    });
+    setPatientNames(names);
     setRows(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
     setLoading(false);
   }
@@ -56,7 +65,7 @@ export default function Followup() {
                 const [cls, label] = STATUS_LABEL[r.status] || ["low", r.status];
                 return (
                   <tr key={r.id}>
-                    <td className="mono">{r.patientId}</td>
+                    <td>{patientNames[r.patientId] || r.patientId}</td>
                     <td className="mono">{r.dueDate}</td>
                     <td>
                       <span className={`badge ${cls}`}>
