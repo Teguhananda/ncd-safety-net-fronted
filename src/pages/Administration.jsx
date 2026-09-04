@@ -30,6 +30,14 @@ export default function Administration() {
     followupCompletion: "",
     lostToFollowup: "",
   });
+  const baselineLabels = {
+    highRiskIdentified: "Risiko Tinggi Teridentifikasi",
+    medReconciliation: "Rekonsiliasi Obat",
+    educationDocumented: "Edukasi Terdokumentasi",
+    redFlagReviewed: "Red Flag Ditinjau",
+    followupCompletion: "Penyelesaian Tindak Lanjut",
+    lostToFollowup: "Hilang dari Tindak Lanjut",
+  };
   const [sourceNote, setSourceNote] = useState("");
   const [baselineBusy, setBaselineBusy] = useState(false);
   const [baselineMsg, setBaselineMsg] = useState(null);
@@ -297,7 +305,7 @@ const runResetAnalytics = async () => {
         <div className="grid cols-3">
           {Object.keys(baseline).map((key) => (
             <div className="field" key={key}>
-              <label>{key} (%)</label>
+              <label>{baselineLabels[key] || key} (%)</label>
               <input
                 type="number"
                 value={baseline[key]}
