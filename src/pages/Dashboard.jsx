@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, orderBy, limit, query } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, orderBy, limit, query } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
@@ -30,7 +30,26 @@ export default function Dashboard() {
         .map((d) => ({ id: d.id, ...d.data() }))
         .filter((r) => r.riskStatus === "HIGH" || r.riskStatus === "RED_FLAG")
         .slice(0, 5);
-      setAttentionList(attention);
+
+      // Ambil nama pasien dari koleksi "patients" berdasarkan patientId
+      const attentionWithNames = await Promise.all(
+        attention.map(async (r) => {
+          if (!r.patientId) return { ...r, patientName: "-", patientMrn: "-" };
+          try {
+            const patientSnap = await getDoc(doc(db, "patients", r.patientId));
+            const p = patientSnap.exists() ? patientSnap.data() : null;
+            return {
+              ...r,
+              patientName: p?.name || p?.fullName || "Nama tidak ditemukan",
+              patientMrn: p?.mrn || p?.rmNumber || r.patientId,
+            };
+          } catch (err) {
+            return { ...r, patientName: "Gagal memuat nama", patientMrn: r.patientId };
+          }
+        })
+      );
+
+      setAttentionList(attentionWithNames);
       setLoading(false);
     }
     load();
@@ -88,7 +107,7 @@ export default function Dashboard() {
               <tbody>
                 {attentionList.map((r) => (
                   <tr key={r.id} className={r.riskStatus === "RED_FLAG" ? "row-redflag" : ""}>
-                    <td className="mono">{r.patientId}</td>
+                    <td>{r.patientName}</td>
                     <td>
                       <RiskBadge status={r.riskStatus} />
                     </td>
