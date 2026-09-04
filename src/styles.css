@@ -250,3 +250,15 @@ body {
 .check-item.danger-zone {
   color: #ffd7cf;
 }
+
+/* ===== Animasi berkedip untuk status risiko (Low/Moderate/High/Red Flag) ===== */
+.dot-blink {
+  display: inline-block;
+  margin-right: 4px;
+  animation: statusBlink 1.3s ease-in-out infinite;
+}
+
+@keyframes statusBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.35; transform: scale(0.85); }
+}
