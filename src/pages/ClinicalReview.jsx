@@ -4,7 +4,6 @@ import { db } from "../lib/firebase";
 import { callApi } from "../lib/api";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
-import ClinicalAIAssistant from "../components/ClinicalAIAssistant";
 
 export default function ClinicalReview() {
   const [pending, setPending] = useState([]);
@@ -133,8 +132,6 @@ export default function ClinicalReview() {
           )}
         </div>
       </div>
-
-      {selected && <ClinicalAIAssistant assessmentId={selected.id} patientId={selected.patientId} />}
     </Layout>
   );
 }

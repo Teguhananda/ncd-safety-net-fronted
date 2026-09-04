@@ -42,38 +42,6 @@ export default function Administration() {
   const [baselineBusy, setBaselineBusy] = useState(false);
   const [baselineMsg, setBaselineMsg] = useState(null);
 
-  // --- AI Assistant Policy ---
-  const [aiEnabled, setAiEnabled] = useState(false);
-  const [aiApprover, setAiApprover] = useState("");
-  const [aiConfirmation, setAiConfirmation] = useState(false);
-  const [aiDailyLimit, setAiDailyLimit] = useState(50);
-  const [aiBusy, setAiBusy] = useState(false);
-  const [aiMsg, setAiMsg] = useState(null);
-
-  const saveAIPolicy = async () => {
-    if (aiEnabled && (!aiApprover || !aiConfirmation)) {
-      setAiMsg({ ok: false, text: "Untuk mengaktifkan: nama penyetuju dan centang konfirmasi tata kelola wajib diisi." });
-      return;
-    }
-    setAiBusy(true);
-    try {
-      await callApi("adminConfig", {
-        action: "aiPolicy",
-        enabled: aiEnabled,
-        approvedBy: aiApprover || null,
-        governanceConfirmation: aiConfirmation
-          ? "Tata kelola privasi RS telah mereview pengiriman data pasien ke API eksternal."
-          : null,
-        dailyQuestionLimit: Number(aiDailyLimit) || 50,
-      });
-      setAiMsg({ ok: true, text: aiEnabled ? "Asisten AI diaktifkan." : "Asisten AI dinonaktifkan." });
-    } catch (e) {
-      setAiMsg({ ok: false, text: e.message });
-    } finally {
-      setAiBusy(false);
-    }
-  };
-
   // --- Trigger Manual (pengganti scheduled functions — plan gratis/Spark) ---
   const [followupBusy, setFollowupBusy] = useState(false);
   const [followupMsg, setFollowupMsg] = useState(null);
@@ -215,46 +183,6 @@ const runResetAnalytics = async () => {
         <SectionResult msg={resetMsg} />
           </div>
         </div>
-      </div>
-
-      <div className="card" style={{ marginBottom: 16, borderColor: "#EFD4CE" }}>
-        <h3>Asisten AI Klinis — Gerbang Privasi Data</h3>
-        <div className="alert warn">
-          <span>⚠️</span>
-          <div>
-            Mengaktifkan ini berarti data pasien (hasil skrining, obat, catatan — sebagian diredaksi otomatis) akan
-            dikirim ke API eksternal (Anthropic) untuk dijelaskan ke dokter di halaman Clinical Review. Nonaktif
-            secara default. Aktifkan HANYA setelah tata kelola privasi RS mereview ini.
-            <br /><br />
-            <strong>Catatan:</strong> fitur ini juga butuh plan Blaze aktif (project di plan gratis Spark memblokir
-            koneksi keluar ke API eksternal) — kalau belum upgrade Blaze, mengaktifkan ini di sini belum akan
-            berfungsi sampai billing-nya aktif.
-          </div>
-        </div>
-        <label className="check-item" style={{ marginBottom: 10 }}>
-          <input type="checkbox" checked={aiEnabled} onChange={(e) => setAiEnabled(e.target.checked)} />
-          Aktifkan Asisten AI Klinis
-        </label>
-        {aiEnabled && (
-          <>
-            <div className="field">
-              <label>Disetujui oleh (nama/jabatan penanggung jawab tata kelola privasi)</label>
-              <input value={aiApprover} onChange={(e) => setAiApprover(e.target.value)} />
-            </div>
-            <label className="check-item" style={{ marginBottom: 10 }}>
-              <input type="checkbox" checked={aiConfirmation} onChange={(e) => setAiConfirmation(e.target.checked)} />
-              Saya konfirmasi tata kelola privasi RS telah mereview pengiriman data pasien ke API eksternal ini
-            </label>
-          </>
-        )}
-        <div className="field" style={{ maxWidth: 260 }}>
-          <label>Batas pertanyaan per user per hari</label>
-          <input type="number" value={aiDailyLimit} onChange={(e) => setAiDailyLimit(e.target.value)} />
-        </div>
-        <button className="btn btn-primary" onClick={saveAIPolicy} disabled={aiBusy}>
-          {aiBusy ? "Menyimpan..." : "Simpan Pengaturan"}
-        </button>
-        <SectionResult msg={aiMsg} />
       </div>
 
       <div className="grid cols-2">
