@@ -309,18 +309,10 @@ body {
   to { transform: rotate(360deg); }
 }
 
-/* ===== Background foto lobi RSUD untuk Dashboard ===== */
-.dashboard-bg {
-  position: relative;
-}
-.dashboard-bg::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("/images/hospital-lobby.png");
-  background-size: cover;
-  background-position: center;
-  opacity: 0.14;
-  z-index: -1;
-  border-radius: 20px;
+/* ===== Aksen warna konten (beda dari sidebar) ===== */
+.content {
+  background: linear-gradient(160deg, rgba(23,184,166,0.05), rgba(13,26,53,0.35) 60%);
+  border-radius: 24px;
+  margin: 0 24px 24px;
+  padding: 24px 24px 32px;
 }
