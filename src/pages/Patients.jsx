@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { collection, getDocs, orderBy, query, limit, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Layout from "../components/Layout";
@@ -22,7 +22,9 @@ export default function Patients() {
   const [saveError, setSaveError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
   const [deleteError, setDeleteError] = useState("");
+  const [usbScanNotFound, setUsbScanNotFound] = useState("");
   const navigate = useNavigate();
+  const searchInputRef = useRef(null);
 
   const [form, setForm] = useState({
     mrn: "", name: "", dob: "", gender: "Laki-laki", conditions: [],
@@ -39,12 +41,31 @@ export default function Patients() {
 
   const handleDetected = (rawValue) => {
     setScanning(false);
-    const match = rows.find((r) => r.id === rawValue || r.mrn === rawValue);
+    const clean = (rawValue || "").trim();
+    const match = rows.find((r) => r.id === clean || r.mrn === clean);
     if (match) {
       navigate(`/screening?patientId=${match.id}`);
     } else {
-      navigate(`/screening?patientId=${encodeURIComponent(rawValue)}`);
+      setUsbScanNotFound(clean);
     }
+  };
+
+  // Dukungan USB barcode scanner: alat mengetik kode ke kolom yang sedang fokus
+  // lalu otomatis menekan Enter. Kita jaga kolom pencarian selalu fokus (kecuali
+  // saat panel Tambah Pasien / Scan Kamera sedang terbuka), lalu tangkap Enter-nya.
+  useEffect(() => {
+    if (!adding && !scanning) {
+      searchInputRef.current?.focus();
+    }
+  }, [adding, scanning]);
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    const val = search.trim();
+    if (!val) return;
+    setUsbScanNotFound("");
+    handleDetected(val);
   };
 
   async function loadPatients() {
@@ -139,22 +160,33 @@ export default function Patients() {
   return (
     <Layout title="Daftar Pasien" meta="Seluruh pasien yang sudah discan/discreen">
       <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, gap: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6, gap: 8, flexWrap: "wrap" }}>
           <input
-            placeholder="Cari nama / No. RM"
+            ref={searchInputRef}
+            placeholder="Cari nama / No. RM — atau scan barcode di sini"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, width: 260 }}
+            onChange={(e) => { setSearch(e.target.value); setUsbScanNotFound(""); }}
+            onKeyDown={handleSearchKeyDown}
+            style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, width: 300 }}
           />
           <div style={{ display: "flex", gap: 8 }}>
             <button className="btn btn-primary" onClick={() => setAdding(true)}>
               + Tambah Pasien
             </button>
             <button className="btn btn-primary" onClick={() => setScanning(true)}>
-              + Scan QR
+              + Scan QR (Kamera)
             </button>
           </div>
         </div>
+        <div className="stat-sub" style={{ marginBottom: 12 }}>
+          💡 Tip: klik sekali di kolom pencarian, lalu scan barcode/QR pasien dengan alat USB scanner — sistem akan otomatis membuka halaman Skrining pasien tersebut.
+        </div>
+
+        {usbScanNotFound && (
+          <div className="error-text" style={{ marginBottom: 10 }}>
+            Kode "{usbScanNotFound}" tidak cocok dengan No. RM pasien manapun. Pastikan pasien sudah terdaftar di Daftar Pasien.
+          </div>
+        )}
 
         {adding && (
           <div className="card" style={{ marginBottom: 14, background: "var(--surface-2)" }}>
@@ -208,7 +240,7 @@ export default function Patients() {
         {scanning && (
           <div className="card" style={{ marginBottom: 14, background: "var(--surface-2)" }}>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
-              <h3>Scan QR Pasien</h3>
+              <h3>Scan QR Pasien (Kamera)</h3>
               <button className="btn btn-ghost" onClick={() => setScanning(false)}>Tutup</button>
             </div>
             <QRScanner onDetected={handleDetected} />
