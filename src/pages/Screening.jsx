@@ -42,6 +42,7 @@ export default function Screening() {
   const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
   const [pastScreenings, setPastScreenings] = useState([]);
   const [selectedPastDate, setSelectedPastDate] = useState("");
+  const [historyItems, setHistoryItems] = useState([]);
   const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true }]);
   const [step, setStep] = useState("screening"); // screening -> medication -> result
   const [result, setResult] = useState(null);
@@ -65,6 +66,7 @@ export default function Screening() {
           .map((item) => item.date)
           .filter(Boolean);
         setPastScreenings(dates);
+        setHistoryItems(res.data.timeline || []);
       } catch (e) {
         console.error("Gagal memuat riwayat tanggal screening:", e);
       }
@@ -72,6 +74,10 @@ export default function Screening() {
   }, [patientId]);
 
   const hasRedFlag = Object.values(redFlags).some(Boolean);
+
+  const selectedDayItems = selectedPastDate
+    ? historyItems.filter((item) => item.date && item.date.slice(0, 10) === selectedPastDate.slice(0, 10))
+    : [];
 
   const toggleNcd = (item) => {
     setNcdConditions((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
@@ -188,8 +194,23 @@ export default function Screening() {
               </select>
               {selectedPastDate && (
                 <div className="stat-sub" style={{ marginTop: 6 }}>
-                  Pasien ini pernah discreening pada tanggal tersebut. Buka menu{" "}
-                  <strong>Riwayat</strong> di Daftar Pasien untuk lihat detail lengkapnya.
+                  {selectedDayItems.map((item, i) => (
+                    <div key={i} style={{ marginTop: i > 0 ? 8 : 0, paddingTop: i > 0 ? 8 : 0, borderTop: i > 0 ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+                      <strong>{item.summary}</strong>
+                      {item.detail && item.detail.ncdConditions && item.detail.ncdConditions.length > 0 && (
+                        <div>Kondisi NCD: {item.detail.ncdConditions.join(", ")}</div>
+                      )}
+                      {item.detail && item.detail.redFlags && item.detail.redFlags.length > 0 && (
+                        <div style={{ color: "#ffd7cf" }}>Red Flag: {item.detail.redFlags.join(", ")}</div>
+                      )}
+                      {item.detail && item.detail.totalScore != null && (
+                        <div>Skor risiko total: {item.detail.totalScore}</div>
+                      )}
+                      {item.detail && item.detail.domainScores && (
+                        <div>Rincian skor: klinis {item.detail.domainScores.clinicalRisk}, obat {item.detail.domainScores.medicationSafety}, follow-up {item.detail.domainScores.followUpRisk}, edukasi {item.detail.domainScores.educationRisk}, insiden {item.detail.domainScores.previousSafetyEvent}, akses {item.detail.domainScores.accessBarrier}</div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
