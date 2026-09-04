@@ -28,7 +28,12 @@ navigate("/");
     <div className="login-wrap">
       <div className="login-card">
         <div className="brand">
-          <div className="brand-mark"></div>
+          <img
+            src="/logos/app-logo.png"
+            alt="NCD Safety Net"
+            className="brand-mark-img"
+            style={{ width: 72, height: 72, objectFit: "contain" }}
+          />
           <div className="brand-text">
             <div className="name">NCD Safety Net</div>
             <div className="sub">RSUD KAB. REJANG LEBONG</div>

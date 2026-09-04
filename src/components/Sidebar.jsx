@@ -22,11 +22,13 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="brand">
-  <div className="brand-logos">
-    <img src="/logos/rsud-logo.png" alt="Logo RSUD" className="logo-img" />
-    <img src="/logos/komite-logo.png" alt="Logo Komite Mutu" className="logo-img" />
-  </div>
-  <div className="brand-text">
+        <img
+          src="/logos/app-logo.png"
+          alt="NCD Safety Net"
+          className="app-logo-img"
+          style={{ width: 40, height: 40, objectFit: "contain" }}
+        />
+        <div className="brand-text">
           <div className="name">NCD Safety Net</div>
           <div className="sub">RSUD KAB. REJANG LEBONG</div>
         </div>
@@ -44,12 +46,22 @@ export default function Sidebar() {
           </NavLink>
         ))}
       </nav>
-      <div className="role-switch">
-        <div>{user && user.email}</div>
-        <div style={{ marginBottom: 8 }}>Role: {role || "-"}</div>
-        <button className="btn btn-ghost" style={{ width: "100%" }} onClick={logout}>
-          Keluar
-        </button>
+
+      <div className="sidebar-footer" style={{ marginTop: "auto" }}>
+        <div
+          className="brand-logos-bottom"
+          style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 12 }}
+        >
+          <img src="/logos/rsud-logo.png" alt="Logo RSUD" className="logo-img" />
+          <img src="/logos/komite-logo.png" alt="Logo Komite Mutu" className="logo-img" />
+        </div>
+        <div className="role-switch">
+          <div>{user && user.email}</div>
+          <div style={{ marginBottom: 8 }}>Role: {role || "-"}</div>
+          <button className="btn btn-ghost" style={{ width: "100%" }} onClick={logout}>
+            Keluar
+          </button>
+        </div>
       </div>
     </aside>
   );
