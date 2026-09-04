@@ -42,6 +42,7 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
+      <div className="dashboard-bg">
       <div className="grid cols-3">
         <div className="card">
           <div className="stat-label">Total Skrining</div>
@@ -110,6 +111,7 @@ export default function Dashboard() {
             { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#C8552B" },
           ]}
         />
+      </div>
       </div>
     </Layout>
   );

@@ -308,3 +308,19 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* ===== Background foto lobi RSUD untuk Dashboard ===== */
+.dashboard-bg {
+  position: relative;
+}
+.dashboard-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("/images/hospital-lobby.png");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.14;
+  z-index: -1;
+  border-radius: 20px;
+}
