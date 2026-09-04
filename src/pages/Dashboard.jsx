@@ -76,6 +76,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
+      </div>
         <div className="card">
           <h3>Pasien Perlu Perhatian</h3>
           {loading ? (
