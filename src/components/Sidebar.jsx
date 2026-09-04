@@ -50,10 +50,33 @@ export default function Sidebar() {
       <div className="sidebar-footer" style={{ marginTop: "auto" }}>
         <div
           className="brand-logos-bottom"
-          style={{ display: "flex", justifyContent: "center", gap: 12, marginBottom: 12 }}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            padding: "14px 18px",
+            marginBottom: 14,
+            borderRadius: 16,
+            background: "rgba(255, 255, 255, 0.10)",
+            border: "1px solid rgba(255, 255, 255, 0.18)",
+            backdropFilter: "blur(12px)",
+            WebkitBackdropFilter: "blur(12px)",
+            boxShadow: "0 4px 18px rgba(0, 0, 0, 0.25)",
+          }}
         >
-          <img src="/logos/rsud-logo.png" alt="Logo RSUD" className="logo-img" />
-          <img src="/logos/komite-logo.png" alt="Logo Komite Mutu" className="logo-img" />
+          <img
+            src="/logos/rsud-logo.png"
+            alt="Logo RSUD"
+            className="logo-img"
+            style={{ width: 56, height: 56, objectFit: "contain" }}
+          />
+          <img
+            src="/logos/komite-logo.png"
+            alt="Logo Komite Mutu"
+            className="logo-img"
+            style={{ width: 56, height: 56, objectFit: "contain" }}
+          />
         </div>
         <div className="role-switch">
           <div>{user && user.email}</div>
