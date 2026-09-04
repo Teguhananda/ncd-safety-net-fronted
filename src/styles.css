@@ -262,3 +262,49 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.35; transform: scale(0.85); }
 }
+
+/* ===== Efek lampu sirine ambulans untuk Red Flag ===== */
+.beacon {
+  position: relative;
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border-radius: 50%;
+  vertical-align: middle;
+  animation: beaconFlash 0.6s steps(1, end) infinite;
+}
+
+.beacon::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 0deg,
+    rgba(255, 45, 45, 0.9) 0deg,
+    transparent 70deg,
+    rgba(41, 121, 255, 0.9) 180deg,
+    transparent 250deg,
+    rgba(255, 45, 45, 0.9) 360deg
+  );
+  animation: beaconSpin 0.9s linear infinite;
+  filter: blur(1.5px);
+  z-index: -1;
+}
+
+@keyframes beaconFlash {
+  0%, 49% {
+    background-color: #ff3b30;
+    box-shadow: 0 0 10px 3px rgba(255, 59, 48, 0.85);
+  }
+  50%, 100% {
+    background-color: #2979ff;
+    box-shadow: 0 0 10px 3px rgba(41, 121, 255, 0.85);
+  }
+}
+
+@keyframes beaconSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
