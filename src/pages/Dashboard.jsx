@@ -4,6 +4,7 @@ import { db } from "../lib/firebase";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
 import TrendChart from "../components/TrendChart";
+import RiskPieChart from "../components/RiskPieChart";
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
@@ -66,20 +67,12 @@ export default function Dashboard() {
       <div className="grid cols-2" style={{ marginTop: 16 }}>
         <div className="card">
           <h3>Distribusi Risiko</h3>
-          {[
-            ["🟢 Low", dist.low, "var(--low)"],
-            ["🟡 Moderate", dist.moderate, "var(--moderate)"],
-            ["🔴 High", dist.high, "var(--high)"],
-            ["🚨 Red Flag", dist.redFlag, "var(--redflag)"],
-          ].map(([label, val, color]) => (
-            <div key={label} style={{ marginBottom: 10 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}>
-                <span>{label}</span>
-                <span className="mono">{val}</span>
-              </div>
-              <div style={{ height: 7, background: "var(--surface-2)", borderRadius: 4 }}>
-                <div style={{ height: "100%", width: pct(val) + "%", background: color, borderRadius: 4 }}></div>
-              </div>
+        <RiskPieChart data={dist} />
+        <div style={{ marginTop: 14 }}>
+          {[["Low",dist.low,"#2fae6f"],["Moderate",dist.moderate,"#f5a623"],["High",dist.high,"#e6553f"],["Red Flag",dist.redFlag,"#a5281f"]].map(([l,v,col]) => (
+            <div key={l} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", fontSize:12.5, marginBottom:6 }}>
+              <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:9, height:9, borderRadius:"50%", background:col, display:"inline-block" }}></span>{l}</span>
+              <span className="mono">{v}</span>
             </div>
           ))}
         </div>
