@@ -87,6 +87,28 @@ export default function Administration() {
     }
   };
 
+const [resetBusy, setResetBusy] = useState(false);
+const [resetMsg, setResetMsg] = useState(null);
+
+const runResetAnalytics = async () => {
+  const confirmed = window.confirm(
+    "Ini akan menghapus semua riwayat snapshot Analitik PMKP dan menghitung ulang dari data yang ada sekarang (termasuk insiden yang sudah dihapus). Lanjutkan?"
+  );
+  if (!confirmed) return;
+  setResetBusy(true);
+  try {
+    const res = await callApi("scheduled", { action: "resetAnalytics" });
+    setResetMsg({
+      ok: true,
+      text: `Reset selesai — ${res.data.deletedCount} snapshot lama dihapus, snapshot baru (${res.data.totalScreenings} total screening) sudah dibuat.`,
+    });
+  } catch (e) {
+    setResetMsg({ ok: false, text: e.message });
+  } finally {
+    setResetBusy(false);
+  }
+};
+
   const runComputeAnalytics = async () => {
     setAnalyticsBusy(true);
     try {
@@ -179,6 +201,10 @@ export default function Administration() {
               {analyticsBusy ? "Memproses..." : "Jalankan Sekarang"}
             </button>
             <SectionResult msg={analyticsMsg} />
+        <button className="btn btn-primary" style={{ marginTop: 8, background: "#c0392b" }} onClick={runResetAnalytics} disabled={resetBusy}>
+          {resetBusy ? "Mereset..." : "Reset Analitik PMKP"}
+        </button>
+        <SectionResult msg={resetMsg} />
           </div>
         </div>
       </div>
