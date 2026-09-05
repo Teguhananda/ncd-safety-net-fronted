@@ -1,6 +1,19 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { callApi } from "../lib/api";
 import Layout from "../components/Layout";
+
+const ROLE_LABEL_ADMIN = {
+  admin: "Admin",
+  petugas: "Petugas",
+  dokter: "Dokter",
+  manajemen: "PMKP",
+  case_manager: "Case Manager",
+};
+
+function fmtDate(iso) {
+  if (!iso) return "-";
+  return new Date(iso).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
 
 function SectionResult({ msg }) {
   if (!msg) return null;
@@ -81,6 +94,32 @@ export default function Administration() {
       setPwResetBusy(false);
     }
   };
+
+  // --- Daftar Akun Staff (supaya bisa cari "siapa pakai email apa" kalau lupa) ---
+  const [staffAccounts, setStaffAccounts] = useState([]);
+  const [staffListLoading, setStaffListLoading] = useState(true);
+  const [staffListError, setStaffListError] = useState("");
+  const [staffSearch, setStaffSearch] = useState("");
+
+  const loadStaffAccounts = async () => {
+    setStaffListLoading(true);
+    setStaffListError("");
+    try {
+      const res = await callApi("adminConfig", { action: "listStaffAccounts" });
+      setStaffAccounts(res.data.accounts || []);
+    } catch (e) {
+      setStaffListError(e.message || "Gagal memuat daftar akun.");
+    } finally {
+      setStaffListLoading(false);
+    }
+  };
+
+  useEffect(() => { loadStaffAccounts(); }, []);
+
+  const filteredStaffAccounts = staffAccounts.filter((a) => {
+    const q = staffSearch.toLowerCase();
+    return !q || (a.displayName || "").toLowerCase().includes(q) || (a.email || "").toLowerCase().includes(q);
+  });
 
   // --- Ambang Vital Sign (Tensi & Gula Darah) — dipakai Layer 1 (red flag)
   // dan Domain Klinis (Layer 2) di riskEngine.js. Nilai awal di bawah ini
@@ -718,6 +757,43 @@ const runResetAnalytics = async () => {
         <h3>👤 Kelola Akun Staff</h3>
         <div className="stat-sub" style={{ marginBottom: 12 }}>
           Buat akun baru untuk dokter/petugas/manajemen, atau ubah role akun yang sudah ada — tidak perlu lewat Firebase Console lagi.
+        </div>
+
+        <div style={{ marginBottom: 20, paddingBottom: 20, borderBottom: "1px solid var(--glass-border)" }}>
+          <h4 style={{ marginBottom: 10 }}>📋 Daftar Akun Staff (cari kalau ada yang lupa emailnya)</h4>
+          <input
+            placeholder="Cari nama atau email..."
+            value={staffSearch}
+            onChange={(e) => setStaffSearch(e.target.value)}
+            style={{ marginBottom: 10 }}
+          />
+          {staffListLoading ? (
+            <div className="stat-sub">Memuat daftar akun...</div>
+          ) : staffListError ? (
+            <div className="error-text">{staffListError}</div>
+          ) : filteredStaffAccounts.length === 0 ? (
+            <div className="stat-sub">Tidak ada akun yang cocok.</div>
+          ) : (
+            <table>
+              <thead>
+                <tr><th>Nama</th><th>Email</th><th>Role</th><th>Dibuat</th><th>Login Terakhir</th></tr>
+              </thead>
+              <tbody>
+                {filteredStaffAccounts.map((a) => (
+                  <tr key={a.uid}>
+                    <td>{a.displayName || "-"}</td>
+                    <td className="mono">{a.email}{a.disabled && <span style={{ color: "var(--redflag)" }}> (nonaktif)</span>}</td>
+                    <td>{ROLE_LABEL_ADMIN[a.role] || a.role}</td>
+                    <td className="stat-sub">{fmtDate(a.createdAt)}</td>
+                    <td className="stat-sub">{fmtDate(a.lastSignIn)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          <button className="btn btn-ghost" style={{ marginTop: 10 }} onClick={loadStaffAccounts}>
+            Muat Ulang Daftar
+          </button>
         </div>
 
         <div className="grid cols-2">
