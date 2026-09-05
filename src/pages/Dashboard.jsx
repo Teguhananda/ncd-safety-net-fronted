@@ -6,13 +6,30 @@ import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
 import TrendChart from "../components/TrendChart";
 import RiskPieChart from "../components/RiskPieChart";
+import { useAuth } from "../context/AuthContext";
+import { requestAndRegisterStaffPush } from "../lib/staffPush";
 
 export default function Dashboard() {
+  const { role } = useAuth();
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
   const [attentionList, setAttentionList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeSignalCount, setActiveSignalCount] = useState(0);
+  const [latestSignalTime, setLatestSignalTime] = useState(null);
+  const [notifStatus, setNotifStatus] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
+  const [notifMsg, setNotifMsg] = useState("");
+
+  const handleEnableStaffNotif = async () => {
+    setNotifMsg("Memproses...");
+    const result = await requestAndRegisterStaffPush();
+    if (result.ok) {
+      setNotifStatus("granted");
+      setNotifMsg("Notifikasi aktif. Anda akan diberi tahu real-time saat ada Home Safety Signal baru.");
+    } else {
+      setNotifMsg(result.reason);
+    }
+  };
 
   useEffect(() => {
     async function load() {
@@ -61,6 +78,13 @@ export default function Dashboard() {
           query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED"))
         );
         setActiveSignalCount(signalSnap.size);
+        let latest = null;
+        signalSnap.docs.forEach((d) => {
+          const dt = d.data().detectedAt;
+          const dtDate = dt && dt.toDate ? dt.toDate() : null;
+          if (dtDate && (!latest || dtDate > latest)) latest = dtDate;
+        });
+        setLatestSignalTime(latest);
       } catch (err) {
         // diamkan — widget tambahan, tidak boleh mengganggu dashboard utama
       }
@@ -74,9 +98,22 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
+      {role === "dokter" && notifStatus !== "granted" && notifStatus !== "unsupported" && (
+        <div className="card" style={{ marginBottom: 16 }}>
+          🔔 Aktifkan notifikasi supaya langsung diberi tahu real-time di HP saat ada Home Safety Signal baru dari pasien.
+          <button className="btn btn-primary" style={{ marginTop: 8, display: "block" }} onClick={handleEnableStaffNotif}>
+            Aktifkan Notifikasi
+          </button>
+          {notifMsg && <div className="stat-sub" style={{ marginTop: 6 }}>{notifMsg}</div>}
+        </div>
+      )}
       {activeSignalCount > 0 && (
         <Link to="/safety-signals" className="card" style={{ display: "block", marginBottom: 16, textDecoration: "none", border: "1px solid var(--redflag, #e6553f)" }}>
-          <b>🏠 {activeSignalCount} Home Safety Signal aktif</b> — dari pemantauan mandiri pasien di rumah, perlu ditinjau. Klik untuk buka.
+          <b>🏠 {activeSignalCount} Home Safety Signal aktif</b> — dari pemantauan mandiri pasien di rumah, perlu ditinjau.
+          {latestSignalTime && (
+            <span className="stat-sub"> Sinyal terbaru: {latestSignalTime.toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}.</span>
+          )}
+          {" "}Klik untuk buka.
         </Link>
       )}
             <div className="grid cols-3">

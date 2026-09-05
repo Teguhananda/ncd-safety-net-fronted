@@ -1,4 +1,7 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 
 const NAV_ITEMS = [
@@ -19,6 +22,20 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const { role, user, logout } = useAuth();
   const visibleItems = NAV_ITEMS.filter((item) => !role || item.roles.includes(role));
+  const [activeSignalCount, setActiveSignalCount] = useState(0);
+
+  // Badge merah real-time — dengar langsung perubahan Firestore (bukan
+  // sekali ambil saja) supaya begitu ada Home Safety Signal baru masuk,
+  // badge-nya langsung berubah tanpa perlu refresh halaman.
+  useEffect(() => {
+    if (!role) return;
+    const unsub = onSnapshot(
+      query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED")),
+      (snap) => setActiveSignalCount(snap.size),
+      () => {} // diamkan kalau gagal — widget tambahan, tidak boleh mengganggu sidebar utama
+    );
+    return unsub;
+  }, [role]);
 
   return (
     <aside className="sidebar">
@@ -44,6 +61,22 @@ export default function Sidebar() {
           >
             <span className="nav-dot"></span>
             {item.label}
+            {item.to === "/safety-signals" && activeSignalCount > 0 && (
+              <span
+                style={{
+                  marginLeft: "auto",
+                  background: "var(--redflag, #e6553f)",
+                  color: "#fff",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  borderRadius: 999,
+                  padding: "2px 8px",
+                  lineHeight: 1.4,
+                }}
+              >
+                {activeSignalCount}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>
