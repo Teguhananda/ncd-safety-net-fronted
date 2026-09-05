@@ -7,7 +7,7 @@ import { callApi } from "./api";
  * isi di ncd-safety-net-frontend/src/lib/push.js (punya Portal Pasien) —
  * satu project Firebase cukup 1 VAPID key, dipakai bersama.
  */
-const VAPID_KEY = "TEMPEL_KEY_DISINI";
+const VAPID_KEY = "BO99WmWzA9lCDgQQ-1Cvo5uVacAh06hx_m5RUSJQa14wbw99D1DwXSslbmJPmItL6i6pmAuMcIqoAsoVt8ar6eo";
 
 /**
  * requestAndRegisterStaffPush — versi staff dari requestAndRegisterPush
