@@ -15,6 +15,50 @@ export default function Administration() {
   const [thresholdBusy, setThresholdBusy] = useState(false);
   const [thresholdMsg, setThresholdMsg] = useState(null);
 
+  // --- Kelola Akun Staff (baru) ---
+  const [newAccount, setNewAccount] = useState({ displayName: "", email: "", password: "", role: "dokter" });
+  const [newAccountBusy, setNewAccountBusy] = useState(false);
+  const [newAccountMsg, setNewAccountMsg] = useState(null);
+
+  const [roleChange, setRoleChange] = useState({ email: "", role: "dokter" });
+  const [roleChangeBusy, setRoleChangeBusy] = useState(false);
+  const [roleChangeMsg, setRoleChangeMsg] = useState(null);
+
+  const submitNewAccount = async () => {
+    if (!newAccount.email || !newAccount.password) {
+      setNewAccountMsg({ ok: false, text: "Email dan password wajib diisi." });
+      return;
+    }
+    setNewAccountBusy(true);
+    setNewAccountMsg(null);
+    try {
+      const res = await callApi("adminConfig", { action: "createStaffAccount", ...newAccount });
+      setNewAccountMsg({ ok: true, text: `Akun berhasil dibuat: ${res.data.email} (role: ${res.data.role}).` });
+      setNewAccount({ displayName: "", email: "", password: "", role: "dokter" });
+    } catch (e) {
+      setNewAccountMsg({ ok: false, text: e.message || "Gagal membuat akun." });
+    } finally {
+      setNewAccountBusy(false);
+    }
+  };
+
+  const submitRoleChange = async () => {
+    if (!roleChange.email) {
+      setRoleChangeMsg({ ok: false, text: "Email wajib diisi." });
+      return;
+    }
+    setRoleChangeBusy(true);
+    setRoleChangeMsg(null);
+    try {
+      const res = await callApi("adminConfig", { action: "setStaffRole", ...roleChange });
+      setRoleChangeMsg({ ok: true, text: `Role akun ${res.data.email} diubah jadi: ${res.data.role}.` });
+    } catch (e) {
+      setRoleChangeMsg({ ok: false, text: e.message || "Gagal mengubah role." });
+    } finally {
+      setRoleChangeBusy(false);
+    }
+  };
+
   // --- Ambang Vital Sign (Tensi & Gula Darah) — dipakai Layer 1 (red flag)
   // dan Domain Klinis (Layer 2) di riskEngine.js. Nilai awal di bawah ini
   // sama dengan DEFAULT_THRESHOLDS.vitals di riskEngine.js (fallback),
@@ -645,6 +689,70 @@ const runResetAnalytics = async () => {
           {baselineBusy ? "Menyimpan..." : "Simpan Baseline"}
         </button>
         <SectionResult msg={baselineMsg} />
+      </div>
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <h3>👤 Kelola Akun Staff</h3>
+        <div className="stat-sub" style={{ marginBottom: 12 }}>
+          Buat akun baru untuk dokter/petugas/manajemen, atau ubah role akun yang sudah ada — tidak perlu lewat Firebase Console lagi.
+        </div>
+
+        <div className="grid cols-2">
+          <div>
+            <h4 style={{ marginBottom: 10 }}>Tambah Akun Staff Baru</h4>
+            <div className="field">
+              <label>Nama Lengkap</label>
+              <input value={newAccount.displayName} onChange={(e) => setNewAccount((a) => ({ ...a, displayName: e.target.value }))} placeholder="mis. dr. Ratih, Sp.PD" />
+            </div>
+            <div className="field">
+              <label>Email</label>
+              <input type="email" value={newAccount.email} onChange={(e) => setNewAccount((a) => ({ ...a, email: e.target.value }))} placeholder="ratih@rsudrejanglebong.go.id" />
+            </div>
+            <div className="field">
+              <label>Password Awal (min. 6 karakter)</label>
+              <input type="text" value={newAccount.password} onChange={(e) => setNewAccount((a) => ({ ...a, password: e.target.value }))} placeholder="Sarankan pasien ganti setelah login pertama" />
+            </div>
+            <div className="field">
+              <label>Role</label>
+              <select value={newAccount.role} onChange={(e) => setNewAccount((a) => ({ ...a, role: e.target.value }))}>
+                <option value="dokter">Dokter</option>
+                <option value="petugas">Petugas</option>
+                <option value="manajemen">Manajemen</option>
+                <option value="case_manager">Case Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button className="btn btn-primary" onClick={submitNewAccount} disabled={newAccountBusy}>
+              {newAccountBusy ? "Membuat..." : "Buat Akun"}
+            </button>
+            <SectionResult msg={newAccountMsg} />
+          </div>
+
+          <div>
+            <h4 style={{ marginBottom: 10 }}>Ubah Role Akun yang Sudah Ada</h4>
+            <div className="field">
+              <label>Email Akun</label>
+              <input type="email" value={roleChange.email} onChange={(e) => setRoleChange((r) => ({ ...r, email: e.target.value }))} placeholder="email akun yang sudah terdaftar" />
+            </div>
+            <div className="field">
+              <label>Role Baru</label>
+              <select value={roleChange.role} onChange={(e) => setRoleChange((r) => ({ ...r, role: e.target.value }))}>
+                <option value="dokter">Dokter</option>
+                <option value="petugas">Petugas</option>
+                <option value="manajemen">Manajemen</option>
+                <option value="case_manager">Case Manager</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <button className="btn btn-primary" onClick={submitRoleChange} disabled={roleChangeBusy}>
+              {roleChangeBusy ? "Menyimpan..." : "Ubah Role"}
+            </button>
+            <SectionResult msg={roleChangeMsg} />
+            <div className="stat-sub" style={{ marginTop: 10 }}>
+              Kalau akun yang login sedang aktif saat role-nya diubah, dia perlu logout &amp; login ulang supaya perubahan berlaku.
+            </div>
+          </div>
+        </div>
       </div>
     </Layout>
   );

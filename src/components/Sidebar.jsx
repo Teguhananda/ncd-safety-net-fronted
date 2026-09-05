@@ -4,15 +4,23 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 
+const ROLE_LABEL = {
+  admin: "Admin",
+  petugas: "Petugas",
+  dokter: "Dokter",
+  manajemen: "Manajemen",
+  case_manager: "Case Manager",
+};
+
 const NAV_ITEMS = [
-  { to: "/", label: "Dasbor", roles: ["admin", "petugas", "dokter", "manajemen"] },
-  { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter"] },
+  { to: "/", label: "Dasbor", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
+  { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter", "case_manager"] },
   { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas"] },
   { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter"] },
   { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter"] },
-  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen"] },
-  { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter"] },
-  { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter"] },
+  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
+  { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter", "case_manager"] },
+  { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter", "case_manager"] },
   { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen"] },
   { to: "/before-after", label: "Before–After", roles: ["admin", "manajemen"] },
   { to: "/audit-trail", label: "Jejak Audit", roles: ["admin", "manajemen"] },
@@ -114,7 +122,7 @@ export default function Sidebar() {
         </div>
         <div className="role-switch">
           <div>{user && user.email}</div>
-          <div style={{ marginBottom: 8 }}>Role: {role || "-"}</div>
+          <div style={{ marginBottom: 8 }}>Role: {ROLE_LABEL[role] || role || "-"}</div>
           <button className="btn btn-ghost" style={{ width: "100%" }} onClick={logout}>
             Keluar
           </button>

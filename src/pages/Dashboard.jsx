@@ -114,7 +114,7 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
-      {role === "dokter" && notifStatus !== "granted" && notifStatus !== "unsupported" && (
+      {(role === "dokter" || role === "case_manager") && notifStatus !== "granted" && notifStatus !== "unsupported" && (
         <div className="card" style={{ marginBottom: 16 }}>
           🔔 Aktifkan notifikasi supaya langsung diberi tahu real-time di HP saat ada Home Safety Signal baru dari pasien.
           <button className="btn btn-primary" style={{ marginTop: 8, display: "block" }} onClick={handleEnableStaffNotif}>
