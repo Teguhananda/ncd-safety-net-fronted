@@ -59,6 +59,29 @@ export default function Administration() {
     }
   };
 
+  // --- Kelola Sandi (reset password akun yang lupa sandi) ---
+  const [pwReset, setPwReset] = useState({ email: "", newPassword: "" });
+  const [pwResetBusy, setPwResetBusy] = useState(false);
+  const [pwResetMsg, setPwResetMsg] = useState(null);
+
+  const submitPasswordReset = async () => {
+    if (!pwReset.email || !pwReset.newPassword) {
+      setPwResetMsg({ ok: false, text: "Email dan sandi baru wajib diisi." });
+      return;
+    }
+    setPwResetBusy(true);
+    setPwResetMsg(null);
+    try {
+      const res = await callApi("adminConfig", { action: "resetStaffPassword", ...pwReset });
+      setPwResetMsg({ ok: true, text: `Sandi akun ${res.data.email} berhasil direset. Sampaikan sandi baru ke pemilik akun.` });
+      setPwReset({ email: "", newPassword: "" });
+    } catch (e) {
+      setPwResetMsg({ ok: false, text: e.message || "Gagal reset sandi." });
+    } finally {
+      setPwResetBusy(false);
+    }
+  };
+
   // --- Ambang Vital Sign (Tensi & Gula Darah) — dipakai Layer 1 (red flag)
   // dan Domain Klinis (Layer 2) di riskEngine.js. Nilai awal di bawah ini
   // sama dengan DEFAULT_THRESHOLDS.vitals di riskEngine.js (fallback),
@@ -752,6 +775,27 @@ const runResetAnalytics = async () => {
               Kalau akun yang login sedang aktif saat role-nya diubah, dia perlu logout &amp; login ulang supaya perubahan berlaku.
             </div>
           </div>
+        </div>
+
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--glass-border)" }}>
+          <h4 style={{ marginBottom: 10 }}>🔑 Kelola Sandi (Reset Password)</h4>
+          <div className="stat-sub" style={{ marginBottom: 12 }}>
+            Kalau ada staff lupa sandinya, reset di sini — sandi langsung berubah tanpa perlu email/link reset.
+          </div>
+          <div className="grid cols-2">
+            <div className="field">
+              <label>Email Akun</label>
+              <input type="email" value={pwReset.email} onChange={(e) => setPwReset((p) => ({ ...p, email: e.target.value }))} placeholder="email akun yang lupa sandi" />
+            </div>
+            <div className="field">
+              <label>Sandi Baru (min. 6 karakter)</label>
+              <input type="text" value={pwReset.newPassword} onChange={(e) => setPwReset((p) => ({ ...p, newPassword: e.target.value }))} placeholder="sandi baru untuk akun ini" />
+            </div>
+          </div>
+          <button className="btn btn-primary" onClick={submitPasswordReset} disabled={pwResetBusy}>
+            {pwResetBusy ? "Mereset..." : "Reset Sandi"}
+          </button>
+          <SectionResult msg={pwResetMsg} />
         </div>
       </div>
     </Layout>
