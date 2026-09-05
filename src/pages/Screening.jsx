@@ -12,6 +12,30 @@ const UNDERSTANDING_OPTIONS = [
   ["inadequate", "Tidak adekuat"],
 ];
 
+// Label bahasa manusia untuk tiap domain skor — dipakai untuk auto-isi
+// "Masalah keselamatan ditemukan" berdasarkan domain yang nilainya 1
+// (bermasalah), supaya petugas tidak mulai dari kotak kosong dan tidak
+// mungkin lupa/lewat mencatat domain yang sebenarnya bermasalah. Tetap
+// bisa diedit manual — sistem hanya menyarankan, keputusan klinis tetap
+// di tangan dokter/perawat.
+const DOMAIN_LABEL = {
+  clinicalRisk: "risiko klinis",
+  medicationSafety: "masalah keamanan pengobatan",
+  followUpRisk: "risiko kepatuhan follow-up",
+  educationRisk: "pemahaman pasien tentang kondisinya masih kurang",
+  previousSafetyEvent: "riwayat insiden keselamatan sebelumnya",
+  accessBarrier: "hambatan akses ke layanan kesehatan",
+};
+
+function buildProblemsIdentifiedSuggestion(domainScores) {
+  if (!domainScores) return "";
+  const problems = Object.entries(domainScores)
+    .filter(([, v]) => v === 1)
+    .map(([k]) => DOMAIN_LABEL[k] || k);
+  if (problems.length === 0) return "";
+  return "Ditemukan " + problems.join(", ") + ".";
+}
+
 const RED_FLAG_ITEMS = [
   ["chestPain", "Nyeri dada khas ACS (tertekan/terhimpit di dada kiri-tengah, menjalar ke lengan kiri/rahang/punggung, disertai keringat dingin/mual, berlangsung >20 menit)"],
   ["severeShortness", "Sesak berat (curiga edema paru akut — komplikasi krisis hipertensi yang butuh nitrogliserin + diuretik segera)"],
@@ -73,6 +97,22 @@ export default function Screening() {
   const [eduDone, setEduDone] = useState(false);
   const [safetyPlan, setSafetyPlan] = useState({ problemsIdentified: "", actionsTaken: "", targetFollowUpDate: "" });
   const [planDone, setPlanDone] = useState(false);
+
+  // Auto-isi "Masalah keselamatan ditemukan" berdasarkan Rincian Skor
+  // begitu hasil risiko keluar — supaya petugas tidak mulai dari kotak
+  // kosong dan tidak lewat mencatat domain yang sebenarnya bermasalah.
+  // Hanya mengisi kalau field masih kosong (tidak menimpa kalau petugas
+  // sudah mulai mengetik/mengedit sendiri) — tetap bisa diubah manual.
+  useEffect(() => {
+    const domainScores = result?.riskResult?.domainScores;
+    if (domainScores && !safetyPlan.problemsIdentified) {
+      const suggestion = buildProblemsIdentifiedSuggestion(domainScores);
+      if (suggestion) {
+        setSafetyPlan((p) => (p.problemsIdentified ? p : { ...p, problemsIdentified: suggestion }));
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [result]);
 
   useEffect(() => {
     if (!patientId) return;
@@ -551,6 +591,9 @@ export default function Screening() {
               <h3>Safety Plan &amp; Follow-up</h3>
               <div className="field">
                 <label>Masalah keselamatan ditemukan</label>
+                <div className="stat-sub" style={{ marginBottom: 4 }}>
+                  Terisi otomatis dari Rincian Skor di atas — silakan tinjau &amp; sesuaikan sesuai kondisi klinis sebenarnya.
+                </div>
                 <textarea
                   rows={2}
                   value={safetyPlan.problemsIdentified}
