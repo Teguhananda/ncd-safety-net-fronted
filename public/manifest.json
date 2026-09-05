@@ -2,8 +2,13 @@
   "name": "NCD Safety Net",
   "short_name": "NCD Safety Net",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#F5F7F8",
-  "theme_color": "#3B5670",
-  "icons": []
+  "orientation": "portrait",
+  "background_color": "#060a16",
+  "theme_color": "#0d1a35",
+  "icons": [
+    { "src": "/logos/app-logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/logos/app-logo.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
 }
