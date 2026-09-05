@@ -20,39 +20,47 @@ export default function Administration() {
   // sama dengan DEFAULT_THRESHOLDS.vitals di riskEngine.js (fallback),
   // supaya form ini mencerminkan apa yang benar-benar dipakai sistem
   // selama komite belum pernah menyimpan versi kustom.
+  //
+  // Sumber: PNPK Hipertensi Dewasa (Kepmenkes RI No. HK.01.07/MENKES/303/2026)
+  // dan PNPK DM Tipe 2 Dewasa (Kepmenkes RI No. HK.01.07/MENKES/302/2026).
   const [vitals, setVitals] = useState({
-    systolicRedFlag: 180,
+    systolicRedFlag: 180, // Derajat 3/Krisis (PNPK)
     systolicLowRedFlag: 90,
-    systolicWarn: 160,
-    diastolicRedFlag: 120,
-    diastolicWarn: 100,
-    pulseLowRedFlag: 40,
-    pulseWarnLow: 50,
-    pulseWarnHigh: 120,
-    pulseHighRedFlag: 150,
-    tempLowRedFlag: 35,
-    tempWarnHigh: 38.5,
-    tempHighRedFlag: 39.5,
-    spo2WarnLow: 95,
-    spo2LowRedFlag: 90,
-    // Ambang kategori klinis standar (untuk label, bukan red flag/skor)
-    systolicElevatedMin: 120,
-    systolicStage1Min: 130,
-    diastolicStage1Min: 80,
-    systolicStage2Min: 140,
-    diastolicStage2Min: 90,
+    systolicWarn: 160, // awal Derajat 2 (PNPK)
+    diastolicRedFlag: 110, // Derajat 3/Krisis (PNPK)
+    diastolicWarn: 100, // awal Derajat 2 (PNPK)
+    pulseLowRedFlag: 45,
+    pulseWarnLow: 55,
+    pulseWarnHigh: 100,
+    pulseHighRedFlag: 140,
+    tempLowRedFlag: 35.5,
+    tempWarnHigh: 37.8,
+    tempHighRedFlag: 38.5,
+    spo2WarnLow: 96,
+    spo2LowRedFlag: 92,
+    // Kategori klinis 6 tingkat sesuai PNPK Hipertensi Dewasa 2026 / ESC 2018-2024
+    optimalSystolicMax: 119,
+    optimalDiastolicMax: 79,
+    normalSystolicMax: 129,
+    normalDiastolicMax: 84,
+    normalHighSystolicMax: 139,
+    normalHighDiastolicMax: 89,
+    derajat1SystolicMax: 159,
+    derajat1DiastolicMax: 99,
+    derajat2SystolicMax: 179,
+    derajat2DiastolicMax: 109,
+    // Gula darah — sesuai Tabel 4 PNPK DM Tipe 2 Dewasa 2026
     gdsLowRedFlag: 70,
-    gdsNormalMax: 139,
-    gdsHighWarn: 200,
-    gdsHighRedFlag: 300,
+    gdsDiabetesMin: 200, // ambang diagnostik GDS (dengan gejala klasik/px ulang)
+    gdsHighRedFlag: 300, // ambang "terkendali buruk" (evaluasi benda keton) per PNPK
     gdpLowRedFlag: 70,
     gdpNormalMax: 99,
-    gdpHighWarn: 126,
-    gdpHighRedFlag: 250,
+    gdpDiabetesMin: 126, // ambang diagnostik GDP
+    gdpHighRedFlag: 300,
     hba1cNormalMax: 5.6,
-    hba1cDiabetesMin: 6.5,
-    hba1cHighWarn: 8,
-    hba1cHighRedFlag: 10,
+    hba1cDiabetesMin: 6.5, // ambang diagnostik HbA1c
+    hba1cHighWarn: 7, // target kendali PNPK: HbA1c <7%
+    hba1cHighRedFlag: 9, // ambang PNPK utk pertimbangan insulin (>9%)
   });
   const updateVital = (field, value) => setVitals((v) => ({ ...v, [field]: value }));
 
@@ -166,23 +174,27 @@ const runResetAnalytics = async () => {
           spo2WarnLow: Number(vitals.spo2WarnLow),
           spo2LowRedFlag: Number(vitals.spo2LowRedFlag),
           bpCategory: {
-            systolicElevatedMin: Number(vitals.systolicElevatedMin),
-            systolicStage1Min: Number(vitals.systolicStage1Min),
-            diastolicStage1Min: Number(vitals.diastolicStage1Min),
-            systolicStage2Min: Number(vitals.systolicStage2Min),
-            diastolicStage2Min: Number(vitals.diastolicStage2Min),
+            optimalSystolicMax: Number(vitals.optimalSystolicMax),
+            optimalDiastolicMax: Number(vitals.optimalDiastolicMax),
+            normalSystolicMax: Number(vitals.normalSystolicMax),
+            normalDiastolicMax: Number(vitals.normalDiastolicMax),
+            normalHighSystolicMax: Number(vitals.normalHighSystolicMax),
+            normalHighDiastolicMax: Number(vitals.normalHighDiastolicMax),
+            derajat1SystolicMax: Number(vitals.derajat1SystolicMax),
+            derajat1DiastolicMax: Number(vitals.derajat1DiastolicMax),
+            derajat2SystolicMax: Number(vitals.derajat2SystolicMax),
+            derajat2DiastolicMax: Number(vitals.derajat2DiastolicMax),
           },
           glucose: {
             GDS: {
               lowRedFlag: Number(vitals.gdsLowRedFlag),
-              normalMax: Number(vitals.gdsNormalMax),
-              highWarn: Number(vitals.gdsHighWarn),
+              diabetesMin: Number(vitals.gdsDiabetesMin),
               highRedFlag: Number(vitals.gdsHighRedFlag),
             },
             GDP: {
               lowRedFlag: Number(vitals.gdpLowRedFlag),
               normalMax: Number(vitals.gdpNormalMax),
-              highWarn: Number(vitals.gdpHighWarn),
+              diabetesMin: Number(vitals.gdpDiabetesMin),
               highRedFlag: Number(vitals.gdpHighRedFlag),
             },
             HbA1c: {
@@ -347,32 +359,69 @@ const runResetAnalytics = async () => {
         </div>
 
         <div className="stat-sub" style={{ marginTop: 8, marginBottom: 4 }}>
-          Kategori klinis standar (untuk label diagnosis, terpisah dari red flag/skor di atas):
+          Kategori klinis 6 tingkat sesuai PNPK Hipertensi Dewasa 2026 (Kepmenkes RI No.
+          HK.01.07/MENKES/303/2026, basis ESC 2018/2024): Optimal → Normal → Normal-Tinggi →
+          Derajat 1 → Derajat 2 → Derajat 3/Krisis (pakai ambang Red Flag di atas).
+          Isi batas ATAS tiap kategori (nilai di bawahnya masih masuk kategori itu).
         </div>
         <div className="grid cols-3">
           <div className="field">
-            <label>Batas bawah Elevated/Prehipertensi (sistolik ≥)</label>
-            <input type="number" value={vitals.systolicElevatedMin} onChange={(e) => updateVital("systolicElevatedMin", e.target.value)} />
+            <label>Optimal — batas atas sistolik (≤)</label>
+            <input type="number" value={vitals.optimalSystolicMax} onChange={(e) => updateVital("optimalSystolicMax", e.target.value)} />
           </div>
           <div className="field">
-            <label>Batas bawah Hipertensi Stage 1 (sistolik ≥)</label>
-            <input type="number" value={vitals.systolicStage1Min} onChange={(e) => updateVital("systolicStage1Min", e.target.value)} />
+            <label>Optimal — batas atas diastolik (≤)</label>
+            <input type="number" value={vitals.optimalDiastolicMax} onChange={(e) => updateVital("optimalDiastolicMax", e.target.value)} />
+          </div>
+          <div />
+          <div className="field">
+            <label>Normal — batas atas sistolik (≤)</label>
+            <input type="number" value={vitals.normalSystolicMax} onChange={(e) => updateVital("normalSystolicMax", e.target.value)} />
           </div>
           <div className="field">
-            <label>Batas bawah Hipertensi Stage 1 (diastolik ≥)</label>
-            <input type="number" value={vitals.diastolicStage1Min} onChange={(e) => updateVital("diastolicStage1Min", e.target.value)} />
+            <label>Normal — batas atas diastolik (≤)</label>
+            <input type="number" value={vitals.normalDiastolicMax} onChange={(e) => updateVital("normalDiastolicMax", e.target.value)} />
+          </div>
+          <div />
+          <div className="field">
+            <label>Normal-Tinggi — batas atas sistolik (≤)</label>
+            <input type="number" value={vitals.normalHighSystolicMax} onChange={(e) => updateVital("normalHighSystolicMax", e.target.value)} />
           </div>
           <div className="field">
-            <label>Batas bawah Hipertensi Stage 2 (sistolik ≥)</label>
-            <input type="number" value={vitals.systolicStage2Min} onChange={(e) => updateVital("systolicStage2Min", e.target.value)} />
+            <label>Normal-Tinggi — batas atas diastolik (≤)</label>
+            <input type="number" value={vitals.normalHighDiastolicMax} onChange={(e) => updateVital("normalHighDiastolicMax", e.target.value)} />
+          </div>
+          <div />
+          <div className="field">
+            <label>Derajat 1 — batas atas sistolik (≤)</label>
+            <input type="number" value={vitals.derajat1SystolicMax} onChange={(e) => updateVital("derajat1SystolicMax", e.target.value)} />
           </div>
           <div className="field">
-            <label>Batas bawah Hipertensi Stage 2 (diastolik ≥)</label>
-            <input type="number" value={vitals.diastolicStage2Min} onChange={(e) => updateVital("diastolicStage2Min", e.target.value)} />
+            <label>Derajat 1 — batas atas diastolik (≤)</label>
+            <input type="number" value={vitals.derajat1DiastolicMax} onChange={(e) => updateVital("derajat1DiastolicMax", e.target.value)} />
           </div>
+          <div />
+          <div className="field">
+            <label>Derajat 2 — batas atas sistolik (≤)</label>
+            <input type="number" value={vitals.derajat2SystolicMax} onChange={(e) => updateVital("derajat2SystolicMax", e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Derajat 2 — batas atas diastolik (≤)</label>
+            <input type="number" value={vitals.derajat2DiastolicMax} onChange={(e) => updateVital("derajat2DiastolicMax", e.target.value)} />
+          </div>
+        </div>
+        <div className="stat-sub" style={{ marginTop: 4 }}>
+          Derajat 3 / Krisis = melebihi batas Derajat 2, memakai ambang Red Flag sistolik/diastolik di atas.
         </div>
 
         <h4 style={{ marginTop: 16, marginBottom: 8 }}>Nadi (x/menit)</h4>
+        <div className="stat-sub" style={{ marginBottom: 8 }}>
+          Ambang berikut BUKAN diadaptasi dari skor deteksi-dini generik (mis. NEWS2) yang
+          dirancang untuk pasien rawat inap akut segala penyebab. Ambang ini dipilih dari 2
+          komplikasi spesifik Hipertensi/DM: bradikardia sebagai efek samping obat beta-blocker/CCB
+          (lazim dipakai pasien hipertensi), dan takikardia sebagai respons kompensasi hipoglikemia
+          pada pasien DM yang memakai insulin/sulfonilurea.
+        </div>
         <div className="grid cols-3">
           <div className="field">
             <label>Red Flag Rendah/Bradikardia (≤)</label>
@@ -393,6 +442,13 @@ const runResetAnalytics = async () => {
         </div>
 
         <h4 style={{ marginTop: 16, marginBottom: 8 }}>Suhu Tubuh (°C)</h4>
+        <div className="stat-sub" style={{ marginBottom: 8 }}>
+          Ambang demam dibuat LEBIH SENSITIF (lebih rendah) daripada skor deteksi-dini generik
+          untuk pasien rawat inap umum, karena neuropati otonom diabetik dapat menumpulkan respons
+          demam (blunted febrile response) — infeksi berat seperti kaki diabetik atau infeksi
+          saluran kemih bisa terlewat kalau memakai ambang umum. Demam juga jadi pencetus lonjakan
+          tekanan darah pada pasien hipertensi.
+        </div>
         <div className="grid cols-3">
           <div className="field">
             <label>Red Flag Rendah/Hipotermia (≤)</label>
@@ -409,6 +465,12 @@ const runResetAnalytics = async () => {
         </div>
 
         <h4 style={{ marginTop: 16, marginBottom: 8 }}>Saturasi Oksigen — SpO2 (%)</h4>
+        <div className="stat-sub" style={{ marginBottom: 8 }}>
+          Ambang red flag DINAIKKAN (lebih sensitif) dibanding skor deteksi-dini generik, karena
+          SpO2 turun pada populasi ini paling sering mengarah ke edema paru akut — komplikasi
+          krisis hipertensi yang eksplisit disebut PNPK Hipertensi (butuh nitrogliserin + loop
+          diuretic segera). Deteksi lebih dini lebih relevan untuk skrining primer.
+        </div>
         <div className="grid cols-3">
           <div className="field">
             <label>Waspada (≤)</label>
@@ -421,21 +483,23 @@ const runResetAnalytics = async () => {
         </div>
 
         <h4 style={{ marginTop: 16, marginBottom: 8 }}>Gula Darah Sewaktu — GDS (mg/dL)</h4>
+        <div className="stat-sub" style={{ marginBottom: 8 }}>
+          Sesuai PNPK DM Tipe 2 Dewasa 2026 (Kepmenkes RI No. HK.01.07/MENKES/302/2026). PNPK
+          tidak mendefinisikan zona "prediabetes" resmi untuk GDS tunggal — hanya ambang
+          diagnostik (≥200, perlu gejala klasik/pemeriksaan ulang) dan ambang "terkendali buruk"
+          (≥300, perlu evaluasi benda keton).
+        </div>
         <div className="grid cols-3">
           <div className="field">
             <label>Red Flag Rendah/Hipoglikemia (≤)</label>
             <input type="number" value={vitals.gdsLowRedFlag} onChange={(e) => updateVital("gdsLowRedFlag", e.target.value)} />
           </div>
           <div className="field">
-            <label>Batas atas Normal (≤)</label>
-            <input type="number" value={vitals.gdsNormalMax} onChange={(e) => updateVital("gdsNormalMax", e.target.value)} />
+            <label>Ambang Diagnosis Diabetes (≥)</label>
+            <input type="number" value={vitals.gdsDiabetesMin} onChange={(e) => updateVital("gdsDiabetesMin", e.target.value)} />
           </div>
           <div className="field">
-            <label>Diabetes/Waspada (≥)</label>
-            <input type="number" value={vitals.gdsHighWarn} onChange={(e) => updateVital("gdsHighWarn", e.target.value)} />
-          </div>
-          <div className="field">
-            <label>Hiperglikemia Berat/Red Flag (≥)</label>
+            <label>Terkendali Buruk/Red Flag (≥)</label>
             <input type="number" value={vitals.gdsHighRedFlag} onChange={(e) => updateVital("gdsHighRedFlag", e.target.value)} />
           </div>
         </div>
@@ -451,16 +515,25 @@ const runResetAnalytics = async () => {
             <input type="number" value={vitals.gdpNormalMax} onChange={(e) => updateVital("gdpNormalMax", e.target.value)} />
           </div>
           <div className="field">
-            <label>Diabetes/Waspada (≥)</label>
-            <input type="number" value={vitals.gdpHighWarn} onChange={(e) => updateVital("gdpHighWarn", e.target.value)} />
+            <label>Ambang Diagnosis Diabetes (≥)</label>
+            <input type="number" value={vitals.gdpDiabetesMin} onChange={(e) => updateVital("gdpDiabetesMin", e.target.value)} />
           </div>
           <div className="field">
-            <label>Hiperglikemia Berat/Red Flag (≥)</label>
+            <label>Terkendali Buruk/Red Flag (≥)</label>
             <input type="number" value={vitals.gdpHighRedFlag} onChange={(e) => updateVital("gdpHighRedFlag", e.target.value)} />
           </div>
         </div>
+        <div className="stat-sub" style={{ marginTop: 4 }}>
+          Nilai 100 - ({"<"}Ambang Diagnosis Diabetes) mg/dL = Prediabetes/GPT (Glukosa Puasa Terganggu), sesuai PNPK.
+        </div>
 
         <h4 style={{ marginTop: 16, marginBottom: 8 }}>HbA1c (%)</h4>
+        <div className="stat-sub" style={{ marginBottom: 8 }}>
+          Target kendali PNPK: HbA1c {"<"}7% ("Diabetes Terkontrol"). PNPK secara eksplisit
+          menyebut HbA1c {">"}9% sebagai titik pertimbangan terapi insulin — dipakai sebagai
+          ambang "Tidak Terkontrol (Berat)". HbA1c TIDAK PERNAH memicu Red Flag/eskalasi darurat
+          (mencerminkan kendali 2-3 bulan terakhir, bukan kondisi akut hari ini).
+        </div>
         <div className="grid cols-3">
           <div className="field">
             <label>Batas atas Normal (≤)</label>
@@ -471,11 +544,11 @@ const runResetAnalytics = async () => {
             <input type="number" step="0.1" value={vitals.hba1cDiabetesMin} onChange={(e) => updateVital("hba1cDiabetesMin", e.target.value)} />
           </div>
           <div className="field">
-            <label>Waspada/Tidak Terkontrol (≥)</label>
+            <label>Target Kendali Terlampaui/Tidak Terkontrol (≥)</label>
             <input type="number" value={vitals.hba1cHighWarn} onChange={(e) => updateVital("hba1cHighWarn", e.target.value)} />
           </div>
           <div className="field">
-            <label>Red Flag (≥)</label>
+            <label>Tidak Terkontrol Berat/Pertimbangkan Insulin (≥)</label>
             <input type="number" value={vitals.hba1cHighRedFlag} onChange={(e) => updateVital("hba1cHighRedFlag", e.target.value)} />
           </div>
         </div>
