@@ -19,6 +19,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="My NCD Safety" />
   <link rel="apple-touch-icon" href="/logos/app-logo.png" />
+
+  <!-- Cegah "kedip putih" sesaat sebelum CSS/JS termuat penuh — theme-color
+       di atas cuma mewarnai status bar, bukan latar halaman itu sendiri. -->
+  <style>html, body { background: #060a16; margin: 0; padding: 0; }</style>
 </head>
 <body>
   <div id="root"></div>

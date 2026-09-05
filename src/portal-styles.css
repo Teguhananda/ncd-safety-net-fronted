@@ -2,30 +2,46 @@
    Diselaraskan dengan tema glassmorphism hijau-teal yang sama persis
    dipakai di dashboard staff (styles.css), supaya konsisten & "keren"
    sesuai permintaan — file TETAP terpisah supaya styles.css staff tidak
-   ikut berubah/berisiko. */
+   ikut berubah/berisiko.
+
+   REVISI: (1) full-screen presisi — sebelumnya ada celah putih di
+   pinggir layar iPhone karena background html/body default putih masih
+   "mengintip" di area safe-area (notch/home indicator) yang belum
+   diberi padding; (2) huruf diperbesar menyeluruh untuk keterbacaan
+   lansia, yang jadi mayoritas pasien NCD. */
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: #060a16; /* sama dengan --p-bg-1 — supaya area safe-area tidak "mengintip" putih */
+}
 
 .portal-shell {
   --p-bg-1: #060a16;
   --p-bg-2: #0a1128;
   --p-bg-3: #0d1a35;
-  --p-glass-bg: rgba(255, 255, 255, 0.045);
-  --p-glass-bg-strong: rgba(255, 255, 255, 0.09);
-  --p-glass-border: rgba(255, 255, 255, 0.09);
+  --p-glass-bg: rgba(255, 255, 255, 0.05);
+  --p-glass-bg-strong: rgba(255, 255, 255, 0.1);
+  --p-glass-border: rgba(255, 255, 255, 0.1);
   --p-ink: #f4fdfb;
-  --p-ink-soft: rgba(244, 253, 251, 0.68);
+  --p-ink-soft: rgba(244, 253, 251, 0.72);
   --p-accent: #17b8a6;
   --p-accent-strong: #0e8f80;
   --p-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
 
+  box-sizing: border-box;
   max-width: 480px;
   margin: 0 auto;
-  padding: 20px 16px 40px;
+  padding: calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
   min-height: 100vh;
+  min-height: 100dvh;
   color: var(--p-ink);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
   background:
-    radial-gradient(circle at 12% 8%, rgba(23,184,166,0.16), transparent 42%),
-    radial-gradient(circle at 88% 12%, rgba(23,184,166,0.11), transparent 45%),
+    radial-gradient(circle at 12% 8%, rgba(23,184,166,0.18), transparent 42%),
+    radial-gradient(circle at 88% 12%, rgba(23,184,166,0.12), transparent 45%),
     radial-gradient(circle at 30% 95%, rgba(15,27,61,0.7), transparent 55%),
     linear-gradient(160deg, var(--p-bg-1), var(--p-bg-2) 55%, var(--p-bg-3));
   background-attachment: fixed;
@@ -41,25 +57,25 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
-.portal-brand { display: flex; align-items: center; gap: 12px; }
+.portal-brand { display: flex; align-items: center; gap: 14px; }
 .portal-logo-img {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.9);
-  padding: 4px;
-  box-shadow: 0 4px 14px rgba(23,184,166,0.4);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.92);
+  padding: 5px;
+  box-shadow: 0 4px 16px rgba(23,184,166,0.45);
 }
 .portal-header h2 {
   color: var(--p-ink);
   margin: 0;
-  font-size: 19px;
+  font-size: 22px;
 }
 .portal-header .portal-brand-sub {
-  font-size: 11.5px;
+  font-size: 13px;
   color: var(--p-ink-soft);
   letter-spacing: 0.3px;
 }
@@ -67,84 +83,89 @@
 .portal-card, .portal-status-card, .portal-info-card {
   background: var(--p-glass-bg);
   border: 1px solid var(--p-glass-border);
-  border-radius: 20px;
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border-radius: 22px;
+  backdrop-filter: blur(22px) saturate(160%);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
   box-shadow: var(--p-shadow);
   color: var(--p-ink);
-  padding: 20px;
-  margin-bottom: 14px;
+  padding: 22px;
+  margin-bottom: 16px;
 }
+.portal-card h3 { font-size: 19px; margin: 0 0 12px; }
 
 .portal-status-card {
   text-align: center;
   border-width: 2px;
   background: var(--p-glass-bg-strong);
+  padding: 28px 22px;
 }
 
-.portal-sub { color: var(--p-ink-soft); font-size: 13px; margin-top: 4px; }
-.portal-error { color: #ffd7cf; font-weight: 600; }
+.portal-sub { color: var(--p-ink-soft); font-size: 15px; margin-top: 4px; }
+.portal-error { color: #ffd7cf; font-weight: 600; font-size: 16px; }
 
 .portal-menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 .portal-menu-btn {
   background: var(--p-glass-bg);
   border: 1px solid var(--p-glass-border);
-  border-radius: 16px;
+  border-radius: 18px;
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
-  padding: 20px 10px;
-  font-size: 14px;
-  font-weight: 600;
+  padding: 22px 12px;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--p-ink);
   cursor: pointer;
-  min-height: 84px;
+  min-height: 100px;
+  line-height: 1.4;
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .portal-menu-btn:active { transform: scale(0.97); background: var(--p-glass-bg-strong); }
 
 .portal-primary-btn {
   width: 100%;
-  padding: 14px;
+  padding: 17px;
   border: none;
-  border-radius: 12px;
+  border-radius: 14px;
   background: linear-gradient(135deg, var(--p-accent), var(--p-accent-strong));
   color: #fff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 700;
-  margin-top: 10px;
+  margin-top: 12px;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(23,184,166,0.45);
+  box-shadow: 0 6px 20px rgba(23,184,166,0.5);
   transition: transform 0.15s ease;
+  min-height: 52px;
 }
 .portal-primary-btn:active { transform: scale(0.97); }
 .portal-primary-btn:disabled { opacity: 0.6; }
 
 .portal-link-btn {
   width: 100%;
-  padding: 10px;
+  padding: 13px;
   border: none;
   background: transparent;
   color: var(--p-accent);
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
-  margin-top: 6px;
+  margin-top: 8px;
   cursor: pointer;
+  min-height: 44px;
 }
 
-.portal-field { margin-bottom: 14px; }
-.portal-field label { display: block; font-size: 13px; color: var(--p-ink-soft); margin-bottom: 6px; }
+.portal-field { margin-bottom: 16px; }
+.portal-field label { display: block; font-size: 15px; color: var(--p-ink-soft); margin-bottom: 7px; }
 .portal-field input, .portal-field select {
   width: 100%;
-  padding: 12px 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255,255,255,0.15);
-  background: rgba(255,255,255,0.06);
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,0.16);
+  background: rgba(255,255,255,0.07);
   color: var(--p-ink);
-  font-size: 15px;
+  font-size: 17px;
   box-sizing: border-box;
 }
 .portal-field input:focus, .portal-field select:focus {
@@ -154,22 +175,24 @@
 }
 
 .portal-question {
-  margin-bottom: 16px;
-  padding-bottom: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
   border-bottom: 1px solid var(--p-glass-border);
-  font-size: 15px;
+  font-size: 17px;
   color: var(--p-ink);
 }
-.portal-yn { display: flex; gap: 8px; margin-top: 10px; }
+.portal-yn { display: flex; gap: 10px; margin-top: 12px; }
 .portal-yn button {
   flex: 1;
-  padding: 10px;
-  border-radius: 10px;
+  padding: 13px;
+  border-radius: 12px;
   border: 1px solid var(--p-glass-border);
-  background: rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.07);
   color: var(--p-ink);
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 16px;
   cursor: pointer;
+  min-height: 48px;
 }
 .portal-yn-active {
   background: linear-gradient(135deg, var(--p-accent), var(--p-accent-strong)) !important;
@@ -178,8 +201,8 @@
 }
 
 .portal-history-row {
-  padding: 10px 0;
+  padding: 12px 0;
   border-bottom: 1px solid var(--p-glass-border);
-  font-size: 14px;
+  font-size: 16px;
   color: var(--p-ink);
 }
