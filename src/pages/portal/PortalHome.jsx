@@ -13,6 +13,12 @@ const STATUS_MAP = {
   URGENT: { emoji: "🔴", label: "SEGERA HUBUNGI RS", color: "#ff5c50" },
 };
 
+const PARAM_LABEL_ID = {
+  systolicBP: "Tensi (Sistolik)",
+  diastolicBP: "Tensi (Diastolik)",
+  bloodGlucose: "Gula Darah",
+};
+
 const CHECKIN_QUESTIONS = [
   { key: "medicationAsPlanned", text: "Apakah obat diminum sesuai rencana?", positiveIsGood: true },
   { key: "newComplaint", text: "Apakah ada keluhan baru?", positiveIsGood: false },
@@ -284,8 +290,13 @@ export default function PortalHome() {
               {summary.monitoringEntries.length === 0 && <p>Belum ada data.</p>}
               {summary.monitoringEntries.slice().reverse().map((e) => (
                 <div key={e.id} className="portal-history-row">
-                  {e.parameterType}: <b>{e.value} {e.unit}</b>
-                  {e.symptom && <span> — {e.symptom}</span>}
+                  <div style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span>{PARAM_LABEL_ID[e.parameterType] || e.parameterType}: <b>{e.value} {e.unit}</b></span>
+                    <span className="portal-sub" style={{ fontSize: 12 }}>
+                      {e.timestamp ? new Date(e.timestamp).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
+                    </span>
+                  </div>
+                  {e.symptom && <div className="portal-sub" style={{ marginTop: 2 }}>Keluhan: {e.symptom}</div>}
                 </div>
               ))}
             </>
