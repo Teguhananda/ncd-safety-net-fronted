@@ -8,7 +8,7 @@ const ROLE_LABEL = {
   admin: "Admin",
   petugas: "Petugas",
   dokter: "Dokter",
-  manajemen: "Manajemen",
+  manajemen: "PMKP",
   case_manager: "Case Manager",
 };
 

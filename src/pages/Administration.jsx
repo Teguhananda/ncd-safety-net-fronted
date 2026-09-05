@@ -717,7 +717,7 @@ const runResetAnalytics = async () => {
               <select value={newAccount.role} onChange={(e) => setNewAccount((a) => ({ ...a, role: e.target.value }))}>
                 <option value="dokter">Dokter</option>
                 <option value="petugas">Petugas</option>
-                <option value="manajemen">Manajemen</option>
+                <option value="manajemen">PMKP</option>
                 <option value="case_manager">Case Manager</option>
                 <option value="admin">Admin</option>
               </select>
@@ -739,7 +739,7 @@ const runResetAnalytics = async () => {
               <select value={roleChange.role} onChange={(e) => setRoleChange((r) => ({ ...r, role: e.target.value }))}>
                 <option value="dokter">Dokter</option>
                 <option value="petugas">Petugas</option>
-                <option value="manajemen">Manajemen</option>
+                <option value="manajemen">PMKP</option>
                 <option value="case_manager">Case Manager</option>
                 <option value="admin">Admin</option>
               </select>
