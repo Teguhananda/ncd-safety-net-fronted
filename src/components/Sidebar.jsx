@@ -31,6 +31,7 @@ export default function Sidebar() {
   const { role, user, logout } = useAuth();
   const visibleItems = NAV_ITEMS.filter((item) => !role || item.roles.includes(role));
   const [activeSignalCount, setActiveSignalCount] = useState(0);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Badge merah real-time — dengar langsung perubahan Firestore (bukan
   // sekali ambil saja) supaya begitu ada Home Safety Signal baru masuk,
@@ -46,7 +47,16 @@ export default function Sidebar() {
   }, [role]);
 
   return (
-    <aside className="sidebar">
+    <>
+      {/* Tombol hamburger — hanya tampak di layar kecil (lihat CSS
+          @media max-width:860px) supaya sidebar bisa disembunyikan/geser
+          keluar-masuk di HP, bukan memenuhi seluruh layar. */}
+      <button className="mobile-menu-btn" onClick={() => setMobileOpen((o) => !o)} aria-label="Buka menu">
+        ☰
+      </button>
+      {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
+
+      <aside className={"sidebar" + (mobileOpen ? " sidebar-open" : "")}>
       <div className="brand">
         <img
           src="/logos/app-logo.png"
@@ -65,6 +75,7 @@ export default function Sidebar() {
             key={item.to}
             to={item.to}
             end={item.to === "/"}
+            onClick={() => setMobileOpen(false)}
             className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
           >
             <span className="nav-dot"></span>
@@ -128,6 +139,7 @@ export default function Sidebar() {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

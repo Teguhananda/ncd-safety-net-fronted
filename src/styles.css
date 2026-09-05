@@ -153,6 +153,8 @@ textarea { resize: vertical; min-height: 60px; }
 
 /* ===== Layout Utama (Sidebar + Konten) ===== */
 .app { display: flex; min-height: 100vh; }
+.mobile-menu-btn { display: none; }
+.mobile-overlay { display: none; }
 
 .sidebar {
   width: 260px;
@@ -491,4 +493,68 @@ tbody tr.row-redflag { background: rgba(255,92,80,0.08); }
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+/* =========================================================================
+   BAGIAN BARU — layout responsif untuk HP (Android & iPhone). Sebelumnya
+   sidebar staff lebar tetap 260px tanpa penyesuaian sama sekali untuk
+   layar kecil — penting diperbaiki karena dokter/case manager/perawat
+   perlu bisa merespons notifikasi darurat dari HP kapan saja, bukan cuma
+   saat di depan PC.
+   ========================================================================= */
+@media (max-width: 860px) {
+  .app { flex-direction: column; }
+
+  /* Tombol hamburger — cuma muncul di layar kecil */
+  .mobile-menu-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 300;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    background: rgba(13, 26, 53, 0.92);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+  }
+
+  /* Sidebar jadi panel yang geser masuk/keluar dari kiri, bukan kolom tetap */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 78vw;
+    max-width: 300px;
+    z-index: 250;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5);
+  }
+  .sidebar.sidebar-open { transform: translateX(0); }
+
+  /* Latar gelap transparan di belakang sidebar saat terbuka — tap di luar untuk tutup */
+  .mobile-overlay {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 240;
+  }
+
+  .main { width: 100%; }
+  .topbar { padding: 68px 16px 0; }
+  .net-divider { margin: 16px; }
+  .content { margin: 0 12px 24px; padding: 16px 14px 24px; }
+
+  /* Tabel jadi bisa digeser horizontal, bukan meluber merusak layout */
+  table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
 }
