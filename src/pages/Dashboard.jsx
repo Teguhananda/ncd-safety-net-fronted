@@ -2,12 +2,19 @@ import { useEffect, useState } from "react";
 import { collection, getDocs, doc, getDoc, orderBy, limit, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../lib/firebase";
+import { callApi } from "../lib/api";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
 import TrendChart from "../components/TrendChart";
 import RiskPieChart from "../components/RiskPieChart";
 import { useAuth } from "../context/AuthContext";
 import { requestAndRegisterStaffPush } from "../lib/staffPush";
+
+const PARAM_LABEL_ID = {
+  systolicBP: "Tensi Sistolik",
+  diastolicBP: "Tensi Diastolik",
+  bloodGlucose: "Gula Darah",
+};
 
 export default function Dashboard() {
   const { role } = useAuth();
@@ -17,6 +24,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [activeSignalCount, setActiveSignalCount] = useState(0);
   const [latestSignalTime, setLatestSignalTime] = useState(null);
+  const [recentMonitoring, setRecentMonitoring] = useState([]);
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifMsg, setNotifMsg] = useState("");
 
@@ -87,6 +95,14 @@ export default function Dashboard() {
         setLatestSignalTime(latest);
       } catch (err) {
         // diamkan — widget tambahan, tidak boleh mengganggu dashboard utama
+      }
+
+      // BAGIAN BARU: aktivitas monitoring mandiri terbaru dari semua pasien
+      try {
+        const res = await callApi("patientHistory", { action: "recentMonitoring" });
+        setRecentMonitoring(res.data.entries || []);
+      } catch (err) {
+        // diamkan — widget tambahan
       }
     }
     load();
@@ -184,6 +200,38 @@ export default function Dashboard() {
             { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#C8552B" },
           ]}
         />
+      </div>
+
+      {/* BAGIAN BARU: aktivitas monitoring mandiri terbaru dari SEMUA
+          pasien — bukan cuma yang lagi kena Home Safety Signal. */}
+      <div className="card" style={{ marginTop: 16 }}>
+        <h3>🏠 Aktivitas Monitoring Mandiri Terbaru</h3>
+        <div className="stat-sub" style={{ marginBottom: 10 }}>
+          Hasil tensi/gula darah yang diinput langsung oleh pasien dari rumah lewat Portal My NCD Safety.
+        </div>
+        {recentMonitoring.length === 0 ? (
+          <div className="stat-sub">Belum ada aktivitas monitoring mandiri dari pasien.</div>
+        ) : (
+          <table>
+            <thead>
+              <tr><th>Tanggal &amp; Jam</th><th>Pasien</th><th>Parameter</th><th>Nilai</th><th>Keluhan</th></tr>
+            </thead>
+            <tbody>
+              {recentMonitoring.map((e) => (
+                <tr key={e.id}>
+                  <td className="mono">{e.timestamp ? new Date(e.timestamp).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}</td>
+                  <td>
+                    <Link to={`/patient-history?patientId=${e.patientId}`}>{e.patientName}</Link>
+                    {e.patientMrn && <span className="stat-sub"> ({e.patientMrn})</span>}
+                  </td>
+                  <td>{PARAM_LABEL_ID[e.parameterType] || e.parameterType}</td>
+                  <td>{e.value} {e.unit}</td>
+                  <td>{e.symptom || "-"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
       </div>
     </Layout>
   );
