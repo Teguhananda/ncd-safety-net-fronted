@@ -155,6 +155,17 @@ export default function SafetySignals() {
                   </div>
                 )}
 
+                <Link
+                  className="btn btn-ghost"
+                  style={{ marginTop: 8, marginLeft: 8, display: "inline-block", textDecoration: "none" }}
+                  to={`/incident?patientId=${encodeURIComponent(s.patientId)}&description=${encodeURIComponent(
+                    `Terdeteksi dari Home Safety Signal (${sev.text}) pada ${s.patient?.name || s.patientId} — No.RM ${s.patient?.mrn || "-"}:\n` +
+                    (s.reason || []).map((r) => `- ${r}`).join("\n")
+                  )}`}
+                >
+                  🚨 Lapor sebagai Insiden
+                </Link>
+
                 {s.workflowStatus === "OPEN" && (
                   <button className="btn btn-primary" style={{ marginTop: 8 }} disabled={busyId === s.id} onClick={() => handleAcknowledge(s.id)}>
                     Tandai Sudah Dilihat (Acknowledge)

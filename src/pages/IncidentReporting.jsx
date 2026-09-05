@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { callApi } from "../lib/api";
 import Layout from "../components/Layout";
 
@@ -26,10 +27,15 @@ const CATEGORIES = [
 ];
 
 export default function IncidentReporting() {
-  const [category, setCategory] = useState(CATEGORIES[0][0]);
+  // BAGIAN BARU: kalau dibuka dari link "Lapor sebagai Insiden" di Home
+  // Safety Signals, formulir otomatis terisi No. RM pasien + kronologi
+  // dari alasan sinyal — supaya Case Manager (dan siapapun) tidak perlu
+  // ketik ulang dari nol, kronologinya sudah tersedia dari sistem.
+  const [params] = useSearchParams();
+  const [category, setCategory] = useState(params.get("category") || CATEGORIES[0][0]);
   const [jenisInsiden, setJenisInsiden] = useState(JENIS_INSIDEN_OPTIONS[0][0]);
-  const [patientId, setPatientId] = useState("");
-  const [description, setDescription] = useState("");
+  const [patientId, setPatientId] = useState(params.get("patientId") || "");
+  const [description, setDescription] = useState(params.get("description") || "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -56,6 +62,12 @@ export default function IncidentReporting() {
   return (
     <Layout title="Incident Reporting" meta="Pencatatan kejadian terkait keselamatan pasien NCD">
       <div className="card" style={{ maxWidth: 520 }}>
+        {params.get("patientId") && (
+          <div className="alert warn" style={{ marginBottom: 14 }}>
+            <span>🏠</span>
+            <div>Formulir ini terisi otomatis dari Home Safety Signal — silakan tinjau &amp; lengkapi kronologinya sebelum dikirim.</div>
+          </div>
+        )}
         <div className="field">
           <label>Jenis Insiden</label>
           <select value={jenisInsiden} onChange={(e) => setJenisInsiden(e.target.value)}>
