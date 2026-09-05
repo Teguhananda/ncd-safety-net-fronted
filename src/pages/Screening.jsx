@@ -93,6 +93,13 @@ export default function Screening() {
   const [redFlags, setRedFlags] = useState({});
   const [redFlagOnset, setRedFlagOnset] = useState({});
   const [accessBarriers, setAccessBarriers] = useState({});
+  // BAGIAN BARU: pemeriksaan tambahan gold standard HT/DM (IMT/lingkar
+  // perut, kaki diabetik, hasil lab dasar) — semua opsional.
+  const [anthropometry, setAnthropometry] = useState({ heightCm: "", weightKg: "", waistCircumferenceCm: "" });
+  const [diabeticFootExam, setDiabeticFootExam] = useState({ monofilamentSensation: "", dorsalisPedisPulse: "", footWound: false, notes: "" });
+  const [labResults, setLabResults] = useState({
+    totalCholesterol: "", ldl: "", hdl: "", triglycerides: "", creatinine: "", sodium: "", potassium: "", uricAcid: "", ecgFinding: "",
+  });
   const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
   const [pastScreenings, setPastScreenings] = useState([]);
   const [selectedPastDate, setSelectedPastDate] = useState("");
@@ -172,6 +179,23 @@ export default function Screening() {
         redFlagOnset,
         accessBarriers,
         visitDate,
+        anthropometry: {
+          heightCm: anthropometry.heightCm === "" ? null : Number(anthropometry.heightCm),
+          weightKg: anthropometry.weightKg === "" ? null : Number(anthropometry.weightKg),
+          waistCircumferenceCm: anthropometry.waistCircumferenceCm === "" ? null : Number(anthropometry.waistCircumferenceCm),
+        },
+        diabeticFootExam: ncdConditions.includes("Diabetes Mellitus") ? diabeticFootExam : null,
+        labResults: {
+          totalCholesterol: labResults.totalCholesterol === "" ? null : Number(labResults.totalCholesterol),
+          ldl: labResults.ldl === "" ? null : Number(labResults.ldl),
+          hdl: labResults.hdl === "" ? null : Number(labResults.hdl),
+          triglycerides: labResults.triglycerides === "" ? null : Number(labResults.triglycerides),
+          creatinine: labResults.creatinine === "" ? null : Number(labResults.creatinine),
+          sodium: labResults.sodium === "" ? null : Number(labResults.sodium),
+          potassium: labResults.potassium === "" ? null : Number(labResults.potassium),
+          uricAcid: labResults.uricAcid === "" ? null : Number(labResults.uricAcid),
+          ecgFinding: labResults.ecgFinding || null,
+        },
         vitalSigns: {
           systolicBP: vitalSigns.systolicBP === "" ? null : Number(vitalSigns.systolicBP),
           diastolicBP: vitalSigns.diastolicBP === "" ? null : Number(vitalSigns.diastolicBP),
@@ -397,6 +421,18 @@ export default function Screening() {
           </div>
 
           <div className="field">
+            <label>Antropometri (IMT &amp; Lingkar Perut)</label>
+            <div className="grid cols-2">
+              <input type="number" placeholder="Tinggi badan (cm)" value={anthropometry.heightCm} onChange={(e) => setAnthropometry((a) => ({ ...a, heightCm: e.target.value }))} />
+              <input type="number" placeholder="Berat badan (kg)" value={anthropometry.weightKg} onChange={(e) => setAnthropometry((a) => ({ ...a, weightKg: e.target.value }))} />
+            </div>
+            <input type="number" placeholder="Lingkar perut (cm)" style={{ marginTop: 8 }} value={anthropometry.waistCircumferenceCm} onChange={(e) => setAnthropometry((a) => ({ ...a, waistCircumferenceCm: e.target.value }))} />
+            <div className="stat-sub" style={{ marginTop: 4 }}>
+              IMT dihitung otomatis (cutoff Asia-Pacific/PERKENI). Kosongkan jika tidak diukur.
+            </div>
+          </div>
+
+          <div className="field">
             <label>Kondisi NCD diketahui</label>
             <div className="checklist">
               {NCD_ITEMS.map((item) => (
@@ -407,6 +443,31 @@ export default function Screening() {
               ))}
             </div>
           </div>
+
+          {ncdConditions.includes("Diabetes Mellitus") && (
+            <div className="field">
+              <label>Pemeriksaan Kaki Diabetik</label>
+              <div className="stat-sub" style={{ marginBottom: 6 }}>Skrining neuropati/kaki diabetik — standar PERKENI.</div>
+              <div className="grid cols-2">
+                <select value={diabeticFootExam.monofilamentSensation} onChange={(e) => setDiabeticFootExam((f) => ({ ...f, monofilamentSensation: e.target.value }))}>
+                  <option value="">-- Sensasi monofilament --</option>
+                  <option value="normal">Normal</option>
+                  <option value="reduced">Berkurang</option>
+                  <option value="absent">Tidak ada (mati rasa)</option>
+                </select>
+                <select value={diabeticFootExam.dorsalisPedisPulse} onChange={(e) => setDiabeticFootExam((f) => ({ ...f, dorsalisPedisPulse: e.target.value }))}>
+                  <option value="">-- Pulsasi dorsalis pedis --</option>
+                  <option value="palpable">Teraba</option>
+                  <option value="weak">Lemah</option>
+                  <option value="absent">Tidak teraba</option>
+                </select>
+              </div>
+              <label className="check-item" style={{ marginTop: 8 }}>
+                <input type="checkbox" checked={diabeticFootExam.footWound} onChange={(e) => setDiabeticFootExam((f) => ({ ...f, footWound: e.target.checked }))} />
+                Ada luka/ulkus di kaki
+              </label>
+            </div>
+          )}
 
           <div className="field">
             <label>Cek Red Flag</label>
@@ -443,6 +504,28 @@ export default function Screening() {
                 </label>
               ))}
             </div>
+          </div>
+
+          <div className="field">
+            <label>Hasil Laboratorium (opsional — isi kalau sudah ada hasil)</label>
+            <div className="stat-sub" style={{ marginBottom: 6 }}>Profil lipid, fungsi ginjal, elektrolit, asam urat, EKG — sesuai gold standard tata laksana HT/DM.</div>
+            <div className="grid cols-2">
+              <input type="number" placeholder="Kolesterol Total (mg/dL)" value={labResults.totalCholesterol} onChange={(e) => setLabResults((l) => ({ ...l, totalCholesterol: e.target.value }))} />
+              <input type="number" placeholder="LDL (mg/dL)" value={labResults.ldl} onChange={(e) => setLabResults((l) => ({ ...l, ldl: e.target.value }))} />
+              <input type="number" placeholder="HDL (mg/dL)" value={labResults.hdl} onChange={(e) => setLabResults((l) => ({ ...l, hdl: e.target.value }))} />
+              <input type="number" placeholder="Trigliserida (mg/dL)" value={labResults.triglycerides} onChange={(e) => setLabResults((l) => ({ ...l, triglycerides: e.target.value }))} />
+              <input type="number" placeholder="Kreatinin (mg/dL)" value={labResults.creatinine} onChange={(e) => setLabResults((l) => ({ ...l, creatinine: e.target.value }))} />
+              <input type="number" placeholder="Asam Urat (mg/dL)" value={labResults.uricAcid} onChange={(e) => setLabResults((l) => ({ ...l, uricAcid: e.target.value }))} />
+              <input type="number" placeholder="Natrium (mEq/L)" value={labResults.sodium} onChange={(e) => setLabResults((l) => ({ ...l, sodium: e.target.value }))} />
+              <input type="number" placeholder="Kalium (mEq/L)" value={labResults.potassium} onChange={(e) => setLabResults((l) => ({ ...l, potassium: e.target.value }))} />
+            </div>
+            <select style={{ marginTop: 8 }} value={labResults.ecgFinding} onChange={(e) => setLabResults((l) => ({ ...l, ecgFinding: e.target.value }))}>
+              <option value="">-- Hasil EKG (kalau ada) --</option>
+              <option value="Normal">Normal</option>
+              <option value="LVH">LVH (Hipertrofi Ventrikel Kiri)</option>
+              <option value="Aritmia">Aritmia</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
           </div>
 
           {hasRedFlag && (
@@ -561,7 +644,7 @@ export default function Screening() {
                     <div className="stat-sub">Tidak ada rincian skor (jalur Red Flag melewati skor).</div>
                   )}
                 </div>
-                {cats && (cats.bloodPressure || cats.glucose) && (
+                {cats && (cats.bloodPressure || cats.glucose || cats.bmi) && (
                   <div className="card" style={{ gridColumn: "1 / -1" }}>
                     <h3>Kategori Klinis</h3>
                     <div className="stat-sub" style={{ marginBottom: 8 }}>
@@ -578,6 +661,12 @@ export default function Screening() {
                         <div>
                           <div className="stat-label">Gula Darah</div>
                           <div style={{ fontWeight: 600 }}>{cats.glucose}</div>
+                        </div>
+                      )}
+                      {cats.bmi && (
+                        <div>
+                          <div className="stat-label">IMT</div>
+                          <div style={{ fontWeight: 600 }}>{cats.bmi.bmi} — {cats.bmi.category}</div>
                         </div>
                       )}
                     </div>
