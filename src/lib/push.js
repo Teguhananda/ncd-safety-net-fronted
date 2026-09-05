@@ -7,7 +7,7 @@ import { callApi } from "./api";
  * Firebase Console → Project Settings → Cloud Messaging → Web configuration
  * → Generate key pair. Tanpa ini, getToken() akan gagal.
  */
-const VAPID_KEY = "GANTI_DENGAN_VAPID_KEY_DARI_FIREBASE_CONSOLE";
+const VAPID_KEY = "BO99WmWzA9lCDgQQ-1Cvo5uVacAh06hx_m5RUSJQa14wbw99D1DwXSslbmJPmItL6i6pmAuMcIqoAsoVt8ar6eo";
 
 /**
  * requestAndRegisterPush — minta izin notifikasi browser, ambil token FCM,
