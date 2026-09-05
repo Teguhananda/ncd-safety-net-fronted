@@ -108,7 +108,7 @@ export default function ClinicalReview() {
           ) : (
             <div>
               <div style={{ marginBottom: 10 }}>
-                Pasien: <span className="mono">{selected.patientId}</span> — <RiskBadge status={selected.riskStatus} />
+                Pasien: <strong>{patientNames[selected.patientId] || selected.patientId}</strong> — <RiskBadge status={selected.riskStatus} />
               </div>
               <div className="field">
                 <label>Catatan keputusan klinis</label>
