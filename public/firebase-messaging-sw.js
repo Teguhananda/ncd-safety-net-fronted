@@ -23,16 +23,27 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// BAGIAN YANG DIPERBAIKI: sebelumnya tujuan klik notifikasi di-hardcode
+// ke "/portal" untuk SEMUA notifikasi (pasien maupun staff) — akibatnya
+// notifikasi dokter/Case Manager ikut membuka Portal Pasien (scan QR),
+// bukan halaman Home Safety Signals yang seharusnya. Sekarang tujuan
+// link diambil dari `fcmOptions.link` yang sudah dikirim per notifikasi
+// (lihat lib/push.js: sendPushToPatient pakai "/portal", sendPushToRole
+// pakai "/safety-signals") — disimpan di data notifikasi, lalu dibaca
+// lagi saat diklik.
 messaging.onBackgroundMessage((payload) => {
   const { title, body } = payload.notification || {};
+  const link = (payload.fcmOptions && payload.fcmOptions.link) || (payload.data && payload.data.link) || "/";
   self.registration.showNotification(title || "My NCD Safety", {
     body: body || "",
     icon: "/logos/app-logo.png",
     badge: "/logos/app-logo.png",
+    data: { url: link },
   });
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  event.waitUntil(clients.openWindow("/portal"));
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(clients.openWindow(url));
 });
