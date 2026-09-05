@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { collection, getDocs, orderBy, query, limit, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, getDocs, orderBy, query, limit, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
@@ -22,6 +22,23 @@ export default function Patients() {
   const [qrPatient, setQrPatient] = useState(null);
   const [portalQrPatient, setPortalQrPatient] = useState(null);
   const [planPatient, setPlanPatient] = useState(null);
+  const [editPhonePatient, setEditPhonePatient] = useState(null);
+  const [editPhoneValue, setEditPhoneValue] = useState("");
+  const [editPhoneBusy, setEditPhoneBusy] = useState(false);
+
+  const savePhone = async () => {
+    if (!editPhonePatient) return;
+    setEditPhoneBusy(true);
+    try {
+      await updateDoc(doc(db, "patients", editPhonePatient.id), { phone: editPhoneValue || null });
+      await loadPatients();
+      setEditPhonePatient(null);
+    } catch (err) {
+      alert("Gagal menyimpan No. HP: " + (err.message || "terjadi kesalahan."));
+    } finally {
+      setEditPhoneBusy(false);
+    }
+  };
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
@@ -31,7 +48,7 @@ export default function Patients() {
   const searchInputRef = useRef(null);
 
   const [form, setForm] = useState({
-    mrn: "", name: "", dob: "", gender: "Laki-laki", conditions: [],
+    mrn: "", name: "", dob: "", gender: "Laki-laki", phone: "", conditions: [],
   });
 
   const toggleCondition = (c) => {
@@ -119,10 +136,11 @@ export default function Patients() {
         name: form.name,
         dob: form.dob || null,
         gender: form.gender,
+        phone: form.phone || null,
         conditions: form.conditions,
         createdAt: serverTimestamp(),
       });
-      setForm({ mrn: "", name: "", dob: "", gender: "Laki-laki", conditions: [] });
+      setForm({ mrn: "", name: "", dob: "", gender: "Laki-laki", phone: "", conditions: [] });
       setAdding(false);
       await loadPatients();
     } catch (err) {
@@ -219,6 +237,10 @@ export default function Patients() {
                 </select>
               </div>
               <div className="field">
+                <label>No. HP / WhatsApp (untuk kontak darurat)</label>
+                <input type="tel" placeholder="08xxxxxxxxxx" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+              </div>
+              <div className="field">
                 <label>Kondisi NCD</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   {NCD_OPTIONS.map((c) => (
@@ -290,6 +312,13 @@ export default function Patients() {
                     </button>
                     <button
                       className="btn btn-ghost"
+                      style={{ padding: "4px 10px", fontSize: 12 }}
+                      onClick={() => { setEditPhonePatient(p); setEditPhoneValue(p.phone || ""); }}
+                    >
+                      📱 {p.phone ? "Ubah" : "Isi"} No. HP
+                    </button>
+                    <button
+                      className="btn btn-ghost"
                       style={{ padding: "4px 10px", fontSize: 12, color: "#c0392b" }}
                       onClick={() => handleDeletePatient(p)}
                       disabled={deletingId === p.id}
@@ -307,6 +336,26 @@ export default function Patients() {
       {qrPatient && <PatientQRModal patient={qrPatient} onClose={() => setQrPatient(null)} />}
       {portalQrPatient && <PatientPortalQRModal patient={portalQrPatient} onClose={() => setPortalQrPatient(null)} />}
       {planPatient && <PersonalSafetyPlanModal patient={planPatient} onClose={() => setPlanPatient(null)} />}
+
+      {editPhonePatient && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(23,38,43,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div className="card" style={{ width: 340 }}>
+            <h3>No. HP / WhatsApp — {editPhonePatient.name}</h3>
+            <div className="field">
+              <label>Nomor (format 08xxxxxxxxxx)</label>
+              <input type="tel" placeholder="08xxxxxxxxxx" value={editPhoneValue} onChange={(e) => setEditPhoneValue(e.target.value)} autoFocus />
+            </div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={savePhone} disabled={editPhoneBusy}>
+                {editPhoneBusy ? "Menyimpan..." : "Simpan"}
+              </button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setEditPhonePatient(null)}>
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

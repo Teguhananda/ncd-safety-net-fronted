@@ -9,6 +9,38 @@ const SEVERITY_LABEL = {
   ATTENTION: { emoji: "🟡", text: "FOLLOW-UP / CARE GAP" },
 };
 
+const VITALS_LABEL = {
+  systolicBP: "Tensi Sistolik",
+  diastolicBP: "Tensi Diastolik",
+  bloodGlucose: "Gula Darah",
+};
+
+function fmtVitalsTime(iso) {
+  if (!iso) return "";
+  return new Date(iso).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+// Ubah nomor lokal (08xxx) jadi format internasional (628xxx) yang
+// dibutuhkan wa.me — belum ada gateway WA resmi (butuh verifikasi bisnis
+// Meta 3-10 hari kerja), jadi ini solusi 1-klik yang bisa jalan hari ini:
+// staff tinggal tekan Kirim, bukan sepenuhnya otomatis tanpa staf.
+function toWhatsAppNumber(phone) {
+  if (!phone) return null;
+  const digits = phone.replace(/\D/g, "");
+  if (!digits) return null;
+  if (digits.startsWith("0")) return "62" + digits.slice(1);
+  if (digits.startsWith("62")) return digits;
+  return "62" + digits;
+}
+
+function buildWhatsAppMessage(patientName, sev, reasons) {
+  const greeting = sev.text === "URGENT"
+    ? `Selamat [waktu], Bapak/Ibu ${patientName}. Kami dari RSUD Kab. Rejang Lebong ingin menanyakan kondisi Bapak/Ibu karena sistem mendeteksi hal yang perlu SEGERA ditindaklanjuti:`
+    : `Selamat [waktu], Bapak/Ibu ${patientName}. Kami dari RSUD Kab. Rejang Lebong ingin menanyakan kondisi Bapak/Ibu terkait pemantauan kesehatan mandiri:`;
+  const reasonText = (reasons || []).map((r) => `- ${r}`).join("\n");
+  return `${greeting}\n${reasonText}\n\nMohon informasikan kondisi Bapak/Ibu saat ini. Kalau ada keluhan berat, segera ke IGD RSUD Kab. Rejang Lebong.`;
+}
+
 /**
  * SafetySignals.jsx — halaman BARU untuk "Home Safety Signals" (bagian J
  * spesifikasi). Dashboard.jsx hanya menampilkan ringkasan + link ke sini,
@@ -90,7 +122,38 @@ export default function SafetySignals() {
                     {(s.reason || []).map((r, i) => <li key={i}>{r}</li>)}
                   </ul>
                 </div>
+
+                {s.latestVitals && Object.keys(s.latestVitals).length > 0 && (
+                  <div style={{ margin: "8px 0", padding: "10px 12px", background: "var(--glass-bg)", borderRadius: 10, fontSize: 13 }}>
+                    <b>📊 Hasil Kontrol Mandiri Terbaru:</b>
+                    <div style={{ marginTop: 4, display: "flex", flexWrap: "wrap", gap: "6px 18px" }}>
+                      {Object.entries(s.latestVitals).map(([param, v]) => (
+                        <span key={param}>
+                          {VITALS_LABEL[param] || param}: <b>{v.value} {v.unit}</b>
+                          <span className="stat-sub"> ({fmtVitalsTime(v.timestamp)})</span>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="stat-sub">Status alur: {s.workflowStatus}</div>
+
+                {s.patient?.phone ? (
+                  <a
+                    className="btn btn-primary"
+                    style={{ marginTop: 8, display: "inline-block", textDecoration: "none", background: "#25D366" }}
+                    href={`https://wa.me/${toWhatsAppNumber(s.patient.phone)}?text=${encodeURIComponent(buildWhatsAppMessage(s.patient?.name || s.patientId, sev, s.reason))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    💬 Hubungi via WhatsApp
+                  </a>
+                ) : (
+                  <div className="stat-sub" style={{ marginTop: 8 }}>
+                    📱 No. HP pasien belum diisi — isi dulu lewat Daftar Pasien untuk bisa hubungi via WhatsApp.
+                  </div>
+                )}
 
                 {s.workflowStatus === "OPEN" && (
                   <button className="btn btn-primary" style={{ marginTop: 8 }} disabled={busyId === s.id} onClick={() => handleAcknowledge(s.id)}>
