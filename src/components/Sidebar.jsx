@@ -14,16 +14,16 @@ const ROLE_LABEL = {
 
 const NAV_ITEMS = [
   { to: "/", label: "Dasbor", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
-  { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter", "case_manager"] },
-  { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas"] },
-  { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter"] },
-  { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter"] },
+  { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
+  { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas", "dokter", "manajemen"] },
+  { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter", "manajemen"] },
+  { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter", "manajemen"] },
   { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
-  { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter", "case_manager"] },
-  { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter", "case_manager"] },
-  { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen"] },
-  { to: "/before-after", label: "Before–After", roles: ["admin", "manajemen"] },
-  { to: "/audit-trail", label: "Jejak Audit", roles: ["admin", "manajemen"] },
+  { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
+  { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
+  { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen", "dokter"] },
+  { to: "/before-after", label: "Before–After", roles: ["admin", "manajemen", "dokter"] },
+  { to: "/audit-trail", label: "Jejak Audit", roles: ["admin", "manajemen", "dokter"] },
   { to: "/admin", label: "Administrasi", roles: ["admin"] },
 ];
 
