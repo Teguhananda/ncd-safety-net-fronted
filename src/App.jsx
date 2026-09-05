@@ -16,9 +16,6 @@ import AuditTrail from "./pages/AuditTrail";
 import Administration from "./pages/Administration";
 import PatientHistory from "./pages/PatientHistory";
 import SafetySignals from "./pages/SafetySignals";
-import PortalLogin from "./pages/portal/PortalLogin";
-import PortalHome from "./pages/portal/PortalHome";
-import PatientProtectedRoute from "./components/PatientProtectedRoute";
 
 function withProtection(element) {
   return <ProtectedRoute>{element}</ProtectedRoute>;
@@ -44,10 +41,9 @@ export default function App() {
           <Route path="/admin" element={withProtection(<Administration />)} />
           <Route path="/patient-history" element={withProtection(<PatientHistory />)} />
           <Route path="/safety-signals" element={withProtection(<SafetySignals />)} />
-
-          {/* Portal Pasien "My NCD Safety" — auth & proteksi TERPISAH dari staff */}
-          <Route path="/portal/login" element={<PortalLogin />} />
-          <Route path="/portal" element={<PatientProtectedRoute><PortalHome /></PatientProtectedRoute>} />
+          {/* Rute /portal & /portal/login TIDAK lagi di sini — sudah
+              ditangani halaman HTML terpisah (portal.html) lewat rewrite
+              di vercel.json, supaya manifest PWA-nya tertanam statis. */}
         </Routes>
       </BrowserRouter>
     </AuthProvider>
