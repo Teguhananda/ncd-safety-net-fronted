@@ -5,6 +5,8 @@ import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
 import QRScanner from "../components/QRScanner";
 import PatientQRModal from "../components/PatientQRModal";
+import PatientPortalQRModal from "../components/PatientPortalQRModal";
+import PersonalSafetyPlanModal from "../components/PersonalSafetyPlanModal";
 import { Link, useNavigate } from "react-router-dom";
 import { callApi } from "../lib/api";
 
@@ -18,6 +20,8 @@ export default function Patients() {
   const [scanning, setScanning] = useState(false);
   const [adding, setAdding] = useState(false);
   const [qrPatient, setQrPatient] = useState(null);
+  const [portalQrPatient, setPortalQrPatient] = useState(null);
+  const [planPatient, setPlanPatient] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
@@ -278,6 +282,12 @@ export default function Patients() {
                     <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setQrPatient(p)}>
                       QR
                     </button>
+                    <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setPortalQrPatient(p)}>
+                      QR Portal
+                    </button>
+                    <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} onClick={() => setPlanPatient(p)}>
+                      Safety Plan
+                    </button>
                     <button
                       className="btn btn-ghost"
                       style={{ padding: "4px 10px", fontSize: 12, color: "#c0392b" }}
@@ -295,6 +305,8 @@ export default function Patients() {
       </div>
 
       {qrPatient && <PatientQRModal patient={qrPatient} onClose={() => setQrPatient(null)} />}
+      {portalQrPatient && <PatientPortalQRModal patient={portalQrPatient} onClose={() => setPortalQrPatient(null)} />}
+      {planPatient && <PersonalSafetyPlanModal patient={planPatient} onClose={() => setPlanPatient(null)} />}
     </Layout>
   );
 }

@@ -1,0 +1,119 @@
+/* portal-styles.css — khusus halaman /portal/* (My NCD Safety).
+   File TERPISAH dari styles.css staff supaya tidak ada risiko mengubah
+   tampilan halaman staff yang sudah stabil. */
+
+.portal-shell {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 16px;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #e8f7f2 0%, #f4fbf9 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.portal-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.portal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.portal-header h2 { color: #0f6d5c; margin: 0; }
+
+.portal-card, .portal-status-card, .portal-info-card {
+  background: rgba(255,255,255,0.85);
+  border-radius: 18px;
+  padding: 20px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 16px rgba(15,109,92,0.08);
+}
+
+.portal-status-card {
+  text-align: center;
+  border: 2px solid;
+}
+
+.portal-sub { color: #5b8079; font-size: 13px; margin-top: 4px; }
+.portal-error { color: #c0392b; font-weight: 600; }
+
+.portal-menu-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.portal-menu-btn {
+  background: #ffffffcc;
+  border: 1px solid #cdeae2;
+  border-radius: 16px;
+  padding: 20px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f6d5c;
+  cursor: pointer;
+  min-height: 84px;
+}
+.portal-menu-btn:active { background: #d7f3ea; }
+
+.portal-primary-btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: #0f6d5c;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.portal-primary-btn:disabled { opacity: 0.6; }
+
+.portal-link-btn {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: #0f6d5c;
+  font-size: 14px;
+  margin-top: 6px;
+  cursor: pointer;
+}
+
+.portal-field { margin-bottom: 12px; }
+.portal-field label { display: block; font-size: 13px; color: #3a544e; margin-bottom: 4px; }
+.portal-field input, .portal-field select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #cdeae2;
+  font-size: 15px;
+  box-sizing: border-box;
+}
+
+.portal-question {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e3f2ee;
+  font-size: 15px;
+}
+.portal-yn { display: flex; gap: 8px; margin-top: 8px; }
+.portal-yn button {
+  flex: 1;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid #cdeae2;
+  background: white;
+  font-weight: 600;
+}
+.portal-yn-active { background: #0f6d5c !important; color: white !important; }
+
+.portal-history-row {
+  padding: 8px 0;
+  border-bottom: 1px solid #e3f2ee;
+  font-size: 14px;
+}

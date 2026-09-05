@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { collection, getDocs, doc, getDoc, orderBy, limit, query } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, orderBy, limit, query, where } from "firebase/firestore";
+import { Link } from "react-router-dom";
 import { db } from "../lib/firebase";
 import Layout from "../components/Layout";
 import RiskBadge from "../components/RiskBadge";
@@ -11,6 +12,7 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [attentionList, setAttentionList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeSignalCount, setActiveSignalCount] = useState(0);
 
   useEffect(() => {
     async function load() {
@@ -51,6 +53,17 @@ export default function Dashboard() {
 
       setAttentionList(attentionWithNames);
       setLoading(false);
+
+      // Home Safety Signals — hitung sinyal aktif (belum CLOSED) dari
+      // pemantauan mandiri pasien di rumah (bagian J spesifikasi baru).
+      try {
+        const signalSnap = await getDocs(
+          query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED"))
+        );
+        setActiveSignalCount(signalSnap.size);
+      } catch (err) {
+        // diamkan — widget tambahan, tidak boleh mengganggu dashboard utama
+      }
     }
     load();
   }, []);
@@ -61,6 +74,11 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
+      {activeSignalCount > 0 && (
+        <Link to="/safety-signals" className="card" style={{ display: "block", marginBottom: 16, textDecoration: "none", border: "1px solid var(--redflag, #e6553f)" }}>
+          <b>🏠 {activeSignalCount} Home Safety Signal aktif</b> — dari pemantauan mandiri pasien di rumah, perlu ditinjau. Klik untuk buka.
+        </Link>
+      )}
             <div className="grid cols-3">
         <div className="card">
           <div className="stat-label">Total Skrining</div>

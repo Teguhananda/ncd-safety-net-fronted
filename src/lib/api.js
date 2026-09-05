@@ -51,6 +51,32 @@ export async function callApi(endpoint, data = {}) {
 }
 
 /**
+ * patientPortalLogin — SATU-SATUNYA pemanggilan API yang boleh terjadi
+ * SEBELUM ada user Firebase Auth yang login (dipakai di PortalLogin.jsx).
+ * Tidak lewat callApi() di atas karena callApi mewajibkan auth.currentUser
+ * sudah ada — di titik ini pasien belum login sama sekali.
+ */
+export async function patientPortalLogin(patientId, token) {
+  let response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/patientPortal`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "login", patientId, token }),
+    });
+  } catch (networkErr) {
+    throw new ApiCallError("network-error", "Tidak bisa menghubungi server. Cek koneksi internet.");
+  }
+  const json = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const code = json?.error?.code || "internal";
+    const message = json?.error?.message || "Kode QR tidak valid.";
+    throw new ApiCallError(code, message);
+  }
+  return json; // { customToken, patientName }
+}
+
+/**
  * ApiCallError — dibuat supaya kode di halaman (Screening.jsx, dst.) yang
  * sudah menulis `e.code === "functions/failed-precondition"` dkk tetap
  * jalan tanpa perlu diubah — kita samakan format code-nya.

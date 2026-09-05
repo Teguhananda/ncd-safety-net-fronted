@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas"] },
   { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter"] },
   { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter"] },
+  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen"] },
   { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter"] },
   { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter"] },
   { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen"] },

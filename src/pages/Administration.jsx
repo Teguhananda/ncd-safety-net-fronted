@@ -100,6 +100,20 @@ export default function Administration() {
   const [followupMsg, setFollowupMsg] = useState(null);
   const [analyticsBusy, setAnalyticsBusy] = useState(false);
   const [analyticsMsg, setAnalyticsMsg] = useState(null);
+  const [reminderBusy, setReminderBusy] = useState(false);
+  const [reminderMsg, setReminderMsg] = useState(null);
+
+  const runSendReminders = async () => {
+    setReminderBusy(true);
+    try {
+      const res = await callApi("scheduled", { action: "sendMonitoringReminders" });
+      setReminderMsg({ ok: true, text: `Terkirim ke ${res.data.sentCount} pasien (${res.data.skippedCount} dilewati — belum aktifkan notifikasi).` });
+    } catch (e) {
+      setReminderMsg({ ok: false, text: e.message });
+    } finally {
+      setReminderBusy(false);
+    }
+  };
 
   const runCheckOverdue = async () => {
     setFollowupBusy(true);
@@ -290,6 +304,17 @@ const runResetAnalytics = async () => {
           {resetBusy ? "Mereset..." : "Reset Analitik PMKP"}
         </button>
         <SectionResult msg={resetMsg} />
+          </div>
+          <div>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>Kirim Pengingat Monitoring (Push)</div>
+            <div className="stat-sub" style={{ marginBottom: 8 }}>
+              Kirim notifikasi ke semua pasien dengan Safety Plan aktif yang sudah mengaktifkan notifikasi di HP-nya.
+              Belum otomatis terjadwal — jalankan manual sesuai kebutuhan (mis. tiap pagi).
+            </div>
+            <button className="btn btn-primary" onClick={runSendReminders} disabled={reminderBusy}>
+              {reminderBusy ? "Mengirim..." : "Kirim Sekarang"}
+            </button>
+            <SectionResult msg={reminderMsg} />
           </div>
         </div>
       </div>
