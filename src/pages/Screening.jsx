@@ -40,8 +40,8 @@ const RED_FLAG_ITEMS = [
   ["chestPain", "Nyeri dada khas ACS (tertekan/terhimpit di dada kiri-tengah, menjalar ke lengan kiri/rahang/punggung, disertai keringat dingin/mual, berlangsung >20 menit)"],
   ["severeShortness", "Sesak berat (curiga edema paru akut — komplikasi krisis hipertensi yang butuh nitrogliserin + diuretik segera)"],
   ["lossOfConsciousness", "Penurunan kesadaran (curiga ensefalopati hipertensi: somnolen, letargi, hingga koma)"],
-  ["suddenWeakness", "Kelemahan anggota gerak mendadak"],
-  ["suddenSpeechDifficulty", "Gangguan bicara mendadak"],
+  ["suddenWeakness", "Kelemahan/mati rasa mendadak satu sisi tubuh (wajah, lengan, dan/atau tungkai) — bukan bertahap"],
+  ["suddenSpeechDifficulty", "Gangguan bicara mendadak (pelo/tidak jelas, atau sulit memahami lawan bicara) — bukan bertahap"],
   ["seizure", "Kejang (curiga ensefalopati hipertensi — sering menyertai penurunan kesadaran mendadak)"],
   ["hypoglycemiaSigns", "Tanda hipoglikemia (adrenergik: gemetar, berdebar, berkeringat dingin, rasa lapar hebat, cemas — dan/atau neuroglikopenik: bingung, sulit bicara, pandangan kabur, lemas, kejang, penurunan kesadaran)"],
   ["otherAcuteComplaint", "Keluhan akut lainnya"],
@@ -59,6 +59,18 @@ const ONSET_OPTIONS = [
   [">24h", "> 24 jam yang lalu"],
   ["unknown", "Tidak diketahui / saat bangun tidur"],
 ];
+
+// Cutoff sesuai standar internasional AHA/ASA yang dikonfirmasi dokter
+// internis: jendela trombolisis (tPA) = 4,5 jam sejak onset/terakhir
+// terlihat normal. Dipakai untuk banner urgensi otomatis di halaman
+// hasil, supaya dokter tidak perlu menghitung sendiri dari jam onset.
+const ONSET_URGENCY = {
+  "<3h": { urgent: true, text: "MASIH DALAM JENDELA TROMBOLISIS PENUH (<3 jam) — segera rujuk ke fasilitas dengan layanan trombolisis/stroke unit." },
+  "3-4.5h": { urgent: true, text: "MASIH DALAM JENDELA TROMBOLISIS DIPERLUAS (3-4,5 jam) — segera rujuk, waktu sangat terbatas." },
+  "4.5-24h": { urgent: false, text: "Sudah lewat jendela trombolisis (>4,5 jam) — tetap red flag, evaluasi kelayakan trombektomi mekanik (bisa s.d. 24 jam pada kasus terpilih) & tata laksana suportif." },
+  ">24h": { urgent: false, text: "Onset >24 jam — sudah di luar jendela intervensi akut standar, tetap perlu evaluasi neurologi & pencegahan sekunder." },
+  unknown: { urgent: true, text: "Onset tidak diketahui/saat bangun tidur — perlakukan seperti dalam jendela trombolisis sampai dipastikan sebaliknya (perlu MRI DWI/FLAIR mismatch bila tersedia)." },
+};
 
 const NCD_ITEMS = ["Hipertensi", "Diabetes Mellitus", "Dislipidemia", "Obesitas", "Penyakit jantung", "Stroke", "CKD"];
 
@@ -493,8 +505,32 @@ export default function Screening() {
           {(() => {
             const status = result.status || result.riskResult?.riskStatus;
             const cats = result.clinicalCategories;
+            // Banner urgensi stroke otomatis — ambil onset TERAWAL di antara
+            // suddenWeakness/suddenSpeechDifficulty yang dicentang (kalau
+            // keduanya dicentang dengan onset berbeda, pakai yang paling
+            // mendesak) supaya dokter langsung tahu masih dalam jendela
+            // trombolisis 4,5 jam atau tidak, tanpa menghitung manual.
+            const onsetEntries = Object.entries(result.redFlagOnset || {}).filter(([, v]) => v);
+            const urgencyOrder = ["<3h", "3-4.5h", "unknown", "4.5-24h", ">24h"];
+            const mostUrgentCode = onsetEntries
+              .map(([, v]) => v)
+              .sort((a, b) => urgencyOrder.indexOf(a) - urgencyOrder.indexOf(b))[0];
+            const strokeUrgency = mostUrgentCode ? ONSET_URGENCY[mostUrgentCode] : null;
             return (
               <div className="grid cols-2">
+                {strokeUrgency && (
+                  <div
+                    className="card"
+                    style={{
+                      gridColumn: "1 / -1",
+                      background: strokeUrgency.urgent ? "rgba(230,85,63,0.15)" : "rgba(184,134,11,0.15)",
+                      border: `1px solid ${strokeUrgency.urgent ? "var(--redflag, #e6553f)" : "#b8860b"}`,
+                    }}
+                  >
+                    <b>{strokeUrgency.urgent ? "🔴" : "🟡"} Cutoff Onset Neurologis (standar AHA/ASA, 4,5 jam):</b>
+                    <div style={{ marginTop: 4 }}>{strokeUrgency.text}</div>
+                  </div>
+                )}
                 <div className="card" style={{ textAlign: "center" }}>
                   <div className="stat-label">Status Risiko</div>
                   <div style={{ margin: "14px 0" }}>
