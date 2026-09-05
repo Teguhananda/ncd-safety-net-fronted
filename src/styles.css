@@ -127,6 +127,7 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 0 3px rgba(23,184,166,0.35);
 }
 select option { background: #0d1a35; color: var(--ink); }
+select optgroup { background: #0d1a35; color: var(--accent); font-weight: 700; font-style: normal; }
 textarea { resize: vertical; min-height: 60px; }
 
 .error-text { color: #ffd7cf; font-size: 13px; margin: 4px 0 12px; }
@@ -383,6 +384,7 @@ textarea { resize: vertical; min-height: 60px; }
 .mono { font-family: "SF Mono", "IBM Plex Mono", monospace; }
 
 .card h3 { margin: 0 0 14px; font-size: 16px; color: #fff; }
+.card h4 { margin: 0 0 10px; font-size: 14px; color: #fff; }
 
 /* ---- Badge status (Low/Moderate/High/Red Flag) — gaya pil seperti
    "Tercapai"/"Tidak Tercapai" di INM ---- */

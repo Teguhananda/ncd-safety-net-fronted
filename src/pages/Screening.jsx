@@ -522,9 +522,41 @@ export default function Screening() {
             <select style={{ marginTop: 8 }} value={labResults.ecgFinding} onChange={(e) => setLabResults((l) => ({ ...l, ecgFinding: e.target.value }))}>
               <option value="">-- Hasil EKG (kalau ada) --</option>
               <option value="Normal">Normal</option>
-              <option value="LVH">LVH (Hipertrofi Ventrikel Kiri)</option>
-              <option value="Aritmia">Aritmia</option>
-              <option value="Lainnya">Lainnya</option>
+              <optgroup label="Irama">
+                <option value="Sinus Bradikardia">Sinus Bradikardia</option>
+                <option value="Sinus Takikardia">Sinus Takikardia</option>
+                <option value="Fibrilasi Atrium (AF)">Fibrilasi Atrium (AF)</option>
+                <option value="Flutter Atrium">Flutter Atrium</option>
+                <option value="SVT (Takikardia Supraventrikular)">SVT (Takikardia Supraventrikular)</option>
+                <option value="VES/PVC (Ekstrasistol Ventrikel)">VES/PVC (Ekstrasistol Ventrikel)</option>
+                <option value="AES/PAC (Ekstrasistol Atrium)">AES/PAC (Ekstrasistol Atrium)</option>
+                <option value="VT (Takikardia Ventrikel)">VT (Takikardia Ventrikel)</option>
+              </optgroup>
+              <optgroup label="Konduksi">
+                <option value="AV Block Derajat 1">AV Block Derajat 1</option>
+                <option value="AV Block Derajat 2">AV Block Derajat 2</option>
+                <option value="AV Block Derajat 3 (Total)">AV Block Derajat 3 (Total)</option>
+                <option value="RBBB">RBBB</option>
+                <option value="LBBB">LBBB</option>
+              </optgroup>
+              <optgroup label="Hipertrofi / Pembesaran Ruang">
+                <option value="LVH (Hipertrofi Ventrikel Kiri)">LVH (Hipertrofi Ventrikel Kiri)</option>
+                <option value="RVH (Hipertrofi Ventrikel Kanan)">RVH (Hipertrofi Ventrikel Kanan)</option>
+                <option value="LAE (Pembesaran Atrium Kiri)">LAE (Pembesaran Atrium Kiri)</option>
+                <option value="RAE (Pembesaran Atrium Kanan)">RAE (Pembesaran Atrium Kanan)</option>
+              </optgroup>
+              <optgroup label="Iskemia / Infark">
+                <option value="ST Elevasi">ST Elevasi</option>
+                <option value="ST Depresi">ST Depresi</option>
+                <option value="T Inverted">T Inverted</option>
+                <option value="Old Infark (Q Patologis)">Old Infark (Q Patologis)</option>
+              </optgroup>
+              <optgroup label="Lainnya">
+                <option value="Aksis Deviasi">Aksis Deviasi</option>
+                <option value="Low Voltage">Low Voltage</option>
+                <option value="Prolonged QT">Prolonged QT</option>
+                <option value="Lainnya">Lainnya (sebutkan di catatan)</option>
+              </optgroup>
             </select>
           </div>
 
