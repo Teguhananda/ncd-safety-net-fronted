@@ -51,7 +51,7 @@ export default function Screening() {
 
   const [ncdConditions, setNcdConditions] = useState([]);
   const [vitalSigns, setVitalSigns] = useState({
-    systolicBP: "", diastolicBP: "", pulse: "", temperature: "", spo2: "",
+    systolicBP: "", diastolicBP: "", pulse: "", temperature: "", spo2: "", respiratoryRate: "",
     glucoseValue: "", glucoseType: "GDS",
   });
   const [redFlags, setRedFlags] = useState({});
@@ -126,6 +126,7 @@ export default function Screening() {
           pulse: vitalSigns.pulse === "" ? null : Number(vitalSigns.pulse),
           temperature: vitalSigns.temperature === "" ? null : Number(vitalSigns.temperature),
           spo2: vitalSigns.spo2 === "" ? null : Number(vitalSigns.spo2),
+          respiratoryRate: vitalSigns.respiratoryRate === "" ? null : Number(vitalSigns.respiratoryRate),
           glucoseValue: vitalSigns.glucoseValue === "" ? null : Number(vitalSigns.glucoseValue),
           glucoseType: vitalSigns.glucoseType,
         },
@@ -276,8 +277,8 @@ export default function Screening() {
           </div>
 
           <div className="field">
-            <label>Nadi (x/menit), Suhu (°C), SpO2 (%)</label>
-            <div className="grid cols-3">
+            <label>Nadi (x/menit), Suhu (°C), SpO2 (%), Napas (x/menit)</label>
+            <div className="grid cols-4">
               <input
                 type="number"
                 placeholder="Nadi"
@@ -303,6 +304,18 @@ export default function Screening() {
                 value={vitalSigns.spo2}
                 onChange={(e) => updateVitalSign("spo2", e.target.value)}
               />
+              <input
+                type="number"
+                placeholder="Napas"
+                min="4"
+                max="60"
+                value={vitalSigns.respiratoryRate}
+                onChange={(e) => updateVitalSign("respiratoryRate", e.target.value)}
+              />
+            </div>
+            <div className="stat-sub" style={{ marginTop: 4 }}>
+              Frekuensi napas: waspadai napas cepat/dalam (curiga edema paru akut atau
+              ketoasidosis diabetik) maupun napas lambat (penurunan kesadaran berat).
             </div>
           </div>
 

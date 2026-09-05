@@ -38,6 +38,10 @@ export default function Administration() {
     tempHighRedFlag: 38.5,
     spo2WarnLow: 96,
     spo2LowRedFlag: 92,
+    rrLowRedFlag: 10,
+    rrWarnLow: 13,
+    rrWarnHigh: 22,
+    rrHighRedFlag: 26,
     // Kategori klinis 6 tingkat sesuai PNPK Hipertensi Dewasa 2026 / ESC 2018-2024
     optimalSystolicMax: 119,
     optimalDiastolicMax: 79,
@@ -173,6 +177,10 @@ const runResetAnalytics = async () => {
           tempHighRedFlag: Number(vitals.tempHighRedFlag),
           spo2WarnLow: Number(vitals.spo2WarnLow),
           spo2LowRedFlag: Number(vitals.spo2LowRedFlag),
+          rrLowRedFlag: Number(vitals.rrLowRedFlag),
+          rrWarnLow: Number(vitals.rrWarnLow),
+          rrWarnHigh: Number(vitals.rrWarnHigh),
+          rrHighRedFlag: Number(vitals.rrHighRedFlag),
           bpCategory: {
             optimalSystolicMax: Number(vitals.optimalSystolicMax),
             optimalDiastolicMax: Number(vitals.optimalDiastolicMax),
@@ -479,6 +487,33 @@ const runResetAnalytics = async () => {
           <div className="field">
             <label>Red Flag (≤)</label>
             <input type="number" value={vitals.spo2LowRedFlag} onChange={(e) => updateVital("spo2LowRedFlag", e.target.value)} />
+          </div>
+        </div>
+
+        <h4 style={{ marginTop: 16, marginBottom: 8 }}>Frekuensi Napas (x/menit)</h4>
+        <div className="stat-sub" style={{ marginBottom: 8 }}>
+          Ambang berikut BUKAN diadaptasi dari skor deteksi-dini generik (mis. NEWS2). Takipnea
+          (napas cepat) diwaspadai sebagai tanda edema paru akut (komplikasi krisis hipertensi)
+          atau napas Kussmaul (khas Ketoasidosis Diabetik/KAD, biasanya menyertai gula darah
+          sangat tinggi). Bradipnea (napas lambat) diwaspadai sebagai tanda depresi napas akibat
+          penurunan kesadaran berat atau hipoglikemia berat.
+        </div>
+        <div className="grid cols-4">
+          <div className="field">
+            <label>Red Flag Rendah/Bradipnea (≤)</label>
+            <input type="number" value={vitals.rrLowRedFlag} onChange={(e) => updateVital("rrLowRedFlag", e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Waspada Rendah (≤)</label>
+            <input type="number" value={vitals.rrWarnLow} onChange={(e) => updateVital("rrWarnLow", e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Waspada Tinggi (≥)</label>
+            <input type="number" value={vitals.rrWarnHigh} onChange={(e) => updateVital("rrWarnHigh", e.target.value)} />
+          </div>
+          <div className="field">
+            <label>Red Flag Tinggi/Takipnea (≥)</label>
+            <input type="number" value={vitals.rrHighRedFlag} onChange={(e) => updateVital("rrHighRedFlag", e.target.value)} />
           </div>
         </div>
 
