@@ -14,12 +14,12 @@ const UNDERSTANDING_OPTIONS = [
 
 const RED_FLAG_ITEMS = [
   ["chestPain", "Nyeri dada khas ACS (tertekan/terhimpit di dada kiri-tengah, menjalar ke lengan kiri/rahang/punggung, disertai keringat dingin/mual, berlangsung >20 menit)"],
-  ["severeShortness", "Sesak berat"],
-  ["lossOfConsciousness", "Penurunan kesadaran"],
+  ["severeShortness", "Sesak berat (curiga edema paru akut — komplikasi krisis hipertensi yang butuh nitrogliserin + diuretik segera)"],
+  ["lossOfConsciousness", "Penurunan kesadaran (curiga ensefalopati hipertensi: somnolen, letargi, hingga koma)"],
   ["suddenWeakness", "Kelemahan anggota gerak mendadak"],
   ["suddenSpeechDifficulty", "Gangguan bicara mendadak"],
-  ["seizure", "Kejang"],
-  ["hypoglycemiaSigns", "Tanda hipoglikemia"],
+  ["seizure", "Kejang (curiga ensefalopati hipertensi — sering menyertai penurunan kesadaran mendadak)"],
+  ["hypoglycemiaSigns", "Tanda hipoglikemia (adrenergik: gemetar, berdebar, berkeringat dingin, rasa lapar hebat, cemas — dan/atau neuroglikopenik: bingung, sulit bicara, pandangan kabur, lemas, kejang, penurunan kesadaran)"],
   ["otherAcuteComplaint", "Keluhan akut lainnya"],
 ];
 
