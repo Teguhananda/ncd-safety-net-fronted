@@ -7,10 +7,10 @@ import { requestAndRegisterPush } from "../../lib/push";
 import "../../portal-styles.css";
 
 const STATUS_MAP = {
-  SAFE: { emoji: "🟢", label: "AMAN", color: "#1b8a5a" },
-  ATTENTION: { emoji: "🟡", label: "PERLU PERHATIAN", color: "#b8860b" },
-  ACTION_NEEDED: { emoji: "🟠", label: "PERLU TINDAKAN", color: "#c96a1a" },
-  URGENT: { emoji: "🔴", label: "SEGERA HUBUNGI RS", color: "#c0392b" },
+  SAFE: { emoji: "🟢", label: "AMAN", color: "#34d399" },
+  ATTENTION: { emoji: "🟡", label: "PERLU PERHATIAN", color: "#f5a623" },
+  ACTION_NEEDED: { emoji: "🟠", label: "PERLU TINDAKAN", color: "#f2994a" },
+  URGENT: { emoji: "🔴", label: "SEGERA HUBUNGI RS", color: "#ff5c50" },
 };
 
 const CHECKIN_QUESTIONS = [
@@ -134,8 +134,14 @@ export default function PortalHome() {
   return (
     <div className="portal-shell">
       <header className="portal-header">
-        <h2>My NCD Safety</h2>
-        <button className="portal-link-btn" onClick={handleLogout}>Keluar</button>
+        <div className="portal-brand">
+          <img src="/logos/app-logo.png" alt="My NCD Safety" className="portal-logo-img" />
+          <div>
+            <h2>My NCD Safety</h2>
+            <div className="portal-brand-sub">RSUD KAB. REJANG LEBONG</div>
+          </div>
+        </div>
+        <button className="portal-link-btn" style={{ width: "auto" }} onClick={handleLogout}>Keluar</button>
       </header>
 
       {view === "home" && (

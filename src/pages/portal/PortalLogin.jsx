@@ -44,7 +44,10 @@ export default function PortalLogin() {
   return (
     <div className="portal-shell portal-center">
       <div className="portal-card">
-        <h2>My NCD Safety</h2>
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 12 }}>
+          <img src="/logos/app-logo.png" alt="My NCD Safety" className="portal-logo-img" style={{ width: 64, height: 64 }} />
+          <h2 style={{ margin: 0 }}>My NCD Safety</h2>
+        </div>
         {status === "loading" && <p>Memuat, mohon tunggu...</p>}
         {status === "error" && (
           <>
