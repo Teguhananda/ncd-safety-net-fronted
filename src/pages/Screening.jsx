@@ -13,7 +13,7 @@ const UNDERSTANDING_OPTIONS = [
 ];
 
 const RED_FLAG_ITEMS = [
-  ["chestPain", "Nyeri dada"],
+  ["chestPain", "Nyeri dada khas ACS (tertekan/terhimpit di dada kiri-tengah, menjalar ke lengan kiri/rahang/punggung, disertai keringat dingin/mual, berlangsung >20 menit)"],
   ["severeShortness", "Sesak berat"],
   ["lossOfConsciousness", "Penurunan kesadaran"],
   ["suddenWeakness", "Kelemahan anggota gerak mendadak"],
@@ -21,6 +21,19 @@ const RED_FLAG_ITEMS = [
   ["seizure", "Kejang"],
   ["hypoglycemiaSigns", "Tanda hipoglikemia"],
   ["otherAcuteComplaint", "Keluhan akut lainnya"],
+];
+
+// Kelemahan anggota gerak & gangguan bicara mendadak adalah dua gejala inti
+// FAST (Face-Arm-Speech-Time) untuk stroke — keputusan jalur trombolisis
+// sangat bergantung pada "sejak kapan" gejala muncul ("time is brain"),
+// jadi keduanya butuh input onset waktu, bukan cuma centang ya/tidak.
+const ONSET_ITEMS = new Set(["suddenWeakness", "suddenSpeechDifficulty"]);
+const ONSET_OPTIONS = [
+  ["<3h", "< 3 jam yang lalu (jendela trombolisis penuh)"],
+  ["3-4.5h", "3 - 4.5 jam yang lalu (jendela trombolisis diperluas)"],
+  ["4.5-24h", "4.5 - 24 jam yang lalu"],
+  [">24h", "> 24 jam yang lalu"],
+  ["unknown", "Tidak diketahui / saat bangun tidur"],
 ];
 
 const NCD_ITEMS = ["Hipertensi", "Diabetes Mellitus", "Dislipidemia", "Obesitas", "Penyakit jantung", "Stroke", "CKD"];
@@ -37,7 +50,12 @@ export default function Screening() {
   const patientId = params.get("patientId") || "";
 
   const [ncdConditions, setNcdConditions] = useState([]);
+  const [vitalSigns, setVitalSigns] = useState({
+    systolicBP: "", diastolicBP: "", pulse: "", temperature: "", spo2: "",
+    glucoseValue: "", glucoseType: "GDS",
+  });
   const [redFlags, setRedFlags] = useState({});
+  const [redFlagOnset, setRedFlagOnset] = useState({});
   const [accessBarriers, setAccessBarriers] = useState({});
   const [visitDate, setVisitDate] = useState(new Date().toISOString().slice(0, 10));
   const [pastScreenings, setPastScreenings] = useState([]);
@@ -83,6 +101,8 @@ export default function Screening() {
     setNcdConditions((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
   };
   const toggleRedFlag = (key) => setRedFlags((prev) => ({ ...prev, [key]: !prev[key] }));
+  const updateOnset = (key, value) => setRedFlagOnset((prev) => ({ ...prev, [key]: value }));
+  const updateVitalSign = (field, value) => setVitalSigns((prev) => ({ ...prev, [field]: value }));
   const toggleAccessBarrier = (key) => setAccessBarriers((prev) => ({ ...prev, [key]: !prev[key] }));
 
   const submitScreeningStep = async () => {
@@ -92,7 +112,24 @@ export default function Screening() {
       // visitId idealnya dibuat dulu lewat alur kunjungan; untuk contoh ini
       // dianggap sudah ada dan dikirim sederhana berdasar patientId+tanggal.
       const visitId = `${patientId}-${new Date().toISOString().replace(/[:.]/g, "-")}`;
-      const res = await callApi("screening", { visitId, patientId, ncdConditions, redFlags, accessBarriers, visitDate });
+      const res = await callApi("screening", {
+        visitId,
+        patientId,
+        ncdConditions,
+        redFlags,
+        redFlagOnset,
+        accessBarriers,
+        visitDate,
+        vitalSigns: {
+          systolicBP: vitalSigns.systolicBP === "" ? null : Number(vitalSigns.systolicBP),
+          diastolicBP: vitalSigns.diastolicBP === "" ? null : Number(vitalSigns.diastolicBP),
+          pulse: vitalSigns.pulse === "" ? null : Number(vitalSigns.pulse),
+          temperature: vitalSigns.temperature === "" ? null : Number(vitalSigns.temperature),
+          spo2: vitalSigns.spo2 === "" ? null : Number(vitalSigns.spo2),
+          glucoseValue: vitalSigns.glucoseValue === "" ? null : Number(vitalSigns.glucoseValue),
+          glucoseType: vitalSigns.glucoseType,
+        },
+      });
       setResult(res.data);
       if (res.data.status === "RED_FLAG") {
         setStep("result");
@@ -217,6 +254,84 @@ export default function Screening() {
           )}
 
           <div className="field">
+            <label>Tekanan Darah (mmHg)</label>
+            <div className="grid cols-2">
+              <input
+                type="number"
+                placeholder="Sistolik"
+                min="40"
+                max="300"
+                value={vitalSigns.systolicBP}
+                onChange={(e) => updateVitalSign("systolicBP", e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="Diastolik"
+                min="20"
+                max="200"
+                value={vitalSigns.diastolicBP}
+                onChange={(e) => updateVitalSign("diastolicBP", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Nadi (x/menit), Suhu (°C), SpO2 (%)</label>
+            <div className="grid cols-3">
+              <input
+                type="number"
+                placeholder="Nadi"
+                min="20"
+                max="250"
+                value={vitalSigns.pulse}
+                onChange={(e) => updateVitalSign("pulse", e.target.value)}
+              />
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Suhu"
+                min="30"
+                max="42"
+                value={vitalSigns.temperature}
+                onChange={(e) => updateVitalSign("temperature", e.target.value)}
+              />
+              <input
+                type="number"
+                placeholder="SpO2"
+                min="50"
+                max="100"
+                value={vitalSigns.spo2}
+                onChange={(e) => updateVitalSign("spo2", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="field">
+            <label>Gula Darah</label>
+            <div className="grid cols-2">
+              <input
+                type="number"
+                placeholder="Nilai (mg/dL atau %)"
+                min={vitalSigns.glucoseType === "HbA1c" ? "3" : "20"}
+                max={vitalSigns.glucoseType === "HbA1c" ? "20" : "800"}
+                value={vitalSigns.glucoseValue}
+                onChange={(e) => updateVitalSign("glucoseValue", e.target.value)}
+              />
+              <select
+                value={vitalSigns.glucoseType}
+                onChange={(e) => updateVitalSign("glucoseType", e.target.value)}
+              >
+                <option value="GDS">GDS (Gula Darah Sewaktu)</option>
+                <option value="GDP">GDP (Gula Darah Puasa)</option>
+                <option value="HbA1c">HbA1c</option>
+              </select>
+            </div>
+            <div className="stat-sub" style={{ marginTop: 4 }}>
+              Kosongkan jika tidak diperiksa pada kunjungan ini.
+            </div>
+          </div>
+
+          <div className="field">
             <label>Kondisi NCD diketahui</label>
             <div className="checklist">
               {NCD_ITEMS.map((item) => (
@@ -232,10 +347,23 @@ export default function Screening() {
             <label>Cek Red Flag</label>
             <div className="checklist">
               {RED_FLAG_ITEMS.map(([key, label]) => (
-                <label key={key} className="check-item danger-zone">
-                  <input type="checkbox" checked={!!redFlags[key]} onChange={() => toggleRedFlag(key)} />
-                  {label}
-                </label>
+                <div key={key}>
+                  <label className="check-item danger-zone">
+                    <input type="checkbox" checked={!!redFlags[key]} onChange={() => toggleRedFlag(key)} />
+                    {label}
+                  </label>
+                  {ONSET_ITEMS.has(key) && redFlags[key] && (
+                    <div style={{ marginLeft: 24, marginTop: 4, marginBottom: 8 }}>
+                      <label style={{ fontSize: 13 }}>Sejak kapan gejala ini muncul?</label>
+                      <select value={redFlagOnset[key] || ""} onChange={(e) => updateOnset(key, e.target.value)}>
+                        <option value="">-- Pilih onset --</option>
+                        {ONSET_OPTIONS.map(([v, l]) => (
+                          <option key={v} value={v}>{l}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -311,6 +439,7 @@ export default function Screening() {
         <div>
           {(() => {
             const status = result.status || result.riskResult?.riskStatus;
+            const cats = result.clinicalCategories;
             return (
               <div className="grid cols-2">
                 <div className="card" style={{ textAlign: "center" }}>
@@ -343,6 +472,28 @@ export default function Screening() {
                     <div className="stat-sub">Tidak ada rincian skor (jalur Red Flag melewati skor).</div>
                   )}
                 </div>
+                {cats && (cats.bloodPressure || cats.glucose) && (
+                  <div className="card" style={{ gridColumn: "1 / -1" }}>
+                    <h3>Kategori Klinis</h3>
+                    <div className="stat-sub" style={{ marginBottom: 8 }}>
+                      Kategori spesifik sesuai standar Hipertensi/Diabetes — bukan hanya skor umum.
+                    </div>
+                    <div className="grid cols-2">
+                      {cats.bloodPressure && (
+                        <div>
+                          <div className="stat-label">Tekanan Darah</div>
+                          <div style={{ fontWeight: 600 }}>{cats.bloodPressure}</div>
+                        </div>
+                      )}
+                      {cats.glucose && (
+                        <div>
+                          <div className="stat-label">Gula Darah</div>
+                          <div style={{ fontWeight: 600 }}>{cats.glucose}</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })()}
