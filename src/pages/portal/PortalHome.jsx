@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebase";
 import { callApi } from "../../lib/api";
@@ -18,6 +18,22 @@ const PARAM_LABEL_ID = {
   diastolicBP: "Tensi (Diastolik)",
   bloodGlucose: "Gula Darah",
 };
+
+// Pisahkan teks jadi paragraf per-poin — menangani 2 kasus: (1) staff
+// menulis dengan Enter/baris baru beneran, (2) staff menulis dalam 1
+// baris panjang dengan penanda angka "1. ... 2. ... 3. ..." tanpa Enter
+// sama sekali (kasus paling umum ternyata, lihat data sungguhan) —
+// keduanya dipecah jadi paragraf terpisah supaya gampang dibaca lansia.
+function renderMultiPoint(text) {
+  if (!text) return "-";
+  let parts = text.split(/\r?\n+/).map((s) => s.trim()).filter(Boolean);
+  if (parts.length <= 1) {
+    const bySplit = text.split(/(?=\d+\.\s)/).map((s) => s.trim()).filter(Boolean);
+    if (bySplit.length > 1) parts = bySplit;
+  }
+  if (parts.length <= 1) return <div>{text}</div>;
+  return parts.map((p, i) => <div key={i} style={{ marginBottom: 6 }}>{p}</div>);
+}
 
 const CHECKIN_QUESTIONS = [
   { key: "medicationAsPlanned", text: "Apakah obat diminum sesuai rencana?", positiveIsGood: true },
@@ -65,6 +81,52 @@ export default function PortalHome() {
   }
 
   useEffect(() => { loadSnapshot(); }, []);
+
+  // ==== BAGIAN BARU: tarik ke bawah untuk refresh (pull-to-refresh) ====
+  // Browser tidak punya gestur ini secara bawaan untuk aplikasi web biasa
+  // (beda dari aplikasi native) — jadi dibuat manual pakai touch event,
+  // supaya pasien bisa langsung tarik layar ke bawah untuk muat ulang
+  // status/instruksi terbaru tanpa perlu keluar-masuk aplikasi.
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const touchStartY = useRef(0);
+  const isPulling = useRef(false);
+
+  useEffect(() => {
+    function onTouchStart(e) {
+      if (window.scrollY === 0) {
+        touchStartY.current = e.touches[0].clientY;
+        isPulling.current = true;
+      }
+    }
+    function onTouchMove(e) {
+      if (!isPulling.current) return;
+      const distance = e.touches[0].clientY - touchStartY.current;
+      if (distance > 0 && window.scrollY === 0) {
+        setPullDistance(Math.min(distance * 0.5, 90));
+      }
+    }
+    async function onTouchEnd() {
+      if (!isPulling.current) return;
+      isPulling.current = false;
+      setPullDistance((current) => {
+        if (current > 55) {
+          setRefreshing(true);
+          loadSnapshot().finally(() => setRefreshing(false));
+        }
+        return 0;
+      });
+    }
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchend", onTouchEnd);
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleLogout = () => signOut(auth);
 
@@ -139,6 +201,22 @@ export default function PortalHome() {
 
   return (
     <div className="portal-shell">
+      {(pullDistance > 0 || refreshing) && (
+        <div
+          style={{
+            height: refreshing ? 44 : pullDistance,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 14,
+            color: "var(--p-ink-soft, rgba(244,253,251,0.72))",
+            transition: refreshing ? "height 0.15s ease" : "none",
+            overflow: "hidden",
+          }}
+        >
+          {refreshing ? "🔄 Memuat ulang..." : pullDistance > 55 ? "↓ Lepas untuk refresh" : "↓ Tarik untuk refresh"}
+        </div>
+      )}
       <header className="portal-header">
         <div className="portal-brand">
           <img src="/logos/app-logo.png" alt="My NCD Safety" className="portal-logo-img" />
@@ -272,10 +350,25 @@ export default function PortalHome() {
             <p>Belum ada safety plan aktif. Tanyakan ke petugas/dokter saat kontrol berikutnya.</p>
           ) : (
             <>
-              <p><b>Obat Saya:</b><br />{plan.medicationPlan || "-"}</p>
-              <p><b>Kontrol yang Perlu Dipantau:</b><br />{(plan.monitoringParameters || []).join(", ")} ({plan.monitoringFrequency || "-"})</p>
-              <p><b>Tanda Bahaya:</b><br />{plan.warningSigns || "-"}</p>
-              <p><b>Jika Terjadi Tanda Bahaya:</b><br />{plan.escalationInstruction || "-"}</p>
+              <div style={{ marginBottom: 16 }}>
+                <b>Obat Saya:</b>
+                <div style={{ marginTop: 4 }}>{renderMultiPoint(plan.medicationPlan)}</div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <b>Kontrol yang Perlu Dipantau:</b>
+                <div style={{ marginTop: 4 }}>
+                  {(plan.monitoringParameters || []).map((p) => PARAM_LABEL_ID[p] || p).join(", ") || "-"}
+                  {plan.monitoringFrequency && <span> ({plan.monitoringFrequency})</span>}
+                </div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <b>Tanda Bahaya:</b>
+                <div style={{ marginTop: 4 }}>{renderMultiPoint(plan.warningSigns)}</div>
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <b>Jika Terjadi Tanda Bahaya:</b>
+                <div style={{ marginTop: 4 }}>{renderMultiPoint(plan.escalationInstruction)}</div>
+              </div>
             </>
           )}
           <button className="portal-link-btn" onClick={() => setView("home")}>Kembali</button>
