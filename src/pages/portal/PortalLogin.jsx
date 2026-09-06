@@ -13,20 +13,56 @@ import "../../portal-styles.css";
  * TIDAK memakai AuthContext staff (idle timeout dkk) — sesi pasien memang
  * dirancang bertahan lama.
  *
- * BAGIAN BARU: fallback scan QR LANGSUNG DI DALAM aplikasi ini. Diperlukan
- * karena web app yang di-"Add to Home Screen" di iOS punya penyimpanan
- * SENDIRI, terpisah dari Safari — jadi sesi login yang berhasil di Safari
- * TIDAK ikut terbawa ke ikon yang terpasang. Solusinya: begitu ikon dibuka
- * pertama kali tanpa sesi/parameter QR, pasien scan ulang QR fisiknya
- * (kartu/kertas) langsung dari sini — setelah itu sesi tersimpan permanen
- * DI IKON tersebut, tidak perlu scan lagi selanjutnya.
+ * BAGIAN BARU (login diam-diam / silent relogin): ikon "Add to Home
+ * Screen" di iOS punya start_url STATIS (sama untuk semua pasien), jadi
+ * TIDAK PERNAH membawa pid/token di URL setiap dibuka. Selain itu sesi
+ * Firebase Auth yang tersimpan di penyimpanan iOS kadang dihapus sendiri
+ * oleh sistem tanpa sebab yang bisa kita kendalikan dari kode.
+ *
+ * Solusinya: begitu pasien login sukses (baik lewat scan pertama kali
+ * maupun scan ulang), pid+token disimpan di localStorage HP itu sendiri.
+ * Setiap kali halaman ini dibuka TANPA parameter URL, kita coba login
+ * ulang OTOMATIS & DIAM-DIAM pakai kredensial tersimpan tsb — pasien
+ * tidak melihat kotak scan sama sekali. Kotak scan hanya muncul kalau:
+ * (a) memang belum pernah login di HP ini, atau
+ * (b) kredensial tersimpan sudah tidak berlaku lagi (QR kadaluarsa 180
+ *     hari tidak dipakai, atau petugas mencetak ulang QR baru).
  */
+
+const CREDS_KEY = "ncdPortalCreds"; // { pid, token } tersimpan lokal di HP ini
+
 function parsePidToken(rawValue) {
   try {
     const url = new URL(rawValue);
     return { pid: url.searchParams.get("pid"), token: url.searchParams.get("token") };
   } catch {
     return { pid: null, token: null }; // bukan URL yang valid
+  }
+}
+
+function saveCreds(pid, token) {
+  try {
+    localStorage.setItem(CREDS_KEY, JSON.stringify({ pid, token }));
+  } catch {
+    // localStorage penuh/diblokir browser — tidak fatal, paling pasien
+    // akan diminta scan manual lagi kalau sesi Firebase-nya hilang.
+  }
+}
+
+function loadCreds() {
+  try {
+    const raw = localStorage.getItem(CREDS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearCreds() {
+  try {
+    localStorage.removeItem(CREDS_KEY);
+  } catch {
+    // abaikan
   }
 }
 
@@ -38,12 +74,21 @@ export default function PortalLogin() {
   const [errorMsg, setErrorMsg] = useState("");
   const [scanBusy, setScanBusy] = useState(false);
 
-  const doLogin = async (pid, token) => {
+  const doLogin = async (pid, token, { silent = false } = {}) => {
     try {
       const { customToken } = await patientPortalLogin(pid, token);
       await signInWithCustomToken(auth, customToken);
+      saveCreds(pid, token);
       navigate("/portal", { replace: true });
     } catch (err) {
+      if (silent) {
+        // Percobaan login otomatis (tanpa scan) gagal — kemungkinan QR
+        // sudah kadaluarsa atau sudah diganti petugas. Hapus kredensial
+        // lama supaya tidak dicoba berulang-ulang, lalu minta scan manual.
+        clearCreds();
+        setStatus("needScan");
+        return;
+      }
       setStatus("error");
       setErrorMsg(err.message || "Gagal login. Coba scan ulang QR.");
     }
@@ -53,13 +98,21 @@ export default function PortalLogin() {
     const pid = params.get("pid");
     const token = params.get("token");
 
-    if (!pid || !token) {
-      // Bukan error permanen — kemungkinan besar ikon di Home Screen yang
-      // penyimpanannya terpisah dari Safari. Tawarkan scan ulang dari sini.
-      setStatus("needScan");
+    if (pid && token) {
+      doLogin(pid, token);
       return;
     }
-    doLogin(pid, token);
+
+    // Tidak ada pid/token di URL — normal untuk ikon Home Screen. Coba
+    // login diam-diam pakai kredensial tersimpan dari scan sebelumnya.
+    const saved = loadCreds();
+    if (saved && saved.pid && saved.token) {
+      setStatus("loading");
+      doLogin(saved.pid, saved.token, { silent: true });
+      return;
+    }
+
+    setStatus("needScan");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
