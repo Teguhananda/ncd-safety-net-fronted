@@ -33,10 +33,22 @@ function toWhatsAppNumber(phone) {
   return "62" + digits;
 }
 
+// Salam pembuka menyesuaikan jam sungguhan HP staff saat tombol WA
+// diklik (real-time) — sebelumnya masih placeholder teks "[waktu]"
+// yang tidak pernah terganti otomatis.
+function getTimeGreeting() {
+  const hour = new Date().getHours();
+  if (hour >= 4 && hour < 11) return "Pagi";
+  if (hour >= 11 && hour < 15) return "Siang";
+  if (hour >= 15 && hour < 18) return "Sore";
+  return "Malam";
+}
+
 function buildWhatsAppMessage(patientName, sev, reasons) {
+  const waktu = getTimeGreeting();
   const greeting = sev.text === "URGENT"
-    ? `Selamat [waktu], Bapak/Ibu ${patientName}. Kami dari RSUD Kab. Rejang Lebong ingin menanyakan kondisi Bapak/Ibu karena sistem mendeteksi hal yang perlu SEGERA ditindaklanjuti:`
-    : `Selamat [waktu], Bapak/Ibu ${patientName}. Kami dari RSUD Kab. Rejang Lebong ingin menanyakan kondisi Bapak/Ibu terkait pemantauan kesehatan mandiri:`;
+    ? `Selamat ${waktu}, Bapak/Ibu ${patientName}. Kami dari RSUD Kab. Rejang Lebong ingin menanyakan kondisi Bapak/Ibu karena sistem mendeteksi hal yang perlu SEGERA ditindaklanjuti:`
+    : `Selamat ${waktu}, Bapak/Ibu ${patientName}. Kami dari RSUD Kab. Rejang Lebong ingin menanyakan kondisi Bapak/Ibu terkait pemantauan kesehatan mandiri:`;
   const reasonText = (reasons || []).map((r) => `- ${r}`).join("\n");
   return `${greeting}\n${reasonText}\n\nMohon informasikan kondisi Bapak/Ibu saat ini. Kalau ada keluhan berat, segera ke IGD RSUD Kab. Rejang Lebong.`;
 }
