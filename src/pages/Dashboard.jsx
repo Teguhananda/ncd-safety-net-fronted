@@ -16,11 +16,6 @@ const PARAM_LABEL_ID = {
   bloodGlucose: "Gula Darah",
 };
 
-// ==== BAGIAN BARU: lonceng notifikasi staff ====
-// Koleksi "notifications" (lib/notifications.js) cuma nyimpan PENUNJUK
-// (toRole, type, relatedEntityId) — bukan teks siap tampil. Jadi di sini
-// kita "terjemahkan": ambil dokumen aslinya (safety_signals /
-// risk_assessments / followups tergantung type), lalu ambil nama pasien.
 const NOTIF_TYPE_COLLECTION = {
   patient_emergency: "safety_signals",
   home_safety_signal: "safety_signals",
@@ -42,7 +37,7 @@ const NOTIF_TYPE_LABEL = {
 function useStaffNotifications(role) {
   const [rawNotifs, setRawNotifs] = useState([]);
   const [enriched, setEnriched] = useState([]);
-  const cacheRef = useRef({}); // key: `${type}:${relatedEntityId}` -> enrichment data
+  const cacheRef = useRef({});
 
   useEffect(() => {
     if (!role) return;
@@ -61,10 +56,7 @@ function useStaffNotifications(role) {
           createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null,
         };
       }));
-    }, () => {
-      // gagal subscribe (misal index belum dibuat) — diamkan, lonceng
-      // tetap tampil kosong, tidak boleh mengganggu Dashboard utama.
-    });
+    }, () => {});
     return unsub;
   }, [role]);
 
@@ -130,7 +122,6 @@ export default function Dashboard() {
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifMsg, setNotifMsg] = useState("");
 
-  // ==== BAGIAN BARU: state lonceng notifikasi staff ====
   const staffNotifs = useStaffNotifications(role);
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const unreadNotifCount = staffNotifs.filter((n) => !n.isRead).length;
@@ -139,9 +130,7 @@ export default function Dashboard() {
     if (n.isRead) return;
     try {
       await updateDoc(doc(db, "notifications", n.id), { isRead: true });
-    } catch {
-      // gagal update — tidak fatal, badge cuma tetap kehitung sampai berhasil
-    }
+    } catch {}
   };
 
   const handleEnableStaffNotif = async () => {
@@ -155,73 +144,117 @@ export default function Dashboard() {
     }
   };
 
+  // BAGIAN BARU: fungsi load dipindah ke luar useEffect (bukan cuma di
+  // dalam) supaya bisa dipanggil ulang lagi dari gestur tarik-ke-bawah,
+  // bukan cuma sekali saat halaman pertama dibuka.
+  async function load() {
+    // Ambil 7 snapshot terakhir (dihasilkan scheduled function computeAnalyticsSummary)
+    const summarySnap = await getDocs(
+      query(collection(db, "analytics_summary"), orderBy("generatedAt", "desc"), limit(7))
+    );
+    const summaries = summarySnap.docs.map((d) => ({ periodId: d.id, ...d.data() }));
+    if (summaries.length > 0) setSummary(summaries[0]);
+    setHistory([...summaries].reverse());
+
+    // Pasien dengan status HIGH/RED_FLAG terbaru
+    const riskSnap = await getDocs(
+      query(collection(db, "risk_assessments"), orderBy("createdAt", "desc"), limit(20))
+    );
+    const attention = riskSnap.docs
+      .map((d) => ({ id: d.id, ...d.data() }))
+      .filter((r) => r.riskStatus === "HIGH" || r.riskStatus === "RED_FLAG")
+      .slice(0, 5);
+
+    const attentionWithNames = await Promise.all(
+      attention.map(async (r) => {
+        if (!r.patientId) return { ...r, patientName: "-", patientMrn: "-" };
+        try {
+          const patientSnap = await getDoc(doc(db, "patients", r.patientId));
+          const p = patientSnap.exists() ? patientSnap.data() : null;
+          return {
+            ...r,
+            patientName: p?.name || p?.fullName || "Nama tidak ditemukan",
+            patientMrn: p?.mrn || p?.rmNumber || r.patientId,
+          };
+        } catch (err) {
+          return { ...r, patientName: "Gagal memuat nama", patientMrn: r.patientId };
+        }
+      })
+    );
+
+    setAttentionList(attentionWithNames);
+    setLoading(false);
+
+    try {
+      const signalSnap = await getDocs(
+        query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED"))
+      );
+      setActiveSignalCount(signalSnap.size);
+      let latest = null;
+      signalSnap.docs.forEach((d) => {
+        const dt = d.data().detectedAt;
+        const dtDate = dt && dt.toDate ? dt.toDate() : null;
+        if (dtDate && (!latest || dtDate > latest)) latest = dtDate;
+      });
+      setLatestSignalTime(latest);
+    } catch (err) {
+      // diamkan — widget tambahan, tidak boleh mengganggu dashboard utama
+    }
+
+    try {
+      const res = await callApi("patientHistory", { action: "recentMonitoring" });
+      setRecentMonitoring(res.data.entries || []);
+    } catch (err) {
+      // diamkan — widget tambahan
+    }
+  }
+
+  useEffect(() => { load(); }, []);
+
+  // ==== BAGIAN BARU: tarik ke bawah untuk refresh (pull-to-refresh) —
+  // sama persis mekanismenya dengan Portal Pasien, supaya petugas bisa
+  // muat ulang ringkasan Dashboard tanpa perlu reload halaman penuh.
+  // (Lonceng notifikasi sendiri sudah real-time lewat onSnapshot, jadi
+  // ini melengkapi bagian ringkasan/tabel yang belum auto-update.)
+  const [pullDistance, setPullDistance] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const touchStartY = useRef(0);
+  const isPulling = useRef(false);
+
   useEffect(() => {
-    async function load() {
-      // Ambil 7 snapshot terakhir (dihasilkan scheduled function computeAnalyticsSummary)
-      const summarySnap = await getDocs(
-        query(collection(db, "analytics_summary"), orderBy("generatedAt", "desc"), limit(7))
-      );
-      const summaries = summarySnap.docs.map((d) => ({ periodId: d.id, ...d.data() }));
-      if (summaries.length > 0) setSummary(summaries[0]);
-      setHistory([...summaries].reverse());
-
-      // Pasien dengan status HIGH/RED_FLAG terbaru
-      const riskSnap = await getDocs(
-        query(collection(db, "risk_assessments"), orderBy("createdAt", "desc"), limit(20))
-      );
-      const attention = riskSnap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((r) => r.riskStatus === "HIGH" || r.riskStatus === "RED_FLAG")
-        .slice(0, 5);
-
-      // Ambil nama pasien dari koleksi "patients" berdasarkan patientId
-      const attentionWithNames = await Promise.all(
-        attention.map(async (r) => {
-          if (!r.patientId) return { ...r, patientName: "-", patientMrn: "-" };
-          try {
-            const patientSnap = await getDoc(doc(db, "patients", r.patientId));
-            const p = patientSnap.exists() ? patientSnap.data() : null;
-            return {
-              ...r,
-              patientName: p?.name || p?.fullName || "Nama tidak ditemukan",
-              patientMrn: p?.mrn || p?.rmNumber || r.patientId,
-            };
-          } catch (err) {
-            return { ...r, patientName: "Gagal memuat nama", patientMrn: r.patientId };
-          }
-        })
-      );
-
-      setAttentionList(attentionWithNames);
-      setLoading(false);
-
-      // Home Safety Signals — hitung sinyal aktif (belum CLOSED) dari
-      // pemantauan mandiri pasien di rumah (bagian J spesifikasi baru).
-      try {
-        const signalSnap = await getDocs(
-          query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED"))
-        );
-        setActiveSignalCount(signalSnap.size);
-        let latest = null;
-        signalSnap.docs.forEach((d) => {
-          const dt = d.data().detectedAt;
-          const dtDate = dt && dt.toDate ? dt.toDate() : null;
-          if (dtDate && (!latest || dtDate > latest)) latest = dtDate;
-        });
-        setLatestSignalTime(latest);
-      } catch (err) {
-        // diamkan — widget tambahan, tidak boleh mengganggu dashboard utama
-      }
-
-      // BAGIAN BARU: aktivitas monitoring mandiri terbaru dari semua pasien
-      try {
-        const res = await callApi("patientHistory", { action: "recentMonitoring" });
-        setRecentMonitoring(res.data.entries || []);
-      } catch (err) {
-        // diamkan — widget tambahan
+    function onTouchStart(e) {
+      if (window.scrollY === 0) {
+        touchStartY.current = e.touches[0].clientY;
+        isPulling.current = true;
       }
     }
-    load();
+    function onTouchMove(e) {
+      if (!isPulling.current) return;
+      const distance = e.touches[0].clientY - touchStartY.current;
+      if (distance > 0 && window.scrollY === 0) {
+        setPullDistance(Math.min(distance * 0.5, 90));
+      }
+    }
+    async function onTouchEnd() {
+      if (!isPulling.current) return;
+      isPulling.current = false;
+      setPullDistance((current) => {
+        if (current > 55) {
+          setRefreshing(true);
+          load().finally(() => setRefreshing(false));
+        }
+        return 0;
+      });
+    }
+    document.addEventListener("touchstart", onTouchStart, { passive: true });
+    document.addEventListener("touchmove", onTouchMove, { passive: true });
+    document.addEventListener("touchend", onTouchEnd);
+    return () => {
+      document.removeEventListener("touchstart", onTouchStart);
+      document.removeEventListener("touchmove", onTouchMove);
+      document.removeEventListener("touchend", onTouchEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const dist = summary?.riskDistribution || { low: 0, moderate: 0, high: 0, redFlag: 0 };
@@ -230,8 +263,23 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
-      {/* BAGIAN BARU: lonceng notifikasi staff — melayang pojok kanan atas
-          supaya tetap terlihat di halaman Dashboard tanpa perlu ubah Layout.jsx */}
+      {(pullDistance > 0 || refreshing) && (
+        <div
+          style={{
+            height: refreshing ? 44 : pullDistance,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 13,
+            color: "var(--stat-sub-color, #8aa0a8)",
+            transition: refreshing ? "height 0.15s ease" : "none",
+            overflow: "hidden",
+          }}
+        >
+          {refreshing ? "🔄 Memuat ulang..." : pullDistance > 55 ? "↓ Lepas untuk refresh" : "↓ Tarik untuk refresh"}
+        </div>
+      )}
+
       <button
         onClick={() => setNotifPanelOpen((o) => !o)}
         aria-label="Notifikasi"
@@ -407,8 +455,6 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* BAGIAN BARU: aktivitas monitoring mandiri terbaru dari SEMUA
-          pasien — bukan cuma yang lagi kena Home Safety Signal. */}
       <div className="card" style={{ marginTop: 16 }}>
         <h3>🏠 Aktivitas Monitoring Mandiri Terbaru</h3>
         <div className="stat-sub" style={{ marginBottom: 10 }}>
