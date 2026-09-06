@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { collection, getDocs, doc, getDoc, orderBy, limit, query, where } from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
+import { collection, getDocs, doc, getDoc, updateDoc, onSnapshot, orderBy, limit, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { callApi } from "../lib/api";
@@ -16,6 +16,108 @@ const PARAM_LABEL_ID = {
   bloodGlucose: "Gula Darah",
 };
 
+// ==== BAGIAN BARU: lonceng notifikasi staff ====
+// Koleksi "notifications" (lib/notifications.js) cuma nyimpan PENUNJUK
+// (toRole, type, relatedEntityId) — bukan teks siap tampil. Jadi di sini
+// kita "terjemahkan": ambil dokumen aslinya (safety_signals /
+// risk_assessments / followups tergantung type), lalu ambil nama pasien.
+const NOTIF_TYPE_COLLECTION = {
+  patient_emergency: "safety_signals",
+  home_safety_signal: "safety_signals",
+  red_flag: "risk_assessments",
+  high_risk: "risk_assessments",
+  followup_overdue: "followups",
+  high_followup_risk: "followups",
+};
+
+const NOTIF_TYPE_LABEL = {
+  patient_emergency: { text: "🆘 DARURAT — Tombol Emergency Ditekan", color: "#ff5c50" },
+  home_safety_signal: { text: "🏠 Sinyal Keselamatan Rumah", color: "#f5a623" },
+  red_flag: { text: "🚩 Red Flag", color: "#e6553f" },
+  high_risk: { text: "⚠️ Risiko Tinggi", color: "#e6553f" },
+  followup_overdue: { text: "📅 Follow-up Terlewat", color: "#f5a623" },
+  high_followup_risk: { text: "📅 Risiko Follow-up Tinggi", color: "#f5a623" },
+};
+
+function useStaffNotifications(role) {
+  const [rawNotifs, setRawNotifs] = useState([]);
+  const [enriched, setEnriched] = useState([]);
+  const cacheRef = useRef({}); // key: `${type}:${relatedEntityId}` -> enrichment data
+
+  useEffect(() => {
+    if (!role) return;
+    const q = query(
+      collection(db, "notifications"),
+      where("toRole", "==", role),
+      orderBy("createdAt", "desc"),
+      limit(30)
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setRawNotifs(snap.docs.map((d) => {
+        const data = d.data();
+        return {
+          id: d.id,
+          ...data,
+          createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null,
+        };
+      }));
+    }, () => {
+      // gagal subscribe (misal index belum dibuat) — diamkan, lonceng
+      // tetap tampil kosong, tidak boleh mengganggu Dashboard utama.
+    });
+    return unsub;
+  }, [role]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function enrich() {
+      const results = await Promise.all(rawNotifs.map(async (n) => {
+        const cacheKey = `${n.type}:${n.relatedEntityId}`;
+        if (cacheRef.current[cacheKey]) {
+          return { ...n, ...cacheRef.current[cacheKey] };
+        }
+        const collectionName = NOTIF_TYPE_COLLECTION[n.type];
+        let patientName = "-";
+        let patientId = null;
+        let detail = "";
+        try {
+          if (collectionName && n.relatedEntityId) {
+            const entitySnap = await getDoc(doc(db, collectionName, n.relatedEntityId));
+            if (entitySnap.exists()) {
+              const entity = entitySnap.data();
+              patientId = entity.patientId || null;
+              if (collectionName === "safety_signals") {
+                detail = Array.isArray(entity.reason) && entity.reason.length > 0 ? entity.reason[0] : (entity.status || "");
+              } else if (collectionName === "risk_assessments") {
+                detail = entity.riskStatus ? `Status: ${entity.riskStatus}` : "";
+              } else if (collectionName === "followups") {
+                detail = entity.dueDate ? `Jatuh tempo: ${entity.dueDate}` : "";
+              }
+              if (patientId) {
+                const patientSnap = await getDoc(doc(db, "patients", patientId));
+                if (patientSnap.exists()) {
+                  const p = patientSnap.data();
+                  patientName = p.name || p.fullName || "-";
+                }
+              }
+            }
+          }
+        } catch {
+          // gagal ambil detail — tetap tampilkan baris notifikasi generik
+        }
+        const enrichment = { patientName, patientId, detail };
+        cacheRef.current[cacheKey] = enrichment;
+        return { ...n, ...enrichment };
+      }));
+      if (!cancelled) setEnriched(results);
+    }
+    enrich();
+    return () => { cancelled = true; };
+  }, [rawNotifs]);
+
+  return enriched;
+}
+
 export default function Dashboard() {
   const { role } = useAuth();
   const [summary, setSummary] = useState(null);
@@ -27,6 +129,20 @@ export default function Dashboard() {
   const [recentMonitoring, setRecentMonitoring] = useState([]);
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifMsg, setNotifMsg] = useState("");
+
+  // ==== BAGIAN BARU: state lonceng notifikasi staff ====
+  const staffNotifs = useStaffNotifications(role);
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
+  const unreadNotifCount = staffNotifs.filter((n) => !n.isRead).length;
+
+  const handleAckNotif = async (n) => {
+    if (n.isRead) return;
+    try {
+      await updateDoc(doc(db, "notifications", n.id), { isRead: true });
+    } catch {
+      // gagal update — tidak fatal, badge cuma tetap kehitung sampai berhasil
+    }
+  };
 
   const handleEnableStaffNotif = async () => {
     setNotifMsg("Memproses...");
@@ -114,6 +230,95 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
+      {/* BAGIAN BARU: lonceng notifikasi staff — melayang pojok kanan atas
+          supaya tetap terlihat di halaman Dashboard tanpa perlu ubah Layout.jsx */}
+      <button
+        onClick={() => setNotifPanelOpen((o) => !o)}
+        aria-label="Notifikasi"
+        style={{
+          position: "fixed",
+          top: 18,
+          right: 18,
+          zIndex: 900,
+          background: "var(--surface, #17262b)",
+          border: "1px solid var(--line, rgba(255,255,255,0.15))",
+          borderRadius: "50%",
+          width: 44,
+          height: 44,
+          fontSize: 20,
+          cursor: "pointer",
+          boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+        }}
+      >
+        🔔
+        {unreadNotifCount > 0 && (
+          <span
+            style={{
+              position: "absolute",
+              top: -2,
+              right: -2,
+              background: "#ff5c50",
+              color: "#fff",
+              borderRadius: "50%",
+              minWidth: 18,
+              height: 18,
+              fontSize: 11,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "0 3px",
+            }}
+          >
+            {unreadNotifCount > 9 ? "9+" : unreadNotifCount}
+          </span>
+        )}
+      </button>
+
+      {notifPanelOpen && (
+        <>
+          <div onClick={() => setNotifPanelOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 890, background: "transparent" }} />
+          <div className="card" style={{ position: "fixed", top: 70, right: 18, width: 360, maxHeight: "70vh", overflowY: "auto", zIndex: 899 }}>
+            <h3 style={{ marginTop: 0 }}>Notifikasi</h3>
+            {staffNotifs.length === 0 ? (
+              <div className="stat-sub">Belum ada notifikasi.</div>
+            ) : (
+              staffNotifs.map((n) => {
+                const meta = NOTIF_TYPE_LABEL[n.type] || { text: n.type, color: "#888" };
+                return (
+                  <div
+                    key={n.id}
+                    onClick={() => handleAckNotif(n)}
+                    style={{
+                      padding: "10px 8px",
+                      borderBottom: "1px solid var(--line, rgba(255,255,255,0.08))",
+                      cursor: "pointer",
+                      background: n.isRead ? "transparent" : "rgba(255,92,80,0.06)",
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ color: meta.color, fontWeight: 700, fontSize: 13 }}>{meta.text}</span>
+                      {!n.isRead && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff5c50", marginTop: 4 }} />}
+                    </div>
+                    <div style={{ fontSize: 13, marginTop: 3 }}>
+                      {n.patientId ? (
+                        <Link to={`/patient-history?patientId=${n.patientId}`} onClick={(e) => e.stopPropagation()}>{n.patientName}</Link>
+                      ) : (
+                        n.patientName
+                      )}
+                    </div>
+                    {n.detail && <div className="stat-sub" style={{ fontSize: 12 }}>{n.detail}</div>}
+                    <div className="stat-sub" style={{ fontSize: 11, marginTop: 2 }}>
+                      {n.createdAt ? n.createdAt.toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
+
       {(role === "dokter" || role === "case_manager") && notifStatus !== "granted" && notifStatus !== "unsupported" && (
         <div className="card" style={{ marginBottom: 16 }}>
           🔔 Aktifkan notifikasi supaya langsung diberi tahu real-time di HP saat ada Home Safety Signal baru dari pasien.
