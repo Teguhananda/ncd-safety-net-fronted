@@ -119,8 +119,34 @@ export default function SafetySignals() {
         ) : (
           signals.map((s) => {
             const sev = SEVERITY_LABEL[s.severity] || { emoji: "⚪", text: s.severity };
+            const isEmergencyButton = s.signalType === "patient_emergency_button";
             return (
-              <div key={s.id} className="card" style={{ background: "var(--surface-2)", marginBottom: 12 }}>
+              <div
+                key={s.id}
+                className="card"
+                style={{
+                  background: isEmergencyButton ? "rgba(255,92,80,0.14)" : "var(--surface-2)",
+                  border: isEmergencyButton ? "2px solid #ff5c50" : undefined,
+                  marginBottom: 12,
+                }}
+              >
+                {isEmergencyButton && (
+                  <div style={{ fontWeight: 800, color: "#ff5c50", marginBottom: 8, fontSize: 15 }}>
+                    🆘 PASIEN MENEKAN TOMBOL EMERGENCY — SEGERA TINDAK LANJUTI
+                  </div>
+                )}
+                {s.mapsUrl && (
+                  <a
+                    href={s.mapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-primary"
+                    style={{ display: "inline-block", textDecoration: "none", background: "#ff5c50", marginBottom: 10 }}
+                  >
+                    📍 Lihat Lokasi Pasien (GPS)
+                    {s.location?.accuracy ? ` — akurasi ±${Math.round(s.location.accuracy)}m` : ""}
+                  </a>
+                )}
                 <div style={{ display: "flex", justifyContent: "space-between" }}>
                   <div>
                     <b>{sev.emoji} {s.patient?.name || s.patientId}</b>

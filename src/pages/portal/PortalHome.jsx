@@ -130,6 +130,41 @@ export default function PortalHome() {
 
   const handleLogout = () => signOut(auth);
 
+  // ==== BAGIAN BARU: Tombol Emergency (SOS) — sungguhan berfungsi,
+  // sebelumnya cuma info statis di menu Bantuan. Dipicu pasien sendiri,
+  // selalu dianggap URGENT, langsung diberitahukan ke dokter, Case
+  // Manager, DAN kedua tim ambulans (RSUD & PSC 119) sekaligus.
+  const [emergencyStep, setEmergencyStep] = useState("idle"); // idle | confirm | sending | sent | error
+  const [emergencyMsg, setEmergencyMsg] = useState("");
+
+  // Ambil lokasi GPS sepresisi mungkin — dibungkus Promise dengan timeout,
+  // dan KALAU GAGAL (ditolak izinnya/HP tidak dukung/timeout) SOS tetap
+  // dikirim tanpa lokasi — lokasi itu pelengkap, bukan syarat wajib,
+  // supaya tombol darurat ini tidak pernah gagal cuma gara-gara GPS.
+  function getPreciseLocation() {
+    return new Promise((resolve) => {
+      if (!navigator.geolocation) return resolve(null);
+      navigator.geolocation.getCurrentPosition(
+        (pos) => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy }),
+        () => resolve(null),
+        { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+      );
+    });
+  }
+
+  const handleEmergencyConfirm = async () => {
+    setEmergencyStep("sending");
+    try {
+      const patientId = await getPatientId();
+      const location = await getPreciseLocation();
+      await callApi("patientPortal", { action: "triggerEmergency", patientId, location });
+      setEmergencyStep("sent");
+    } catch (err) {
+      setEmergencyStep("error");
+      setEmergencyMsg(err.message || "Gagal mengirim SOS. Coba lagi atau telepon langsung ke IGD.");
+    }
+  };
+
   const handleEnableNotif = async () => {
     setNotifMsg("Memproses...");
     const patientId = await getPatientId();
@@ -409,7 +444,45 @@ export default function PortalHome() {
             <li>Gula darah sangat rendah/tinggi disertai gejala berat</li>
           </ul>
           <p>Aplikasi ini adalah alat bantu pemantauan, <b>bukan pengganti</b> penilaian tenaga kesehatan.</p>
-          <button className="portal-link-btn" onClick={() => setView("home")}>Kembali</button>
+
+          <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--p-glass-border)" }}>
+            {emergencyStep === "idle" && (
+              <button
+                className="portal-primary-btn"
+                style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)", fontSize: 19, minHeight: 60 }}
+                onClick={() => setEmergencyStep("confirm")}
+              >
+                🆘 TOMBOL EMERGENCY
+              </button>
+            )}
+            {emergencyStep === "confirm" && (
+              <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
+                <p style={{ fontWeight: 700, marginTop: 0 }}>Yakin ingin mengirim SOS Darurat?</p>
+                <p className="portal-sub">Dokter, Case Manager, dan tim ambulans akan SEGERA diberitahu untuk menghubungi Anda, <b>termasuk lokasi HP Anda saat ini</b> (kalau GPS aktif). Hanya tekan ini kalau kondisi Anda benar-benar darurat.</p>
+                <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={handleEmergencyConfirm}>
+                  Ya, Kirim SOS Sekarang
+                </button>
+                <button className="portal-link-btn" onClick={() => setEmergencyStep("idle")}>Batal</button>
+              </div>
+            )}
+            {emergencyStep === "sending" && <p>Mengirim SOS...</p>}
+            {emergencyStep === "sent" && (
+              <div className="portal-info-card" style={{ borderColor: "var(--p-accent)" }}>
+                <p style={{ fontWeight: 700, marginTop: 0 }}>✅ SOS Terkirim</p>
+                <p className="portal-sub">Tim medis sedang diberitahu dan akan segera menghubungi Anda. Kalau kondisi memburuk sebelum dihubungi, segera ke IGD RSUD Kab. Rejang Lebong.</p>
+              </div>
+            )}
+            {emergencyStep === "error" && (
+              <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
+                <p className="portal-error">{emergencyMsg}</p>
+                <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={handleEmergencyConfirm}>
+                  Coba Lagi
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button className="portal-link-btn" onClick={() => { setView("home"); setEmergencyStep("idle"); }}>Kembali</button>
         </div>
       )}
     </div>
