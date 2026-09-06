@@ -19,11 +19,8 @@ const PARAM_LABEL_ID = {
   bloodGlucose: "Gula Darah",
 };
 
-// Pisahkan teks jadi paragraf per-poin — menangani 2 kasus: (1) staff
-// menulis dengan Enter/baris baru beneran, (2) staff menulis dalam 1
-// baris panjang dengan penanda angka "1. ... 2. ... 3. ..." tanpa Enter
-// sama sekali (kasus paling umum ternyata, lihat data sungguhan) —
-// keduanya dipecah jadi paragraf terpisah supaya gampang dibaca lansia.
+const NOTIF_SEEN_KEY = "ncdPortalNotifSeenAt";
+
 function renderMultiPoint(text) {
   if (!text) return "-";
   let parts = text.split(/\r?\n+/).map((s) => s.trim()).filter(Boolean);
@@ -33,6 +30,61 @@ function renderMultiPoint(text) {
   }
   if (parts.length <= 1) return <div>{text}</div>;
   return parts.map((p, i) => <div key={i} style={{ marginBottom: 6 }}>{p}</div>);
+}
+
+// ==== BAGIAN BARU: ilustrasi SVG custom per-menu — gaya garis minimalis
+// (bukan gambar impor, supaya ringan & tajam di layar apa pun, tanpa
+// butuh internet untuk memuat gambar). Warna ikon ikut warna teks
+// (currentColor) sehingga otomatis pas dengan lencana bulat di CSS.
+function IconCheckIn() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="5" y="4" width="14" height="17" rx="2.5" />
+      <path d="M9 3.5h6a1 1 0 0 1 1 1V6H8V4.5a1 1 0 0 1 1-1Z" />
+      <path d="m9 13 2 2 4-4.5" />
+    </svg>
+  );
+}
+function IconMonitoring() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 13h3.5l2-5 3 9 2-7 1.5 3H21" />
+      <circle cx="12" cy="12" r="9.5" />
+    </svg>
+  );
+}
+function IconSafetyPlan() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5c3 1.4 5 1.7 7 1.7v6.3c0 5-3 8-7 9.2-4-1.2-7-4.2-7-9.2V5.2c2 0 4-.3 7-1.7Z" />
+      <path d="M8.8 12.2h6.4M8.8 15.2h4.4" />
+    </svg>
+  );
+}
+function IconHistory() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="13" r="8.5" />
+      <path d="M12 8.5V13l3.2 2" />
+      <path d="M9 2.5h6" />
+    </svg>
+  );
+}
+function IconHelp() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3.5c3 1.4 5 1.7 7 1.7v6.3c0 5-3 8-7 9.2-4-1.2-7-4.2-7-9.2V5.2c2 0 4-.3 7-1.7Z" />
+      <path d="M12 9.5v4M12 16.3h.01" />
+    </svg>
+  );
+}
+function IconStatus() {
+  return (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 13h3.5l2-5 3 9 2-7 1.5 3H21" />
+      <path d="M12 3.5c3 1.4 5 1.7 7 1.7v6.3c0 5-3 8-7 9.2-4-1.2-7-4.2-7-9.2V5.2c2 0 4-.3 7-1.7Z" opacity="0.35" />
+    </svg>
+  );
 }
 
 const CHECKIN_QUESTIONS = [
@@ -57,7 +109,7 @@ export default function PortalHome() {
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [view, setView] = useState("home"); // home | checkin | monitoring | plan | history | help
+  const [view, setView] = useState("home");
   const [checkinAnswers, setCheckinAnswers] = useState({});
   const [checkinSubmitting, setCheckinSubmitting] = useState(false);
   const [checkinDone, setCheckinDone] = useState(false);
@@ -65,6 +117,44 @@ export default function PortalHome() {
   const [monitoringSubmitting, setMonitoringSubmitting] = useState(false);
   const [monitoringMsg, setMonitoringMsg] = useState("");
   const [summary, setSummary] = useState(null);
+
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
+  const [notifList, setNotifList] = useState([]);
+  const [notifUnreadCount, setNotifUnreadCount] = useState(0);
+
+  async function loadNotifications() {
+    try {
+      const patientId = await getPatientId();
+      const res = await callApi("patientPortal", { action: "getSummary", patientId, days: 30 });
+
+      const signalItems = (res.data.signals || [])
+        .filter((s) => s.status && s.status !== "SAFE")
+        .map((s) => ({ kind: "signal", date: s.detectedAt, ...s }));
+
+      const messageItems = (res.data.messages || [])
+        .map((m) => ({ kind: "message", date: m.sentAt, ...m }));
+
+      const combined = [...signalItems, ...messageItems].sort((a, b) => new Date(b.date) - new Date(a.date));
+      setNotifList(combined);
+
+      const seenAt = localStorage.getItem(NOTIF_SEEN_KEY);
+      const unread = seenAt ? combined.filter((n) => new Date(n.date) > new Date(seenAt)).length : combined.length;
+      setNotifUnreadCount(unread);
+    } catch {
+      // Gagal muat notifikasi bukan hal fatal.
+    }
+  }
+
+  const handleToggleNotifPanel = () => {
+    setNotifPanelOpen((open) => {
+      const next = !open;
+      if (next) {
+        localStorage.setItem(NOTIF_SEEN_KEY, new Date().toISOString());
+        setNotifUnreadCount(0);
+      }
+      return next;
+    });
+  };
 
   async function loadSnapshot() {
     setLoading(true);
@@ -80,13 +170,8 @@ export default function PortalHome() {
     }
   }
 
-  useEffect(() => { loadSnapshot(); }, []);
+  useEffect(() => { loadSnapshot(); loadNotifications(); }, []);
 
-  // ==== BAGIAN BARU: tarik ke bawah untuk refresh (pull-to-refresh) ====
-  // Browser tidak punya gestur ini secara bawaan untuk aplikasi web biasa
-  // (beda dari aplikasi native) — jadi dibuat manual pakai touch event,
-  // supaya pasien bisa langsung tarik layar ke bawah untuk muat ulang
-  // status/instruksi terbaru tanpa perlu keluar-masuk aplikasi.
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const touchStartY = useRef(0);
@@ -112,7 +197,7 @@ export default function PortalHome() {
       setPullDistance((current) => {
         if (current > 55) {
           setRefreshing(true);
-          loadSnapshot().finally(() => setRefreshing(false));
+          Promise.all([loadSnapshot(), loadNotifications()]).finally(() => setRefreshing(false));
         }
         return 0;
       });
@@ -130,17 +215,9 @@ export default function PortalHome() {
 
   const handleLogout = () => signOut(auth);
 
-  // ==== BAGIAN BARU: Tombol Emergency (SOS) — sungguhan berfungsi,
-  // sebelumnya cuma info statis di menu Bantuan. Dipicu pasien sendiri,
-  // selalu dianggap URGENT, langsung diberitahukan ke dokter, Case
-  // Manager, DAN kedua tim ambulans (RSUD & PSC 119) sekaligus.
-  const [emergencyStep, setEmergencyStep] = useState("idle"); // idle | confirm | sending | sent | error
+  const [emergencyStep, setEmergencyStep] = useState("idle");
   const [emergencyMsg, setEmergencyMsg] = useState("");
 
-  // Ambil lokasi GPS sepresisi mungkin — dibungkus Promise dengan timeout,
-  // dan KALAU GAGAL (ditolak izinnya/HP tidak dukung/timeout) SOS tetap
-  // dikirim tanpa lokasi — lokasi itu pelengkap, bukan syarat wajib,
-  // supaya tombol darurat ini tidak pernah gagal cuma gara-gara GPS.
   function getPreciseLocation() {
     return new Promise((resolve) => {
       if (!navigator.geolocation) return resolve(null);
@@ -209,6 +286,7 @@ export default function PortalHome() {
       setMonitoringMsg(`Tersimpan. Status keselamatan Anda: ${STATUS_MAP[res.data.currentSafetyStatus]?.label || res.data.currentSafetyStatus}`);
       setMonitoringForm({ parameterType: "systolicBP", value: "", diastolic: "", symptom: "" });
       await loadSnapshot();
+      await loadNotifications();
     } catch (err) {
       setMonitoringMsg("Gagal menyimpan: " + (err.message || "terjadi kesalahan."));
     } finally {
@@ -260,8 +338,101 @@ export default function PortalHome() {
             <div className="portal-brand-sub">RSUD KAB. REJANG LEBONG</div>
           </div>
         </div>
-        <button className="portal-link-btn" style={{ width: "auto" }} onClick={handleLogout}>Keluar</button>
+
+        <button
+          onClick={handleToggleNotifPanel}
+          aria-label="Notifikasi"
+          style={{
+            position: "relative",
+            background: "none",
+            border: "none",
+            fontSize: 26,
+            cursor: "pointer",
+            padding: 6,
+            lineHeight: 1,
+          }}
+        >
+          🔔
+          {notifUnreadCount > 0 && (
+            <span
+              style={{
+                position: "absolute",
+                top: 2,
+                right: 2,
+                background: "#ff5c50",
+                color: "#fff",
+                borderRadius: "50%",
+                minWidth: 16,
+                height: 16,
+                fontSize: 10,
+                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: "0 3px",
+              }}
+            >
+              {notifUnreadCount > 9 ? "9+" : notifUnreadCount}
+            </span>
+          )}
+        </button>
       </header>
+
+      {notifPanelOpen && (
+        <>
+          <div
+            onClick={() => setNotifPanelOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 40, background: "transparent" }}
+          />
+          <div
+            className="portal-card"
+            style={{
+              position: "absolute",
+              top: 68,
+              right: 16,
+              width: "min(320px, calc(100vw - 32px))",
+              maxHeight: "60vh",
+              overflowY: "auto",
+              zIndex: 50,
+            }}
+          >
+            <h3 style={{ marginTop: 0 }}>Notifikasi</h3>
+            {notifList.length === 0 ? (
+              <p className="portal-sub">Belum ada notifikasi.</p>
+            ) : (
+              notifList.map((n) => {
+                if (n.kind === "message") {
+                  return (
+                    <div key={`msg-${n.id}`} className="portal-history-row">
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ color: "var(--p-accent, #34d399)", fontWeight: 700 }}>💬 Pesan dari RS</span>
+                        <span className="portal-sub" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+                          {n.date ? new Date(n.date).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
+                        </span>
+                      </div>
+                      <div style={{ marginTop: 4 }}>{n.message}</div>
+                    </div>
+                  );
+                }
+                const info = STATUS_MAP[n.status] || STATUS_MAP.ATTENTION;
+                return (
+                  <div key={`sig-${n.id}`} className="portal-history-row">
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ color: info.color, fontWeight: 700 }}>{info.emoji} {info.label}</span>
+                      <span className="portal-sub" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
+                        {n.date ? new Date(n.date).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
+                      </span>
+                    </div>
+                    {Array.isArray(n.reason) && n.reason.length > 0 && (
+                      <div className="portal-sub" style={{ marginTop: 4 }}>{n.reason[0]}</div>
+                    )}
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </>
+      )}
 
       {view === "home" && (
         <>
@@ -291,8 +462,10 @@ export default function PortalHome() {
           )}
 
           <div className="portal-status-card" style={{ borderColor: statusInfo.color }}>
-            <div style={{ fontSize: 40 }}>{statusInfo.emoji}</div>
-            <div style={{ color: statusInfo.color, fontWeight: 700, fontSize: 18 }}>{statusInfo.label}</div>
+            <div className="portal-status-icon-wrap" style={{ color: statusInfo.color }}>
+              <IconStatus />
+            </div>
+            <div className="portal-status-label" style={{ color: statusInfo.color }}>{statusInfo.label}</div>
             <div className="portal-sub">Status Keselamatan Saya</div>
           </div>
 
@@ -305,19 +478,24 @@ export default function PortalHome() {
 
           <div className="portal-menu-grid">
             <button className="portal-menu-btn" onClick={() => { setCheckinDone(false); setCheckinAnswers({}); setView("checkin"); }}>
-              ✅<br />Safety Check-In
+              <span className="portal-menu-illustration"><IconCheckIn /></span>
+              Safety Check-In
             </button>
             <button className="portal-menu-btn" onClick={() => setView("monitoring")}>
-              📊<br />Kontrol Saya (Isi Hasil)
+              <span className="portal-menu-illustration"><IconMonitoring /></span>
+              Kontrol Saya (Isi Hasil)
             </button>
             <button className="portal-menu-btn" onClick={() => setView("plan")}>
-              📋<br />Safety Plan Saya
+              <span className="portal-menu-illustration"><IconSafetyPlan /></span>
+              Safety Plan Saya
             </button>
             <button className="portal-menu-btn" onClick={loadHistory}>
-              🕘<br />Riwayat Monitoring
+              <span className="portal-menu-illustration"><IconHistory /></span>
+              Riwayat Monitoring
             </button>
-            <button className="portal-menu-btn" onClick={() => setView("help")}>
-              🆘<br />Bantuan / Tanda Bahaya
+            <button className="portal-menu-btn" onClick={() => setView("help")} style={{ gridColumn: "1 / -1" }}>
+              <span className="portal-menu-illustration warm"><IconHelp /></span>
+              Bantuan / Tanda Bahaya
             </button>
           </div>
         </>
@@ -485,6 +663,27 @@ export default function PortalHome() {
           <button className="portal-link-btn" onClick={() => { setView("home"); setEmergencyStep("idle"); }}>Kembali</button>
         </div>
       )}
+
+      <button
+        onClick={handleLogout}
+        style={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+          zIndex: 30,
+          background: "rgba(20, 30, 45, 0.9)",
+          color: "var(--p-accent, #34d399)",
+          border: "1px solid var(--p-glass-border, rgba(255,255,255,0.15))",
+          borderRadius: 999,
+          padding: "10px 18px",
+          fontSize: 14,
+          fontWeight: 600,
+          boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
+          cursor: "pointer",
+        }}
+      >
+        Keluar
+      </button>
     </div>
   );
 }

@@ -4,11 +4,14 @@
    sesuai permintaan — file TETAP terpisah supaya styles.css staff tidak
    ikut berubah/berisiko.
 
-   REVISI: (1) full-screen presisi — sebelumnya ada celah putih di
-   pinggir layar iPhone karena background html/body default putih masih
-   "mengintip" di area safe-area (notch/home indicator) yang belum
-   diberi padding; (2) huruf diperbesar menyeluruh untuk keterbacaan
-   lansia, yang jadi mayoritas pasien NCD. */
+   REVISI TERBARU: font diganti Plus Jakarta Sans (lebih modern & jelas
+   terbaca, terutama untuk angka tensi/gula darah — penting untuk pasien
+   lansia), ditambah kelas-kelas baru untuk ilustrasi ikon menu (badge
+   bulat + SVG) supaya tiap menu punya identitas visual, dan kartu status
+   dibuat lebih menonjol. Variabel warna & kelas lama TETAP dipertahankan
+   supaya tidak merusak halaman lain (PortalLogin.jsx dll). */
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 html, body {
   margin: 0;
@@ -27,6 +30,8 @@ html, body {
   --p-ink-soft: rgba(244, 253, 251, 0.72);
   --p-accent: #17b8a6;
   --p-accent-strong: #0e8f80;
+  --p-warm: #f5934a;
+  --p-warm-strong: #e6683f;
   --p-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
 
   box-sizing: border-box;
@@ -36,9 +41,10 @@ html, body {
   min-height: 100vh;
   min-height: 100dvh;
   color: var(--p-ink);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 17px;
-  line-height: 1.5;
+  line-height: 1.55;
+  letter-spacing: 0.1px;
   background:
     radial-gradient(circle at 12% 8%, rgba(23,184,166,0.18), transparent 42%),
     radial-gradient(circle at 88% 12%, rgba(23,184,166,0.12), transparent 45%),
@@ -46,6 +52,8 @@ html, body {
     linear-gradient(160deg, var(--p-bg-1), var(--p-bg-2) 55%, var(--p-bg-3));
   background-attachment: fixed;
 }
+
+.portal-shell * { font-variant-numeric: tabular-nums; }
 
 .portal-center {
   display: flex;
@@ -57,7 +65,7 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 .portal-brand { display: flex; align-items: center; gap: 14px; }
 .portal-logo-img {
@@ -72,12 +80,15 @@ html, body {
 .portal-header h2 {
   color: var(--p-ink);
   margin: 0;
-  font-size: 22px;
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
 }
 .portal-header .portal-brand-sub {
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--p-ink-soft);
-  letter-spacing: 0.3px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .portal-card, .portal-status-card, .portal-info-card {
@@ -91,39 +102,80 @@ html, body {
   padding: 22px;
   margin-bottom: 16px;
 }
-.portal-card h3 { font-size: 19px; margin: 0 0 12px; }
+.portal-card h3 { font-size: 19px; font-weight: 700; margin: 0 0 12px; letter-spacing: -0.1px; }
 
+/* ==== BAGIAN BARU: kartu status keselamatan dibuat lebih menonjol —
+   ikon dalam lencana bulat besar, bukan cuma emoji polos ==== */
 .portal-status-card {
   text-align: center;
   border-width: 2px;
   background: var(--p-glass-bg-strong);
-  padding: 28px 22px;
+  padding: 30px 22px 26px;
+}
+.portal-status-icon-wrap {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid currentColor;
+}
+.portal-status-label {
+  font-weight: 800;
+  font-size: 19px;
+  letter-spacing: -0.1px;
 }
 
-.portal-sub { color: var(--p-ink-soft); font-size: 15px; margin-top: 4px; }
-.portal-error { color: #ffd7cf; font-weight: 600; font-size: 16px; }
+.portal-sub { color: var(--p-ink-soft); font-size: 14.5px; margin-top: 4px; font-weight: 500; }
+.portal-error { color: #ffd7cf; font-weight: 700; font-size: 16px; }
 
+/* ==== BAGIAN BARU: grid menu dengan ilustrasi ikon per-menu ==== */
 .portal-menu-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px;
 }
 .portal-menu-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   background: var(--p-glass-bg);
   border: 1px solid var(--p-glass-border);
-  border-radius: 18px;
+  border-radius: 20px;
   backdrop-filter: blur(16px) saturate(150%);
   -webkit-backdrop-filter: blur(16px) saturate(150%);
-  padding: 22px 12px;
-  font-size: 16px;
+  padding: 20px 12px 18px;
+  font-family: inherit;
+  font-size: 15px;
   font-weight: 700;
   color: var(--p-ink);
   cursor: pointer;
-  min-height: 100px;
-  line-height: 1.4;
+  min-height: 118px;
+  line-height: 1.35;
+  letter-spacing: -0.05px;
   transition: transform 0.15s ease, background 0.15s ease;
 }
 .portal-menu-btn:active { transform: scale(0.97); background: var(--p-glass-bg-strong); }
+
+.portal-menu-illustration {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(23, 184, 166, 0.14);
+  color: var(--p-accent);
+}
+.portal-menu-illustration.warm {
+  background: rgba(245, 147, 74, 0.16);
+  color: var(--p-warm);
+}
 
 .portal-primary-btn {
   width: 100%;
@@ -132,7 +184,8 @@ html, body {
   border-radius: 14px;
   background: linear-gradient(135deg, var(--p-accent), var(--p-accent-strong));
   color: #fff;
-  font-size: 18px;
+  font-family: inherit;
+  font-size: 17px;
   font-weight: 700;
   margin-top: 12px;
   cursor: pointer;
@@ -149,15 +202,16 @@ html, body {
   border: none;
   background: transparent;
   color: var(--p-accent);
-  font-size: 16px;
-  font-weight: 600;
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 700;
   margin-top: 8px;
   cursor: pointer;
   min-height: 44px;
 }
 
 .portal-field { margin-bottom: 16px; }
-.portal-field label { display: block; font-size: 15px; color: var(--p-ink-soft); margin-bottom: 7px; }
+.portal-field label { display: block; font-size: 14.5px; font-weight: 600; color: var(--p-ink-soft); margin-bottom: 7px; }
 .portal-field input, .portal-field select {
   width: 100%;
   padding: 14px 16px;
@@ -165,6 +219,7 @@ html, body {
   border: 1px solid rgba(255,255,255,0.16);
   background: rgba(255,255,255,0.07);
   color: var(--p-ink);
+  font-family: inherit;
   font-size: 17px;
   box-sizing: border-box;
 }
@@ -178,7 +233,8 @@ html, body {
   margin-bottom: 18px;
   padding-bottom: 14px;
   border-bottom: 1px solid var(--p-glass-border);
-  font-size: 17px;
+  font-size: 16.5px;
+  font-weight: 500;
   color: var(--p-ink);
 }
 .portal-yn { display: flex; gap: 10px; margin-top: 12px; }
@@ -189,8 +245,9 @@ html, body {
   border: 1px solid var(--p-glass-border);
   background: rgba(255,255,255,0.07);
   color: var(--p-ink);
+  font-family: inherit;
   font-weight: 700;
-  font-size: 16px;
+  font-size: 15.5px;
   cursor: pointer;
   min-height: 48px;
 }
@@ -203,6 +260,6 @@ html, body {
 .portal-history-row {
   padding: 12px 0;
   border-bottom: 1px solid var(--p-glass-border);
-  font-size: 16px;
+  font-size: 15.5px;
   color: var(--p-ink);
 }
