@@ -168,7 +168,12 @@ function useStaffNotifications(role) {
           createdAt: data.createdAt && data.createdAt.toDate ? data.createdAt.toDate() : null,
         };
       }));
-    }, () => {});
+    }, (err) => {
+      // BAGIAN BARU: sebelumnya error di sini ditelan diam-diam sehingga
+      // masalah index Firestore (atau sejenisnya) tidak pernah kelihatan
+      // di Console. Sekarang dicatat supaya bisa didiagnosis.
+      console.error("Lonceng notifikasi staff gagal dimuat:", err);
+    });
     return unsub;
   }, [role]);
 
