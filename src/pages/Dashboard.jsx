@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, onSnapshot, orderBy, limit, query, where } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, onSnapshot, orderBy, limit, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { callApi } from "../lib/api";
@@ -288,17 +288,25 @@ export default function Dashboard() {
   // berulang karena alarm memang cuma cek yang belum dibaca.
   const unreadNotifs = staffNotifs.filter((n) => !n.isRead);
 
+  // BAGIAN BARU: dipindah lewat backend (bukan updateDoc/deleteDoc
+  // langsung dari browser) — firestore.rules sengaja melarang client
+  // menulis ke koleksi notifications (allow write: if false), jadi
+  // aksi ini harus lewat Admin SDK di server.
   const handleAckNotif = async (n) => {
     if (n.isRead) return;
     try {
-      await updateDoc(doc(db, "notifications", n.id), { isRead: true });
-    } catch {}
+      await callApi("patientHistory", { action: "ackNotification", notificationId: n.id });
+    } catch (err) {
+      alert("Gagal menandai notifikasi: " + (err.message || "terjadi kesalahan."));
+    }
   };
 
   const handleDeleteNotif = async (n) => {
     try {
-      await deleteDoc(doc(db, "notifications", n.id));
-    } catch {}
+      await callApi("patientHistory", { action: "deleteNotification", notificationId: n.id });
+    } catch (err) {
+      alert("Gagal menghapus notifikasi: " + (err.message || "terjadi kesalahan."));
+    }
   };
 
   const handleEnableStaffNotif = async () => {
