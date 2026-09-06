@@ -34,6 +34,118 @@ const NOTIF_TYPE_LABEL = {
   high_followup_risk: { text: "📅 Risiko Follow-up Tinggi", color: "#f5a623" },
 };
 
+// ==== BAGIAN BARU: susun kalimat yang akan dibacakan suara, per jenis
+// notifikasi. Untuk patient_emergency, kalimat DIBEDAKAN kalau yang
+// mendengar adalah peran Ambulans — dibuat lebih tegas & langsung sesuai
+// permintaan ("khusus panggil ambulan suaranya dipertegas").
+function buildSpeechText(n, myRole) {
+  const name = n.patientName && n.patientName !== "-" ? n.patientName : "pasien tidak dikenal";
+  const isAmbulance = myRole === "ambulance_rsud" || myRole === "ambulance_psc119";
+
+  if (n.type === "patient_emergency") {
+    if (isAmbulance) {
+      return `Panggilan ambulans. Segera berangkat. Kondisi gawat darurat pasien ${name}. Pasien menekan tombol darurat. ${n.hasLocation ? "Lokasi pasien tersedia, silakan cek layar." : ""}`;
+    }
+    return `Perhatian. Kondisi darurat. Pasien ${name} menekan tombol darurat. Ambulans sedang diberitahu. ${n.hasLocation ? "Lokasi pasien tersedia di layar." : ""} Segera tindak lanjuti.`;
+  }
+  if (n.type === "home_safety_signal") {
+    return `Perhatian. Sinyal keselamatan rumah untuk pasien ${name}. ${n.detail || ""}`;
+  }
+  if (n.type === "red_flag") {
+    return `Perhatian. Hasil skrining pasien ${name} menunjukkan tanda bahaya, red flag.`;
+  }
+  if (n.type === "high_risk") {
+    return `Perhatian. Pasien ${name} berada dalam kategori risiko tinggi.`;
+  }
+  if (n.type === "followup_overdue") {
+    return `Pengingat. Follow-up pasien ${name} sudah terlewat dari jadwal.`;
+  }
+  if (n.type === "high_followup_risk") {
+    return `Pengingat. Pasien ${name} berisiko tinggi untuk hilang dari tindak lanjut.`;
+  }
+  return `Ada notifikasi baru untuk pasien ${name}.`;
+}
+
+// ==== BAGIAN BARU: alarm suara — text-to-speech bawaan browser (gratis)
+// + nada peringatan (Web Audio API, tanpa file suara eksternal). ====
+function useAlarmSound() {
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const audioCtxRef = useRef(null);
+
+  useEffect(() => {
+    if (audioUnlocked) return;
+    function unlock() {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC && !audioCtxRef.current) audioCtxRef.current = new AC();
+        audioCtxRef.current?.resume();
+        // Ucapan kosong sekali — di banyak browser ini yang "membuka
+        // izin" agar speechSynthesis bisa dipakai otomatis setelahnya.
+        const u = new SpeechSynthesisUtterance(" ");
+        u.volume = 0;
+        window.speechSynthesis?.speak(u);
+      } catch {
+        // abaikan — kalau gagal, banner tetap tampil sampai berhasil
+      }
+      setAudioUnlocked(true);
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("touchstart", unlock);
+    }
+    document.addEventListener("click", unlock);
+    document.addEventListener("touchstart", unlock);
+    return () => {
+      document.removeEventListener("click", unlock);
+      document.removeEventListener("touchstart", unlock);
+    };
+  }, [audioUnlocked]);
+
+  function playBeep(urgent) {
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!audioCtxRef.current) audioCtxRef.current = new AC();
+      const ctx = audioCtxRef.current;
+      const beepCount = urgent ? 3 : 1;
+      const freq = urgent ? 880 : 660;
+      for (let i = 0; i < beepCount; i++) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        const startAt = ctx.currentTime + i * 0.28;
+        gain.gain.setValueAtTime(0.0001, startAt);
+        gain.gain.exponentialRampToValueAtTime(0.35, startAt + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startAt + 0.22);
+        osc.connect(gain).connect(ctx.destination);
+        osc.start(startAt);
+        osc.stop(startAt + 0.24);
+      }
+    } catch {
+      // abaikan — beep gagal tidak boleh mengganggu alur utama
+    }
+  }
+
+  function speak(text, urgent) {
+    try {
+      if (!window.speechSynthesis) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const idVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith("id"));
+      if (idVoice) utter.voice = idVoice;
+      utter.lang = idVoice ? idVoice.lang : "id-ID";
+      utter.rate = urgent ? 0.95 : 1;
+      utter.pitch = urgent ? 0.9 : 1;
+      utter.volume = 1;
+      if (urgent) window.speechSynthesis.cancel(); // potong ucapan lama, darurat harus didengar duluan
+      window.speechSynthesis.speak(utter);
+    } catch {
+      // abaikan
+    }
+  }
+
+  return { audioUnlocked, playBeep, speak };
+}
+
 function useStaffNotifications(role) {
   const [rawNotifs, setRawNotifs] = useState([]);
   const [enriched, setEnriched] = useState([]);
@@ -72,6 +184,8 @@ function useStaffNotifications(role) {
         let patientName = "-";
         let patientId = null;
         let detail = "";
+        let hasLocation = false;
+        let mapUrl = null;
         try {
           if (collectionName && n.relatedEntityId) {
             const entitySnap = await getDoc(doc(db, collectionName, n.relatedEntityId));
@@ -80,6 +194,10 @@ function useStaffNotifications(role) {
               patientId = entity.patientId || null;
               if (collectionName === "safety_signals") {
                 detail = Array.isArray(entity.reason) && entity.reason.length > 0 ? entity.reason[0] : (entity.status || "");
+                if (entity.location && entity.location.lat && entity.location.lng) {
+                  hasLocation = true;
+                  mapUrl = `https://maps.google.com/maps/search/?api=1&query=${entity.location.lat},${entity.location.lng}`;
+                }
               } else if (collectionName === "risk_assessments") {
                 detail = entity.riskStatus ? `Status: ${entity.riskStatus}` : "";
               } else if (collectionName === "followups") {
@@ -97,7 +215,7 @@ function useStaffNotifications(role) {
         } catch {
           // gagal ambil detail — tetap tampilkan baris notifikasi generik
         }
-        const enrichment = { patientName, patientId, detail };
+        const enrichment = { patientName, patientId, detail, hasLocation, mapUrl };
         cacheRef.current[cacheKey] = enrichment;
         return { ...n, ...enrichment };
       }));
@@ -126,6 +244,39 @@ export default function Dashboard() {
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const unreadNotifCount = staffNotifs.filter((n) => !n.isRead).length;
 
+  // ==== BAGIAN BARU: alarm suara ====
+  const { audioUnlocked, playBeep, speak } = useAlarmSound();
+  const spokenOnceRef = useRef(new Set()); // notif id yang sudah dibacakan sekali
+
+  // Bacakan SEKALI setiap notifikasi baru yang belum pernah dibacakan.
+  useEffect(() => {
+    if (!audioUnlocked) return;
+    staffNotifs.forEach((n) => {
+      if (n.isRead) return;
+      if (spokenOnceRef.current.has(n.id)) return;
+      spokenOnceRef.current.add(n.id);
+      const urgent = n.type === "patient_emergency";
+      playBeep(urgent);
+      // beri jeda sedikit supaya beep selesai dulu baru suara bicara
+      setTimeout(() => speak(buildSpeechText(n, role), urgent), urgent ? 500 : 350);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staffNotifs, audioUnlocked]);
+
+  // Alarm patient_emergency BERULANG tiap ~20 detik selama belum ada yang
+  // menekan (acknowledge) notifikasinya — supaya tidak terlewat begitu
+  // pasien menekan tombol darurat.
+  useEffect(() => {
+    if (!audioUnlocked) return;
+    const interval = setInterval(() => {
+      const activeEmergencies = staffNotifs.filter((n) => n.type === "patient_emergency" && !n.isRead);
+      if (activeEmergencies.length === 0) return;
+      playBeep(true);
+      setTimeout(() => speak(buildSpeechText(activeEmergencies[0], role), true), 500);
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [staffNotifs, audioUnlocked, role, playBeep, speak]);
+
   const handleAckNotif = async (n) => {
     if (n.isRead) return;
     try {
@@ -144,11 +295,7 @@ export default function Dashboard() {
     }
   };
 
-  // BAGIAN BARU: fungsi load dipindah ke luar useEffect (bukan cuma di
-  // dalam) supaya bisa dipanggil ulang lagi dari gestur tarik-ke-bawah,
-  // bukan cuma sekali saat halaman pertama dibuka.
   async function load() {
-    // Ambil 7 snapshot terakhir (dihasilkan scheduled function computeAnalyticsSummary)
     const summarySnap = await getDocs(
       query(collection(db, "analytics_summary"), orderBy("generatedAt", "desc"), limit(7))
     );
@@ -156,7 +303,6 @@ export default function Dashboard() {
     if (summaries.length > 0) setSummary(summaries[0]);
     setHistory([...summaries].reverse());
 
-    // Pasien dengan status HIGH/RED_FLAG terbaru
     const riskSnap = await getDocs(
       query(collection(db, "risk_assessments"), orderBy("createdAt", "desc"), limit(20))
     );
@@ -211,11 +357,6 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, []);
 
-  // ==== BAGIAN BARU: tarik ke bawah untuk refresh (pull-to-refresh) —
-  // sama persis mekanismenya dengan Portal Pasien, supaya petugas bisa
-  // muat ulang ringkasan Dashboard tanpa perlu reload halaman penuh.
-  // (Lonceng notifikasi sendiri sudah real-time lewat onSnapshot, jadi
-  // ini melengkapi bagian ringkasan/tabel yang belum auto-update.)
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
   const touchStartY = useRef(0);
@@ -263,6 +404,12 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
+      {!audioUnlocked && (
+        <div className="card" style={{ marginBottom: 16, textAlign: "center", border: "1px dashed var(--line, rgba(255,255,255,0.25))" }}>
+          🔊 Ketuk di mana saja pada layar ini untuk mengaktifkan suara peringatan darurat.
+        </div>
+      )}
+
       {(pullDistance > 0 || refreshing) && (
         <div
           style={{
@@ -333,32 +480,47 @@ export default function Dashboard() {
             ) : (
               staffNotifs.map((n) => {
                 const meta = NOTIF_TYPE_LABEL[n.type] || { text: n.type, color: "#888" };
+                const isEmergency = n.type === "patient_emergency";
                 return (
                   <div
                     key={n.id}
-                    onClick={() => handleAckNotif(n)}
                     style={{
                       padding: "10px 8px",
                       borderBottom: "1px solid var(--line, rgba(255,255,255,0.08))",
-                      cursor: "pointer",
-                      background: n.isRead ? "transparent" : "rgba(255,92,80,0.06)",
+                      background: n.isRead ? "transparent" : (isEmergency ? "rgba(255,92,80,0.12)" : "rgba(255,92,80,0.06)"),
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                      <span style={{ color: meta.color, fontWeight: 700, fontSize: 13 }}>{meta.text}</span>
-                      {!n.isRead && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff5c50", marginTop: 4 }} />}
+                    <div onClick={() => handleAckNotif(n)} style={{ cursor: "pointer" }}>
+                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <span style={{ color: meta.color, fontWeight: 700, fontSize: 13 }}>{meta.text}</span>
+                        {!n.isRead && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff5c50", marginTop: 4 }} />}
+                      </div>
+                      <div style={{ fontSize: 13, marginTop: 3 }}>
+                        {n.patientId ? (
+                          <Link to={`/patient-history?patientId=${n.patientId}`} onClick={(e) => e.stopPropagation()}>{n.patientName}</Link>
+                        ) : (
+                          n.patientName
+                        )}
+                      </div>
+                      {n.detail && <div className="stat-sub" style={{ fontSize: 12 }}>{n.detail}</div>}
+                      <div className="stat-sub" style={{ fontSize: 11, marginTop: 2 }}>
+                        {n.createdAt ? n.createdAt.toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 13, marginTop: 3 }}>
-                      {n.patientId ? (
-                        <Link to={`/patient-history?patientId=${n.patientId}`} onClick={(e) => e.stopPropagation()}>{n.patientName}</Link>
-                      ) : (
-                        n.patientName
-                      )}
-                    </div>
-                    {n.detail && <div className="stat-sub" style={{ fontSize: 12 }}>{n.detail}</div>}
-                    <div className="stat-sub" style={{ fontSize: 11, marginTop: 2 }}>
-                      {n.createdAt ? n.createdAt.toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
-                    </div>
+                    {isEmergency && n.hasLocation && n.mapUrl && (
+                      <a href={n.mapUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "inline-block", marginTop: 6, fontSize: 12, padding: "4px 10px" }}>
+                        📍 Buka Peta Lokasi Pasien
+                      </a>
+                    )}
+                    {!n.isRead && (
+                      <button
+                        className="btn btn-primary"
+                        style={{ display: "block", marginTop: 6, fontSize: 12, padding: "5px 10px", width: "100%" }}
+                        onClick={() => handleAckNotif(n)}
+                      >
+                        ✓ Saya Tangani
+                      </button>
+                    )}
                   </div>
                 );
               })
