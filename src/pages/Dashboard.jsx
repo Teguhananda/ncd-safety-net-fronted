@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { collection, getDocs, doc, getDoc, updateDoc, onSnapshot, orderBy, limit, query, where } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, onSnapshot, orderBy, limit, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../lib/firebase";
 import { callApi } from "../lib/api";
@@ -282,10 +282,22 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [staffNotifs, audioUnlocked, role, playBeep, speak]);
 
+  // BAGIAN BARU: hanya notifikasi BELUM ditangani yang ditampilkan di
+  // panel — begitu ditandai "Saya Tangani", langsung hilang dari daftar
+  // (bukan cuma pudar warnanya), dan otomatis berhenti memicu alarm
+  // berulang karena alarm memang cuma cek yang belum dibaca.
+  const unreadNotifs = staffNotifs.filter((n) => !n.isRead);
+
   const handleAckNotif = async (n) => {
     if (n.isRead) return;
     try {
       await updateDoc(doc(db, "notifications", n.id), { isRead: true });
+    } catch {}
+  };
+
+  const handleDeleteNotif = async (n) => {
+    try {
+      await deleteDoc(doc(db, "notifications", n.id));
     } catch {}
   };
 
@@ -480,10 +492,10 @@ export default function Dashboard() {
           <div onClick={() => setNotifPanelOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 890, background: "transparent" }} />
           <div className="card" style={{ position: "fixed", top: 70, right: 18, width: 360, maxHeight: "70vh", overflowY: "auto", zIndex: 899 }}>
             <h3 style={{ marginTop: 0 }}>Notifikasi</h3>
-            {staffNotifs.length === 0 ? (
-              <div className="stat-sub">Belum ada notifikasi.</div>
+            {unreadNotifs.length === 0 ? (
+              <div className="stat-sub">Tidak ada notifikasi aktif — semua sudah ditangani.</div>
             ) : (
-              staffNotifs.map((n) => {
+              unreadNotifs.map((n) => {
                 const meta = NOTIF_TYPE_LABEL[n.type] || { text: n.type, color: "#888" };
                 const isEmergency = n.type === "patient_emergency";
                 return (
@@ -492,40 +504,42 @@ export default function Dashboard() {
                     style={{
                       padding: "10px 8px",
                       borderBottom: "1px solid var(--line, rgba(255,255,255,0.08))",
-                      background: n.isRead ? "transparent" : (isEmergency ? "rgba(255,92,80,0.12)" : "rgba(255,92,80,0.06)"),
+                      background: isEmergency ? "rgba(255,92,80,0.12)" : "rgba(255,92,80,0.06)",
                     }}
                   >
-                    <div onClick={() => handleAckNotif(n)} style={{ cursor: "pointer" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ color: meta.color, fontWeight: 700, fontSize: 13 }}>{meta.text}</span>
-                        {!n.isRead && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#ff5c50", marginTop: 4 }} />}
-                      </div>
-                      <div style={{ fontSize: 13, marginTop: 3 }}>
-                        {n.patientId ? (
-                          <Link to={`/patient-history?patientId=${n.patientId}`} onClick={(e) => e.stopPropagation()}>{n.patientName}</Link>
-                        ) : (
-                          n.patientName
-                        )}
-                      </div>
-                      {n.detail && <div className="stat-sub" style={{ fontSize: 12 }}>{n.detail}</div>}
-                      <div className="stat-sub" style={{ fontSize: 11, marginTop: 2 }}>
-                        {n.createdAt ? n.createdAt.toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
-                      </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                      <span style={{ color: meta.color, fontWeight: 700, fontSize: 13 }}>{meta.text}</span>
+                      <button
+                        onClick={() => handleDeleteNotif(n)}
+                        title="Hapus notifikasi ini"
+                        style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: "var(--stat-sub-color, #8aa0a8)", padding: 0, marginTop: 2 }}
+                      >
+                        🗑
+                      </button>
+                    </div>
+                    <div style={{ fontSize: 13, marginTop: 3 }}>
+                      {n.patientId ? (
+                        <Link to={`/patient-history?patientId=${n.patientId}`}>{n.patientName}</Link>
+                      ) : (
+                        n.patientName
+                      )}
+                    </div>
+                    {n.detail && <div className="stat-sub" style={{ fontSize: 12 }}>{n.detail}</div>}
+                    <div className="stat-sub" style={{ fontSize: 11, marginTop: 2 }}>
+                      {n.createdAt ? n.createdAt.toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
                     </div>
                     {isEmergency && n.hasLocation && n.mapUrl && (
                       <a href={n.mapUrl} target="_blank" rel="noopener noreferrer" className="btn btn-ghost" style={{ display: "inline-block", marginTop: 6, fontSize: 12, padding: "4px 10px" }}>
                         📍 Buka Peta Lokasi Pasien
                       </a>
                     )}
-                    {!n.isRead && (
-                      <button
-                        className="btn btn-primary"
-                        style={{ display: "block", marginTop: 6, fontSize: 12, padding: "5px 10px", width: "100%" }}
-                        onClick={() => handleAckNotif(n)}
-                      >
-                        ✓ Saya Tangani
-                      </button>
-                    )}
+                    <button
+                      className="btn btn-primary"
+                      style={{ display: "block", marginTop: 6, fontSize: 12, padding: "5px 10px", width: "100%" }}
+                      onClick={() => handleAckNotif(n)}
+                    >
+                      ✓ Saya Tangani (hilangkan dari daftar)
+                    </button>
                   </div>
                 );
               })
