@@ -21,6 +21,44 @@ const PARAM_LABEL_ID = {
 
 const NOTIF_SEEN_KEY = "ncdPortalNotifSeenAt";
 
+// ==== BAGIAN BARU: kartu "Jadwal Hari Ini" (obat + TTV) ====
+const SLOT_LABEL = { pagi: "Pagi (07:00)", siang: "Siang (12:00)", malam: "Malam (19:00)" };
+
+// SlotButton — render satu slot pengingat obat sesuai statusnya:
+// null = belum ada reminder terkirim (cron belum jalan/belum waktunya),
+// "sent"/"send_failed" = sudah diingatkan, MENUNGGU konfirmasi pasien →
+// tampil tombol, "confirmed_taken"/"confirmed_skipped" = sudah
+// dikonfirmasi → tampil badge saja (tidak bisa ditekan lagi).
+function SlotButton({ slot, status, onConfirm }) {
+  const label = SLOT_LABEL[slot] || slot;
+  if (status === "confirmed_taken") {
+    return (
+      <span className="portal-yn-active" style={{ padding: "8px 14px", borderRadius: 999, fontSize: 13, display: "inline-block" }}>
+        ✅ {label} — Sudah Minum
+      </span>
+    );
+  }
+  if (status === "confirmed_skipped") {
+    return (
+      <span style={{ padding: "8px 14px", borderRadius: 999, fontSize: 13, opacity: 0.7, display: "inline-block" }}>
+        ⏭️ {label} — Dilewati
+      </span>
+    );
+  }
+  if (status === "sent" || status === "send_failed") {
+    return (
+      <button className="portal-primary-btn" style={{ fontSize: 13, padding: "8px 14px" }} onClick={() => onConfirm("confirmed_taken")}>
+        ✅ {label} — Sudah Minum Obat
+      </button>
+    );
+  }
+  return (
+    <span className="portal-sub" style={{ fontSize: 12, padding: "8px 10px", display: "inline-block" }}>
+      {label}: menunggu jadwal
+    </span>
+  );
+}
+
 function renderMultiPoint(text) {
   if (!text) return "-";
   let parts = text.split(/\r?\n+/).map((s) => s.trim()).filter(Boolean);
@@ -117,6 +155,8 @@ export default function PortalHome() {
   const [monitoringSubmitting, setMonitoringSubmitting] = useState(false);
   const [monitoringMsg, setMonitoringMsg] = useState("");
   const [summary, setSummary] = useState(null);
+  // BAGIAN BARU: jadwal obat + status TTV hari ini, untuk kartu "Jadwal Hari Ini"
+  const [todayReminders, setTodayReminders] = useState(null);
 
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const [notifList, setNotifList] = useState([]);
@@ -170,7 +210,20 @@ export default function PortalHome() {
     }
   }
 
-  useEffect(() => { loadSnapshot(); loadNotifications(); }, []);
+  // BAGIAN BARU: muat jadwal obat + status TTV hari ini untuk kartu
+  // "Jadwal Hari Ini" di home. Gagal muat bukan hal fatal (kartu ini
+  // opsional) — sama seperti loadNotifications.
+  async function loadTodayReminders() {
+    try {
+      const patientId = await getPatientId();
+      const res = await callApi("patientPortal", { action: "getTodayReminders", patientId });
+      setTodayReminders(res.data);
+    } catch {
+      // diamkan, bukan hal fatal
+    }
+  }
+
+  useEffect(() => { loadSnapshot(); loadNotifications(); loadTodayReminders(); }, []);
 
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -197,7 +250,7 @@ export default function PortalHome() {
       setPullDistance((current) => {
         if (current > 55) {
           setRefreshing(true);
-          Promise.all([loadSnapshot(), loadNotifications()]).finally(() => setRefreshing(false));
+          Promise.all([loadSnapshot(), loadNotifications(), loadTodayReminders()]).finally(() => setRefreshing(false));
         }
         return 0;
       });
@@ -268,6 +321,17 @@ export default function PortalHome() {
     }
   };
 
+  // BAGIAN BARU: konfirmasi "Sudah Minum Obat" dari kartu Jadwal Hari Ini.
+  const handleConfirmDose = async (medicationId, slot, status) => {
+    try {
+      const patientId = await getPatientId();
+      await callApi("patientPortal", { action: "confirmMedicationDose", patientId, medicationId, slot, status });
+      await loadTodayReminders();
+    } catch (err) {
+      alert(err.message || "Gagal menyimpan konfirmasi.");
+    }
+  };
+
   const handleMonitoringSubmit = async () => {
     setMonitoringSubmitting(true);
     setMonitoringMsg("");
@@ -287,6 +351,7 @@ export default function PortalHome() {
       setMonitoringForm({ parameterType: "systolicBP", value: "", diastolic: "", symptom: "" });
       await loadSnapshot();
       await loadNotifications();
+      await loadTodayReminders();
     } catch (err) {
       setMonitoringMsg("Gagal menyimpan: " + (err.message || "terjadi kesalahan."));
     } finally {
@@ -468,6 +533,44 @@ export default function PortalHome() {
             <div className="portal-status-label" style={{ color: statusInfo.color }}>{statusInfo.label}</div>
             <div className="portal-sub">Status Keselamatan Saya</div>
           </div>
+
+          {/* BAGIAN BARU: kartu Jadwal Hari Ini — obat (checkbox slot dari
+              Screening.jsx) + TTV (dari Safety Plan). Disembunyikan total
+              kalau pasien tidak punya obat berjadwal maupun parameter TTV
+              yang perlu dipantau, supaya tidak jadi kartu kosong. */}
+          {todayReminders && (todayReminders.medications.length > 0 || (todayReminders.ttv.parameters || []).length > 0) && (
+            <div className="portal-card">
+              <h3 style={{ marginTop: 0 }}>📋 Jadwal Hari Ini</h3>
+              {todayReminders.medications.map((m) => (
+                <div key={m.id} style={{ marginBottom: 14 }}>
+                  <div style={{ fontWeight: 600 }}>{m.name}{m.dose ? ` — ${m.dose}` : ""}</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
+                    {m.slots.map((s) => (
+                      <SlotButton key={s.slot} slot={s.slot} status={s.status} onConfirm={(st) => handleConfirmDose(m.id, s.slot, st)} />
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {(todayReminders.ttv.parameters || []).length > 0 && (
+                <div>
+                  <div style={{ fontWeight: 600, marginBottom: 6 }}>Cek TTV Hari Ini</div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {todayReminders.ttv.parameters.map((p) => (
+                      <button
+                        key={p}
+                        className={todayReminders.ttv.doneToday[p] ? "portal-yn-active" : "portal-primary-btn"}
+                        style={{ fontSize: 13, padding: "8px 14px" }}
+                        disabled={!!todayReminders.ttv.doneToday[p]}
+                        onClick={() => setView("monitoring")}
+                      >
+                        {todayReminders.ttv.doneToday[p] ? `✅ ${PARAM_LABEL_ID[p] || p} — Sudah Periksa` : `Isi ${PARAM_LABEL_ID[p] || p}`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {snapshot?.nextFollowup && (
             <div className="portal-info-card">
