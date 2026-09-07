@@ -104,7 +104,7 @@ export default function Screening() {
   const [pastScreenings, setPastScreenings] = useState([]);
   const [selectedPastDate, setSelectedPastDate] = useState("");
   const [historyItems, setHistoryItems] = useState([]);
-  const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true }]);
+  const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [] }]);
   const [step, setStep] = useState("screening"); // screening -> medication -> result
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -224,7 +224,9 @@ export default function Screening() {
     setBusy(true);
     setError("");
     try {
-      const res = await callApi("medication", { screeningId: result.screeningId, medications });
+      // patientId WAJIB dikirim sekarang (update backend medication.js) —
+      // dipakai cron pengingat obat untuk tahu push notif ini milik pasien mana.
+      const res = await callApi("medication", { screeningId: result.screeningId, patientId, medications });
       setResult((prev) => ({
         ...prev,
         ...res.data,
@@ -277,11 +279,24 @@ export default function Screening() {
   };
 
   const addMedRow = () =>
-    setMedications((prev) => [...prev, { name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true }]);
+    setMedications((prev) => [...prev, { name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [] }]);
   const updateMedRow = (i, field, value) =>
     setMedications((prev) => prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)));
   const removeMedRow = (i) =>
     setMedications((prev) => prev.filter((_, idx) => idx !== i));
+  // toggleMedSlot — centang/hilangkan slot pengingat (pagi/siang/malam) untuk
+  // satu baris obat. Dipakai cron di backend (api/scheduled.js) untuk tahu
+  // jam berapa obat ini harus diingatkan ke pasien lewat push notifikasi.
+  // Boleh dikosongkan semua kalau obat "jika perlu" (PRN) — tidak diingatkan.
+  const toggleMedSlot = (i, slot) =>
+    setMedications((prev) =>
+      prev.map((m, idx) => {
+        if (idx !== i) return m;
+        const current = m.slots || [];
+        const next = current.includes(slot) ? current.filter((s) => s !== slot) : [...current, slot];
+        return { ...m, slots: next };
+      })
+    );
 
   return (
     <Layout title="NCD Screening" meta={patientId ? `Pasien: ${patientId}` : "Pilih pasien dari Daftar Pasien"}>
@@ -585,22 +600,44 @@ export default function Screening() {
         <div className="card">
           <h3>Rekonsiliasi Obat</h3>
           {medications.map((m, i) => (
-            <div key={i} style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
-              <div className="grid cols-3" style={{ flex: 1 }}>
-                <input placeholder="Nama obat" value={m.name} onChange={(e) => updateMedRow(i, "name", e.target.value)} />
-                <input placeholder="Dosis" value={m.dose} onChange={(e) => updateMedRow(i, "dose", e.target.value)} />
-                <input placeholder="Frekuensi" value={m.frequency} onChange={(e) => updateMedRow(i, "frequency", e.target.value)} />
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div className="grid cols-3" style={{ flex: 1 }}>
+                  <input placeholder="Nama obat" value={m.name} onChange={(e) => updateMedRow(i, "name", e.target.value)} />
+                  <input placeholder="Dosis" value={m.dose} onChange={(e) => updateMedRow(i, "dose", e.target.value)} />
+                  <input placeholder="Frekuensi" value={m.frequency} onChange={(e) => updateMedRow(i, "frequency", e.target.value)} />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  style={{ padding: "6px 10px", fontSize: 12, color: "#c0392b" }}
+                  onClick={() => removeMedRow(i)}
+                  disabled={medications.length <= 1}
+                  title={medications.length <= 1 ? "Minimal satu baris obat" : "Hapus baris ini"}
+                >
+                  🗑️ Hapus
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn-ghost"
-                style={{ padding: "6px 10px", fontSize: 12, color: "#c0392b" }}
-                onClick={() => removeMedRow(i)}
-                disabled={medications.length <= 1}
-                title={medications.length <= 1 ? "Minimal satu baris obat" : "Hapus baris ini"}
-              >
-                🗑️ Hapus
-              </button>
+              {/* Pengingat harian: pilih slot kapan pasien diingatkan minum obat
+                  ini lewat push notifikasi. Kosongkan semua untuk obat "jika
+                  perlu" (PRN) — tidak akan diingatkan otomatis. */}
+              <div style={{ display: "flex", gap: 14, alignItems: "center", paddingLeft: 4 }}>
+                <span className="stat-sub" style={{ fontSize: 12 }}>Ingatkan pasien:</span>
+                {[
+                  { key: "pagi", label: "Pagi (07:00)" },
+                  { key: "siang", label: "Siang (12:00)" },
+                  { key: "malam", label: "Malam (19:00)" },
+                ].map((slotOpt) => (
+                  <label key={slotOpt.key} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, cursor: "pointer" }}>
+                    <input
+                      type="checkbox"
+                      checked={(m.slots || []).includes(slotOpt.key)}
+                      onChange={() => toggleMedSlot(i, slotOpt.key)}
+                    />
+                    {slotOpt.label}
+                  </label>
+                ))}
+              </div>
             </div>
           ))}
           <button className="btn btn-ghost" onClick={addMedRow} style={{ marginBottom: 16 }}>
