@@ -28,19 +28,36 @@ body {
     radial-gradient(circle at 88% 12%, rgba(23,184,166,0.10), transparent 45%),
     radial-gradient(circle at 30% 95%, rgba(15,27,61,0.7), transparent 55%),
     linear-gradient(160deg, var(--bg-1), var(--bg-2) 55%, var(--bg-3));
-  background-attachment: fixed;
+  /* background-attachment: fixed dihapus — berat saat scroll, terutama di HP */
 }
 
-/* ===== Kartu kaca generik (dipakai di dashboard, login, dll) ===== */
+/* ===== Kartu kaca generik (dipakai di dashboard, login, dll) =====
+   Blur diturunkan dari 20px -> 12px: kalau class ini juga dipakai berulang
+   di daftar (kartu pasien / kartu sinyal), efeknya jauh lebih ringan. */
 .card {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: 20px;
-  backdrop-filter: blur(20px) saturate(160%);
-  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
   box-shadow: var(--shadow);
   color: var(--ink-on-glass);
   padding: 20px;
+}
+
+/* ===== Kartu untuk item yang berulang di dalam list (mis. tiap sinyal di
+   Home Safety Signals, tiap kartu di daftar yang bisa panjang) — TANPA
+   blur supaya tetap ringan walau jumlahnya puluhan sekaligus. Tetap
+   terasa "kaca" lewat transparansi + border, cuma tidak menghitung ulang
+   blur per kartu. Pakai class ini, BUKAN .card, untuk apa pun yang
+   dirender lewat .map(). */
+.card-list {
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+  color: var(--ink-on-glass);
+  padding: 16px;
 }
 
 /* ===== Halaman Login ===== */
@@ -58,8 +75,8 @@ body {
   background: var(--glass-bg-strong);
   border: 1px solid var(--glass-border);
   border-radius: 24px;
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
   box-shadow: var(--shadow);
   padding: 32px 28px;
   color: var(--ink-on-glass);
@@ -161,8 +178,8 @@ textarea { resize: vertical; min-height: 60px; }
   padding: 24px 18px;
   background: rgba(255,255,255,0.03);
   border-right: 1px solid var(--glass-border);
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
   color: var(--ink-on-glass);
   display: flex;
   flex-direction: column;
@@ -519,8 +536,8 @@ tbody tr.row-redflag { background: rgba(255,92,80,0.08); }
     border-radius: 12px;
     border: 1px solid var(--glass-border);
     background: rgba(13, 26, 53, 0.92);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     color: #fff;
     font-size: 20px;
     cursor: pointer;

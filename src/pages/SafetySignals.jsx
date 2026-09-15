@@ -57,6 +57,13 @@ function buildWhatsAppMessage(patientName, sev, reasons) {
  * SafetySignals.jsx — halaman BARU untuk "Home Safety Signals" (bagian J
  * spesifikasi). Dashboard.jsx hanya menampilkan ringkasan + link ke sini,
  * supaya Dashboard existing tidak perlu dirombak.
+ *
+ * REVISI PERFORMA: tiap kartu sinyal (di dalam .map()) sekarang pakai
+ * class "card-list" (transparan, TANPA backdrop-filter blur) alih-alih
+ * "card" (blur). Kalau sinyal aktif ada banyak sekaligus, dulu browser
+ * harus hitung blur untuk tiap kartu — sekarang tidak lagi, jadi jauh
+ * lebih ringan walau jumlah pasien bertambah. Panel pembungkus terluar
+ * tetap pakai "card" karena cuma satu instance per halaman.
  */
 export default function SafetySignals() {
   const [signals, setSignals] = useState([]);
@@ -123,7 +130,7 @@ export default function SafetySignals() {
             return (
               <div
                 key={s.id}
-                className="card"
+                className="card-list"
                 style={{
                   background: isEmergencyButton ? "rgba(255,92,80,0.14)" : "var(--surface-2)",
                   border: isEmergencyButton ? "2px solid #ff5c50" : undefined,

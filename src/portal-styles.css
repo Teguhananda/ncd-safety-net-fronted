@@ -9,7 +9,10 @@
    lansia), ditambah kelas-kelas baru untuk ilustrasi ikon menu (badge
    bulat + SVG) supaya tiap menu punya identitas visual, dan kartu status
    dibuat lebih menonjol. Variabel warna & kelas lama TETAP dipertahankan
-   supaya tidak merusak halaman lain (PortalLogin.jsx dll). */
+   supaya tidak merusak halaman lain (PortalLogin.jsx dll).
+
+   REVISI PERFORMA: blur diturunkan & background-attachment:fixed dihapus
+   supaya rendering lebih ringan di HP, tetap kerasa glassmorphic. */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
@@ -50,7 +53,7 @@ html, body {
     radial-gradient(circle at 88% 12%, rgba(23,184,166,0.12), transparent 45%),
     radial-gradient(circle at 30% 95%, rgba(15,27,61,0.7), transparent 55%),
     linear-gradient(160deg, var(--p-bg-1), var(--p-bg-2) 55%, var(--p-bg-3));
-  background-attachment: fixed;
+  /* background-attachment:fixed dihapus — berat saat scroll, terutama di HP */
 }
 
 .portal-shell * { font-variant-numeric: tabular-nums; }
@@ -95,8 +98,8 @@ html, body {
   background: var(--p-glass-bg);
   border: 1px solid var(--p-glass-border);
   border-radius: 22px;
-  backdrop-filter: blur(22px) saturate(160%);
-  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(150%);
+  -webkit-backdrop-filter: blur(12px) saturate(150%);
   box-shadow: var(--p-shadow);
   color: var(--p-ink);
   padding: 22px;
@@ -146,8 +149,8 @@ html, body {
   background: var(--p-glass-bg);
   border: 1px solid var(--p-glass-border);
   border-radius: 20px;
-  backdrop-filter: blur(16px) saturate(150%);
-  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
   padding: 20px 12px 18px;
   font-family: inherit;
   font-size: 15px;
