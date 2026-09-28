@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "firebase/auth";
-import { auth } from "../../lib/firebase";
+import { auth } from "../../lib/firebaseApp"; // REVISI PERFORMA: tanpa Firestore
 import { callApi } from "../../lib/api";
 import { usePortalPwa } from "../../pwa/usePortalPwa";
 import { requestAndRegisterPush } from "../../lib/push";
@@ -401,6 +401,7 @@ export default function PortalHome() {
 
   const statusInfo = STATUS_MAP[snapshot?.currentSafetyStatus] || STATUS_MAP.SAFE;
   const plan = snapshot?.plan;
+  const activeMeds = snapshot?.activeMedications || [];
 
   return (
     <div className="portal-shell">
@@ -687,14 +688,38 @@ export default function PortalHome() {
       {view === "plan" && (
         <div className="portal-card">
           <h3>Safety Plan Saya</h3>
+          {/* BAGIAN BARU (Sept 2026): "Obat Saya" diambil dari rekonsiliasi
+              obat RS (daftar yang sama dengan pengingat & "Jadwal Hari Ini"),
+              bukan lagi hanya teks ketikan — supaya satu sumber dengan
+              checklist obat. Teks dari form Safety Plan tetap
+              ditampilkan sebagai "Catatan dari petugas". */}
+          {activeMeds.length > 0 && (
+            <div style={{ marginBottom: 16 }}>
+              <b>Obat Saya (daftar dari petugas RSUD):</b>
+              <div style={{ marginTop: 6 }}>
+                {activeMeds.map((m) => (
+                  <div key={m.id} style={{ marginBottom: 8 }}>
+                    💊 <b>{m.name}</b>{m.dose ? ` ${m.dose}` : ""}
+                    {m.slots.length > 0 && (
+                      <div className="portal-sub" style={{ marginTop: 0 }}>
+                        Diminum: {m.slots.map((sl) => (SLOT_LABEL[sl] || sl)).join(", ")}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {!plan ? (
             <p>Belum ada safety plan aktif. Tanyakan ke petugas/dokter saat kontrol berikutnya.</p>
           ) : (
             <>
-              <div style={{ marginBottom: 16 }}>
-                <b>Obat Saya:</b>
-                <div style={{ marginTop: 4 }}>{renderMultiPoint(plan.medicationPlan)}</div>
-              </div>
+              {(activeMeds.length === 0 || plan.medicationPlan) && (
+                <div style={{ marginBottom: 16 }}>
+                  <b>{activeMeds.length > 0 ? "Catatan Obat dari Petugas:" : "Obat Saya:"}</b>
+                  <div style={{ marginTop: 4 }}>{renderMultiPoint(plan.medicationPlan)}</div>
+                </div>
+              )}
               <div style={{ marginBottom: 16 }}>
                 <b>Kontrol yang Perlu Dipantau:</b>
                 <div style={{ marginTop: 4 }}>

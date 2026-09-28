@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { signInWithCustomToken } from "firebase/auth";
-import { auth } from "../../lib/firebase";
+import { auth } from "../../lib/firebaseApp";
 import { patientPortalLogin } from "../../lib/api";
 import { usePortalPwa } from "../../pwa/usePortalPwa";
 import QRScanner from "../../components/PortalQRScanner";

@@ -1,5 +1,5 @@
 import { getMessaging, getToken, isSupported } from "firebase/messaging";
-import { app } from "./firebase";
+import { app } from "./firebaseApp"; // REVISI PERFORMA: tanpa Firestore, supaya Portal Pasien ringan
 import { callApi } from "./api";
 
 /**

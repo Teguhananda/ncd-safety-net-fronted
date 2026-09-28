@@ -38,11 +38,144 @@ function buildTrendData(entries) {
   return Object.values(byTime);
 }
 
+// ==== BAGIAN BARU (Sept 2026): tampilan Laporan Kepatuhan Obat & TTV ====
+const SLOT_LABEL_STAFF = { pagi: "Pagi", siang: "Siang", malam: "Malam" };
+const MED_STATUS = {
+  taken: { icon: "✅", label: "Diminum" },
+  skipped: { icon: "⏭️", label: "Tidak diminum (dikonfirmasi pasien)" },
+  missed: { icon: "❌", label: "Tidak ada konfirmasi" },
+  pending: { icon: "⏳", label: "Hari ini, belum dikonfirmasi" },
+};
+const TTV_STATUS = {
+  done: { icon: "✅", label: "Diisi" },
+  missed: { icon: "❌", label: "Terlewat" },
+  pending: { icon: "⏳", label: "Hari ini, belum diisi" },
+};
+
+function shortDate(dateStr) {
+  const [, m, d] = dateStr.split("-");
+  return `${d}/${m}`;
+}
+
+function pctColor(p) {
+  if (p === null || p === undefined) return "inherit";
+  if (p >= 80) return "#34d399";
+  if (p >= 50) return "#f5a623";
+  return "#ff5c50";
+}
+
+function ComplianceCard({ compliance }) {
+  const meds = compliance.medications || [];
+  const ttv = compliance.ttv || { parameters: [], daily: [] };
+  const last7 = (arr) => (arr || []).slice(-7);
+
+  return (
+    <div className="card" style={{ marginBottom: 20 }}>
+      <h3>💊 Kepatuhan Obat &amp; TTV — {compliance.periodDays} Hari Terakhir</h3>
+      <div className="stat-sub" style={{ marginBottom: 12 }}>
+        Obat diambil dari rekonsiliasi obat RS yang masih aktif. Kepatuhan dihitung dari konfirmasi pasien di
+        Portal (tombol "Sudah Minum"), mulai hari berikutnya setelah obat diresepkan.
+      </div>
+
+      <div className="stat-label">Ringkasan Obat</div>
+      {meds.length === 0 ? (
+        <div className="stat-sub" style={{ marginBottom: 16 }}>
+          Belum ada obat aktif berjadwal (Pagi/Siang/Malam) dari rekonsiliasi obat untuk pasien ini.
+        </div>
+      ) : (
+        <table style={{ marginBottom: 16 }}>
+          <thead>
+            <tr><th>Obat</th><th>Sumber</th><th>Jadwal</th><th>Diminum</th><th>Tidak Diminum</th><th>Tanpa Konfirmasi</th><th>Kepatuhan</th></tr>
+          </thead>
+          <tbody>
+            {meds.map((m) => (
+              <tr key={m.id}>
+                <td><b>{m.name}</b>{m.dose ? ` ${m.dose}` : ""}</td>
+                <td>{m.source && m.source !== "unknown" ? m.source : "-"}</td>
+                <td>{m.slots.map((s) => SLOT_LABEL_STAFF[s] || s).join(", ")}</td>
+                <td>{m.taken}/{m.expected}</td>
+                <td>{m.skipped}</td>
+                <td style={{ color: m.missed > 0 ? "#ff5c50" : "inherit", fontWeight: m.missed > 0 ? 700 : 400 }}>{m.missed}</td>
+                <td style={{ color: pctColor(m.percent), fontWeight: 700 }}>{m.percent === null ? "-" : `${m.percent}%`}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      {meds.length > 0 && (
+        <>
+          <div className="stat-label">Detail 7 Hari Terakhir (Obat)</div>
+          <table style={{ marginBottom: 16 }}>
+            <thead>
+              <tr>
+                <th>Obat / Jadwal</th>
+                {last7(meds[0].daily).map((d) => <th key={d.date} className="mono">{shortDate(d.date)}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {meds.flatMap((m) => m.slots.map((slot) => (
+                <tr key={`${m.id}_${slot}`}>
+                  <td>{m.name} — {SLOT_LABEL_STAFF[slot] || slot}</td>
+                  {last7(m.daily).map((d) => {
+                    const st = d.slots[slot];
+                    const info = st ? MED_STATUS[st] : null;
+                    return <td key={d.date} title={info ? info.label : "Belum berlaku"} style={{ textAlign: "center" }}>{info ? info.icon : "—"}</td>;
+                  })}
+                </tr>
+              )))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      <div className="stat-label">Monitoring TTV di Rumah</div>
+      {ttv.parameters.length === 0 ? (
+        <div className="stat-sub">Belum ada Safety Plan aktif dengan parameter TTV yang wajib dipantau.</div>
+      ) : (
+        <>
+          <div style={{ marginBottom: 8 }}>
+            Diisi <b>{ttv.done}/{ttv.expected}</b> hari-parameter
+            {ttv.missed > 0 && <span style={{ color: "#ff5c50", fontWeight: 700 }}> — {ttv.missed} terlewat</span>}
+            {ttv.percent !== null && <span style={{ color: pctColor(ttv.percent), fontWeight: 700 }}> ({ttv.percent}%)</span>}
+            {ttv.frequency && <span className="stat-sub"> · Target: {ttv.frequency}</span>}
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Parameter</th>
+                {last7(ttv.daily).map((d) => <th key={d.date} className="mono">{shortDate(d.date)}</th>)}
+              </tr>
+            </thead>
+            <tbody>
+              {ttv.parameters.map((p) => (
+                <tr key={p}>
+                  <td>{PARAM_LABEL[p] || p}</td>
+                  {last7(ttv.daily).map((d) => {
+                    const st = d.status[p];
+                    const info = st ? TTV_STATUS[st] : null;
+                    return <td key={d.date} title={info ? info.label : "Belum berlaku"} style={{ textAlign: "center" }}>{info ? info.icon : "—"}</td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+
+      <div className="stat-sub" style={{ marginTop: 12 }}>
+        Keterangan: ✅ diminum/diisi · ⏭️ pasien menyatakan tidak minum · ❌ tidak ada konfirmasi/terlewat · ⏳ hari ini belum · — belum berlaku
+      </div>
+    </div>
+  );
+}
+
 export default function PatientHistory() {
   const [params] = useSearchParams();
   const patientId = params.get("patientId") || "";
   const [timeline, setTimeline] = useState([]);
   const [homeSafetySummary, setHomeSafetySummary] = useState(null);
+  const [compliance, setCompliance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -58,6 +191,7 @@ export default function PatientHistory() {
         const res = await callApi("patientHistory", { patientId });
         setTimeline(res.data.timeline || []);
         setHomeSafetySummary(res.data.homeSafetySummary || null);
+        setCompliance(res.data.compliance || null);
       } catch (e) {
         setError(e.message || "Gagal memuat riwayat.");
       } finally {
@@ -79,6 +213,8 @@ export default function PatientHistory() {
         <div className="card"><div className="error-text">{error}</div></div>
       ) : (
         <>
+          {compliance && <ComplianceCard compliance={compliance} />}
+
           {/* ==== BAGIAN BARU: Home Safety Summary — data monitoring mandiri
               pasien dari rumah (bagian M spesifikasi). Backend sudah lama
               mengirim data ini, tapi sebelumnya tidak pernah ditampilkan

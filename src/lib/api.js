@@ -1,4 +1,4 @@
-import { auth } from "./firebase";
+import { auth } from "./firebaseApp"; // REVISI PERFORMA: tanpa Firestore, supaya Portal Pasien ringan
 
 /**
  * GANTI dengan URL dasar project Vercel Bapak setelah deploy backend API
