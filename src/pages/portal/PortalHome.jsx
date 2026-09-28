@@ -162,16 +162,12 @@ export default function PortalHome() {
   const [notifList, setNotifList] = useState([]);
   const [notifUnreadCount, setNotifUnreadCount] = useState(0);
 
-  async function loadNotifications() {
-    try {
-      const patientId = await getPatientId();
-      const res = await callApi("patientPortal", { action: "getSummary", patientId, days: 30 });
-
-      const signalItems = (res.data.signals || [])
+  function applyNotifications(summaryData) {
+      const signalItems = (summaryData.signals || [])
         .filter((s) => s.status && s.status !== "SAFE")
         .map((s) => ({ kind: "signal", date: s.detectedAt, ...s }));
 
-      const messageItems = (res.data.messages || [])
+      const messageItems = (summaryData.messages || [])
         .map((m) => ({ kind: "message", date: m.sentAt, ...m }));
 
       const combined = [...signalItems, ...messageItems].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -180,6 +176,13 @@ export default function PortalHome() {
       const seenAt = localStorage.getItem(NOTIF_SEEN_KEY);
       const unread = seenAt ? combined.filter((n) => new Date(n.date) > new Date(seenAt)).length : combined.length;
       setNotifUnreadCount(unread);
+  }
+
+  async function loadNotifications() {
+    try {
+      const patientId = await getPatientId();
+      const res = await callApi("patientPortal", { action: "getSummary", patientId, days: 30 });
+      applyNotifications(res.data);
     } catch {
       // Gagal muat notifikasi bukan hal fatal.
     }
@@ -223,7 +226,29 @@ export default function PortalHome() {
     }
   }
 
-  useEffect(() => { loadSnapshot(); loadNotifications(); loadTodayReminders(); }, []);
+  // ==== REVISI PERFORMA (Sept 2026): SATU panggilan untuk seluruh isi
+  // halaman utama (action "getHome") — sebelumnya 3 panggilan terpisah
+  // (getSnapshot + getSummary + getTodayReminders). Kalau server ternyata
+  // belum di-update (action getHome belum dikenal), otomatis kembali ke
+  // cara lama, jadi urutan deploy backend/frontend tidak jadi masalah.
+  async function loadHome() {
+    setLoading(true);
+    setLoadError("");
+    try {
+      const patientId = await getPatientId();
+      const res = await callApi("patientPortal", { action: "getHome", patientId, days: 30 });
+      const { snapshot: snap, summary: sum, today } = res.data || {};
+      if (!snap) throw new Error("getHome belum tersedia");
+      setSnapshot({ ...snap, patientId });
+      setTodayReminders(today || null);
+      try { applyNotifications(sum || {}); } catch { /* bukan hal fatal */ }
+      setLoading(false);
+    } catch {
+      await Promise.all([loadSnapshot(), loadNotifications(), loadTodayReminders()]);
+    }
+  }
+
+  useEffect(() => { loadHome(); }, []);
 
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -250,7 +275,7 @@ export default function PortalHome() {
       setPullDistance((current) => {
         if (current > 55) {
           setRefreshing(true);
-          Promise.all([loadSnapshot(), loadNotifications(), loadTodayReminders()]).finally(() => setRefreshing(false));
+          loadHome().finally(() => setRefreshing(false));
         }
         return 0;
       });

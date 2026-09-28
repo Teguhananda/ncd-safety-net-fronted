@@ -14,7 +14,8 @@
    REVISI PERFORMA: blur diturunkan & background-attachment:fixed dihapus
    supaya rendering lebih ringan di HP, tetap kerasa glassmorphic. */
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+/* REVISI PERFORMA: @import font dipindah ke <link> di portal.html (otomatis
+   disisipkan vite.config.js) supaya teks muncul lebih cepat di HP. */
 
 html, body {
   margin: 0;
@@ -98,8 +99,10 @@ html, body {
   background: var(--p-glass-bg);
   border: 1px solid var(--p-glass-border);
   border-radius: 22px;
-  backdrop-filter: blur(12px) saturate(150%);
-  -webkit-backdrop-filter: blur(12px) saturate(150%);
+  /* REVISI PERFORMA: backdrop-filter blur dihapus. Latar Portal hanya
+     gradasi lembut, jadi hasil blur-nya hampir tidak terlihat mata, tapi
+     sangat membebani HP murah (dihitung ulang tiap scroll). Kesan "kaca"
+     tetap dari transparansi + border + bayangan. */
   box-shadow: var(--p-shadow);
   color: var(--p-ink);
   padding: 22px;
@@ -149,8 +152,7 @@ html, body {
   background: var(--p-glass-bg);
   border: 1px solid var(--p-glass-border);
   border-radius: 20px;
-  backdrop-filter: blur(10px) saturate(140%);
-  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  /* REVISI PERFORMA: blur dihapus (lihat catatan di .portal-card) */
   padding: 20px 12px 18px;
   font-family: inherit;
   font-size: 15px;

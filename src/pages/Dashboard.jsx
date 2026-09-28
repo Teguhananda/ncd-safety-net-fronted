@@ -320,17 +320,21 @@ export default function Dashboard() {
     }
   };
 
-  async function load() {
-    const summarySnap = await getDocs(
-      query(collection(db, "analytics_summary"), orderBy("generatedAt", "desc"), limit(7))
-    );
+  // REVISI PERFORMA (Sept 2026): sebelumnya 5 pengambilan data berjalan
+  // BERURUTAN (tunggu satu selesai baru mulai berikutnya). Sekarang semua
+  // yang tidak saling bergantung dijalankan BERSAMAAN, jadi total waktu
+  // tunggu = yang paling lama saja, bukan dijumlah semuanya. Isi data &
+  // tampilan tetap sama persis.
+  async function loadMain() {
+    const [summarySnap, riskSnap] = await Promise.all([
+      getDocs(query(collection(db, "analytics_summary"), orderBy("generatedAt", "desc"), limit(7))),
+      getDocs(query(collection(db, "risk_assessments"), orderBy("createdAt", "desc"), limit(20))),
+    ]);
+
     const summaries = summarySnap.docs.map((d) => ({ periodId: d.id, ...d.data() }));
     if (summaries.length > 0) setSummary(summaries[0]);
     setHistory([...summaries].reverse());
 
-    const riskSnap = await getDocs(
-      query(collection(db, "risk_assessments"), orderBy("createdAt", "desc"), limit(20))
-    );
     const attention = riskSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }))
       .filter((r) => r.riskStatus === "HIGH" || r.riskStatus === "RED_FLAG")
@@ -354,8 +358,9 @@ export default function Dashboard() {
     );
 
     setAttentionList(attentionWithNames);
-    setLoading(false);
+  }
 
+  async function loadSignals() {
     try {
       const signalSnap = await getDocs(
         query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED"))
@@ -371,13 +376,23 @@ export default function Dashboard() {
     } catch (err) {
       // diamkan — widget tambahan, tidak boleh mengganggu dashboard utama
     }
+  }
 
+  async function loadMonitoring() {
     try {
       const res = await callApi("patientHistory", { action: "recentMonitoring" });
       setRecentMonitoring(res.data.entries || []);
     } catch (err) {
       // diamkan — widget tambahan
     }
+  }
+
+  async function load() {
+    await Promise.all([
+      loadMain().catch((err) => console.error("Dasbor gagal dimuat:", err)).finally(() => setLoading(false)),
+      loadSignals(),
+      loadMonitoring(),
+    ]);
   }
 
   useEffect(() => { load(); }, []);

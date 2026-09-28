@@ -575,3 +575,18 @@ tbody tr.row-redflag { background: rgba(255,92,80,0.08); }
   /* Tabel jadi bisa digeser horizontal, bukan meluber merusak layout */
   table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; }
 }
+
+/* ==== REVISI PERFORMA (Sept 2026): di layar HP (≤860px, sama dengan batas tampilan HP yang sudah ada) efek blur kaca
+   dimatikan. Latar aplikasi hanya gradasi lembut sehingga tampilannya
+   hampir sama persis, tapi HP (terutama milik tim ambulans di lapangan)
+   tidak perlu menghitung blur tiap kali layar di-scroll. Di laptop/PC
+   efek blur tetap seperti semula. ==== */
+@media (max-width: 860px) {
+  .card,
+  .login-card,
+  .sidebar {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+  .sidebar { background: rgba(10, 17, 40, 0.97); }
+}
