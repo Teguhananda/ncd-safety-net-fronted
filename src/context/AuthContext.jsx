@@ -32,10 +32,24 @@ export function AuthProvider({ children }) {
   const countdownIntervalRef = useRef(null);
 
   useEffect(() => {
+    // PERBAIKAN (Sept 2026): bug "harus login 2 kali". Sebelumnya, saat
+    // login berhasil, `loading` sudah false sementara data peran (role)
+    // masih diambil dari server (~1 detik) — di jeda itu `user` masih
+    // null, sehingga ProtectedRoute melempar balik ke /login. Sekarang
+    // `loading` dinyalakan lagi selama peran diambil, lalu user & role
+    // diisi BERSAMAAN. Gagal ambil peran (mis. internet putus) tidak lagi
+    // membuat aplikasi macet di "Memuat...".
     const unsub = onAuthStateChanged(auth, async (u) => {
       if (u) {
-        const tokenResult = await u.getIdTokenResult(true);
-        setRole(tokenResult.claims.role || null);
+        setLoading(true);
+        let nextRole = null;
+        try {
+          const tokenResult = await u.getIdTokenResult(true);
+          nextRole = tokenResult.claims.role || null;
+        } catch (err) {
+          console.error("Gagal memuat peran akun:", err);
+        }
+        setRole(nextRole);
         setUser(u);
       } else {
         setUser(null);
