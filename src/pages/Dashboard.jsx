@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { collection, getDocs, doc, getDoc, onSnapshot, orderBy, limit, query, where } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { db } from "../lib/firebase";
@@ -15,6 +15,76 @@ const PARAM_LABEL_ID = {
   diastolicBP: "Tensi Diastolik",
   bloodGlucose: "Gula Darah",
 };
+
+// ==== BARU (Sept 2026): monitoring mandiri dikelompokkan PER PASIEN ====
+// Tiap kali pasien menekan "Simpan" di Portal, sistolik & diastolik
+// tersimpan sebagai 2 data terpisah dengan waktu yang sama. Di sini data
+// yang waktunya berdekatan (maks 2 menit) digabung jadi 1 "pengisian",
+// supaya tensi tampil utuh (mis. 150/95), lalu dikelompokkan per pasien.
+const SESSION_GAP_MS = 2 * 60 * 1000;
+const FragmentRow = Fragment;
+
+function groupMonitoringByPatient(entries) {
+  const map = new Map();
+  const sorted = (entries || [])
+    .filter((e) => e.timestamp && e.patientId)
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  for (const e of sorted) {
+    let p = map.get(e.patientId);
+    if (!p) {
+      p = { patientId: e.patientId, patientName: e.patientName || e.patientId, patientMrn: e.patientMrn || null, sessions: [] };
+      map.set(e.patientId, p);
+    }
+    const t = new Date(e.timestamp).getTime();
+    const known = ["systolicBP", "diastolicBP", "bloodGlucose"].includes(e.parameterType);
+    let sess = p.sessions.find((x) => Math.abs(x.time - t) <= SESSION_GAP_MS && (!known || x[e.parameterType] == null));
+    if (!sess) {
+      sess = { time: t, systolicBP: null, diastolicBP: null, bloodGlucose: null, others: [], symptoms: [] };
+      p.sessions.push(sess);
+    }
+    if (known) sess[e.parameterType] = e.value;
+    else sess.others.push(`${PARAM_LABEL_ID[e.parameterType] || e.parameterType}: ${e.value}${e.unit ? " " + e.unit : ""}`);
+    if (e.symptom && !sess.symptoms.includes(e.symptom)) sess.symptoms.push(e.symptom);
+  }
+  // Map menyimpan urutan pertama kali pasien muncul = pengisian terbaru dulu.
+  return [...map.values()].map((p) => ({
+    ...p,
+    lastTime: p.sessions[0]?.time || null,
+    lastBP: p.sessions.find((x) => x.systolicBP != null || x.diastolicBP != null) || null,
+    lastGlucose: p.sessions.find((x) => x.bloodGlucose != null) || null,
+  }));
+}
+
+// Penanda warna TAMPILAN SAJA (bukan pengganti Safety Engine/ambang di
+// Safety Plan). [REQUIRES CLINICAL VALIDATION]
+function bpFlag(sys, dia) {
+  if (sys == null && dia == null) return null;
+  if ((sys != null && sys >= 180) || (dia != null && dia >= 120)) return { color: "#ff5c50", text: "sangat tinggi" };
+  if ((sys != null && sys >= 140) || (dia != null && dia >= 90)) return { color: "#f5a623", text: "tinggi" };
+  if (sys != null && sys < 90) return { color: "#f5a623", text: "rendah" };
+  return null;
+}
+function glucoseFlag(v) {
+  if (v == null) return null;
+  if (v < 70) return { color: "#ff5c50", text: "rendah (hipoglikemia)" };
+  if (v >= 300) return { color: "#ff5c50", text: "sangat tinggi" };
+  if (v >= 200) return { color: "#f5a623", text: "tinggi" };
+  return null;
+}
+function formatBP(sess) {
+  if (!sess) return "-";
+  return `${sess.systolicBP ?? "?"}/${sess.diastolicBP ?? "?"} mmHg`;
+}
+function formatWhen(t) {
+  return t ? new Date(t).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "-";
+}
+function FlagValue({ text, flag }) {
+  return (
+    <span style={flag ? { color: flag.color, fontWeight: 700 } : undefined} title={flag ? flag.text : undefined}>
+      {text}{flag ? ` (${flag.text})` : ""}
+    </span>
+  );
+}
 
 const NOTIF_TYPE_COLLECTION = {
   patient_emergency: "safety_signals",
@@ -242,6 +312,9 @@ export default function Dashboard() {
   const [activeSignalCount, setActiveSignalCount] = useState(0);
   const [latestSignalTime, setLatestSignalTime] = useState(null);
   const [recentMonitoring, setRecentMonitoring] = useState([]);
+  // BARU: pasien yang riwayat TTV-nya sedang dibuka, & tampilkan semua pasien
+  const [openMonitoringPatient, setOpenMonitoringPatient] = useState(null);
+  const [showAllMonitoring, setShowAllMonitoring] = useState(false);
   const [notifStatus, setNotifStatus] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   const [notifMsg, setNotifMsg] = useState("");
 
@@ -380,7 +453,14 @@ export default function Dashboard() {
 
   async function loadMonitoring() {
     try {
-      const res = await callApi("patientHistory", { action: "recentMonitoring" });
+      // BARU: 300 data terakhir untuk dikelompokkan per pasien. Kalau
+      // server belum di-update, otomatis kembali ke action lama (20 data).
+      let res;
+      try {
+        res = await callApi("patientHistory", { action: "recentMonitoringGrouped" });
+      } catch {
+        res = await callApi("patientHistory", { action: "recentMonitoring" });
+      }
       setRecentMonitoring(res.data.entries || []);
     } catch (err) {
       // diamkan — widget tambahan
@@ -662,31 +742,90 @@ export default function Dashboard() {
       <div className="card" style={{ marginTop: 16 }}>
         <h3>🏠 Aktivitas Monitoring Mandiri Terbaru</h3>
         <div className="stat-sub" style={{ marginBottom: 10 }}>
-          Hasil tensi/gula darah yang diinput langsung oleh pasien dari rumah lewat Portal My NCD Safety.
+          Hasil tensi/gula darah yang diinput pasien dari rumah lewat Portal My NCD Safety — satu baris per pasien. Klik nama pasien untuk melihat riwayat pengisiannya.
         </div>
-        {recentMonitoring.length === 0 ? (
-          <div className="stat-sub">Belum ada aktivitas monitoring mandiri dari pasien.</div>
-        ) : (
-          <table>
-            <thead>
-              <tr><th>Tanggal &amp; Jam</th><th>Pasien</th><th>Parameter</th><th>Nilai</th><th>Keluhan</th></tr>
-            </thead>
-            <tbody>
-              {recentMonitoring.map((e) => (
-                <tr key={e.id}>
-                  <td className="mono">{e.timestamp ? new Date(e.timestamp).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}</td>
-                  <td>
-                    <Link to={`/patient-history?patientId=${e.patientId}`}>{e.patientName}</Link>
-                    {e.patientMrn && <span className="stat-sub"> ({e.patientMrn})</span>}
-                  </td>
-                  <td>{PARAM_LABEL_ID[e.parameterType] || e.parameterType}</td>
-                  <td>{e.value} {e.unit}</td>
-                  <td>{e.symptom || "-"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+        {(() => {
+          const grouped = groupMonitoringByPatient(recentMonitoring);
+          if (grouped.length === 0) {
+            return <div className="stat-sub">Belum ada aktivitas monitoring mandiri dari pasien.</div>;
+          }
+          const shown = showAllMonitoring ? grouped : grouped.slice(0, 10);
+          return (
+            <>
+              <div style={{ overflowX: "auto" }}>
+                <table>
+                  <thead>
+                    <tr><th>Pasien</th><th>Terakhir Diisi</th><th>Tensi Terakhir</th><th>Gula Darah Terakhir</th><th>Jumlah Pengisian</th></tr>
+                  </thead>
+                  <tbody>
+                    {shown.map((p) => {
+                      const isOpen = openMonitoringPatient === p.patientId;
+                      const bp = p.lastBP;
+                      const gl = p.lastGlucose;
+                      return (
+                        <FragmentRow key={p.patientId}>
+                          <tr style={{ cursor: "pointer" }} onClick={() => setOpenMonitoringPatient(isOpen ? null : p.patientId)}>
+                            <td>
+                              <button
+                                type="button"
+                                className="btn btn-ghost"
+                                style={{ padding: "4px 8px", fontSize: 14, fontWeight: 700, textAlign: "left" }}
+                                aria-expanded={isOpen}
+                                onClick={(ev) => { ev.stopPropagation(); setOpenMonitoringPatient(isOpen ? null : p.patientId); }}
+                              >
+                                {isOpen ? "▾" : "▸"} {p.patientName}
+                              </button>
+                              {p.patientMrn && <span className="stat-sub"> ({p.patientMrn})</span>}
+                            </td>
+                            <td className="mono">{formatWhen(p.lastTime)}</td>
+                            <td>{bp ? <FlagValue text={formatBP(bp)} flag={bpFlag(bp.systolicBP, bp.diastolicBP)} /> : "-"}</td>
+                            <td>{gl ? <FlagValue text={`${gl.bloodGlucose} mg/dL`} flag={glucoseFlag(gl.bloodGlucose)} /> : "-"}</td>
+                            <td>{p.sessions.length}x</td>
+                          </tr>
+                          {isOpen && (
+                            <tr>
+                              <td colSpan={5} style={{ background: "rgba(255,255,255,0.04)", padding: 12 }}>
+                                <div style={{ fontWeight: 700, marginBottom: 8 }}>Riwayat TTV — {p.patientName}</div>
+                                <div style={{ overflowX: "auto" }}>
+                                  <table>
+                                    <thead>
+                                      <tr><th>Tanggal &amp; Jam</th><th>Tensi</th><th>Gula Darah</th><th>Keluhan</th></tr>
+                                    </thead>
+                                    <tbody>
+                                      {p.sessions.slice(0, 30).map((x) => (
+                                        <tr key={x.time}>
+                                          <td className="mono">{formatWhen(x.time)}</td>
+                                          <td>{x.systolicBP != null || x.diastolicBP != null ? <FlagValue text={formatBP(x)} flag={bpFlag(x.systolicBP, x.diastolicBP)} /> : "-"}</td>
+                                          <td>{x.bloodGlucose != null ? <FlagValue text={`${x.bloodGlucose} mg/dL`} flag={glucoseFlag(x.bloodGlucose)} /> : "-"}</td>
+                                          <td>{[...x.symptoms, ...x.others].join("; ") || "-"}</td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
+                                </div>
+                                {p.sessions.length > 30 && (
+                                  <div className="stat-sub" style={{ marginTop: 6 }}>Menampilkan 30 pengisian terbaru.</div>
+                                )}
+                                <Link className="btn btn-primary" style={{ display: "inline-block", marginTop: 10 }} to={`/patient-history?patientId=${p.patientId}`}>
+                                  Buka Riwayat Lengkap (grafik &amp; kepatuhan)
+                                </Link>
+                              </td>
+                            </tr>
+                          )}
+                        </FragmentRow>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              {grouped.length > 10 && (
+                <button type="button" className="btn btn-ghost" style={{ marginTop: 10 }} onClick={() => setShowAllMonitoring((v) => !v)}>
+                  {showAllMonitoring ? "Tampilkan 10 pasien terbaru saja" : `Tampilkan semua (${grouped.length} pasien)`}
+                </button>
+              )}
+            </>
+          );
+        })()}
       </div>
     </Layout>
   );
