@@ -6,6 +6,17 @@
  *
  * Dipakai importScripts (bukan ES module) karena ini persyaratan resmi
  * Firebase untuk service worker messaging.
+ *
+ * REVISI (Sept 2026 - bug notif iPhone):
+ * 1. Notifikasi yang payload-nya punya "notification" (semua kiriman dari
+ *    lib/push.js backend) SUDAH ditampilkan otomatis oleh Firebase SDK.
+ *    Dulu file ini menampilkannya LAGI → di Android notif bisa dobel.
+ *    Sekarang showNotification manual hanya untuk pesan data-only.
+ * 2. Klik notifikasi: notifikasi buatan Firebase SDK (ditandai FCM_MSG)
+ *    sudah dibuka otomatis oleh SDK ke fcmOptions.link — handler di bawah
+ *    hanya menangani notifikasi buatan file ini, supaya tidak buka 2 tab.
+ *    Kalau aplikasi sudah terbuka, jendela yang ada difokuskan (bukan
+ *    buka jendela baru).
  */
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js");
 importScripts("https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js");
@@ -23,19 +34,14 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-// BAGIAN YANG DIPERBAIKI: sebelumnya tujuan klik notifikasi di-hardcode
-// ke "/portal" untuk SEMUA notifikasi (pasien maupun staff) — akibatnya
-// notifikasi dokter/Case Manager ikut membuka Portal Pasien (scan QR),
-// bukan halaman Home Safety Signals yang seharusnya. Sekarang tujuan
-// link diambil dari `fcmOptions.link` yang sudah dikirim per notifikasi
-// (lihat lib/push.js: sendPushToPatient pakai "/portal", sendPushToRole
-// pakai "/safety-signals") — disimpan di data notifikasi, lalu dibaca
-// lagi saat diklik.
+// Tujuan link TIDAK di-hardcode (pernah jadi bug: notif staff membuka
+// Portal Pasien). Diambil dari fcmOptions.link / data.link per notifikasi.
 messaging.onBackgroundMessage((payload) => {
-  const { title, body } = payload.notification || {};
-  const link = (payload.fcmOptions && payload.fcmOptions.link) || (payload.data && payload.data.link) || "/";
-  self.registration.showNotification(title || "My NCD Safety", {
-    body: body || "",
+  if (payload.notification) return; // sudah ditampilkan otomatis oleh Firebase SDK
+  const d = payload.data || {};
+  const link = (payload.fcmOptions && payload.fcmOptions.link) || d.link || "/";
+  return self.registration.showNotification(d.title || "My NCD Safety", {
+    body: d.body || "",
     icon: "/logos/app-logo.png",
     badge: "/logos/app-logo.png",
     data: { url: link },
@@ -43,7 +49,21 @@ messaging.onBackgroundMessage((payload) => {
 });
 
 self.addEventListener("notificationclick", (event) => {
+  const nd = event.notification.data || {};
+  if (nd.FCM_MSG) return; // notifikasi buatan Firebase SDK → SDK yang membuka link
   event.notification.close();
-  const url = (event.notification.data && event.notification.data.url) || "/";
-  event.waitUntil(clients.openWindow(url));
+  const url = nd.url || "/";
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      const target = new URL(url, self.location.origin);
+      for (const c of list) {
+        const cu = new URL(c.url);
+        if (cu.pathname === target.pathname && "focus" in c) {
+          if ("navigate" in c) c.navigate(target.href).catch(() => {});
+          return c.focus();
+        }
+      }
+      return clients.openWindow(target.href);
+    })
+  );
 });

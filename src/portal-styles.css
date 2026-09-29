@@ -268,3 +268,141 @@ html, body {
   font-size: 15.5px;
   color: var(--p-ink);
 }
+
+/* ==== REVISI (Sept 2026 - bug notifikasi): panel notifikasi sebagai
+   lembar dari bawah layar. Latar SOLID (bukan kaca transparan) supaya
+   tulisan tidak menumpuk dengan header/kartu di belakangnya, dan
+   ukuran huruf besar supaya mudah dibaca pasien lansia. ==== */
+.portal-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(3, 6, 14, 0.78);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: portal-fade-in 0.18s ease-out;
+}
+.portal-sheet {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 480px;
+  max-height: 82vh;
+  max-height: 82dvh;
+  display: flex;
+  flex-direction: column;
+  background: #0f1c36;
+  color: #f4fdfb;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: none;
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
+  padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  animation: portal-sheet-up 0.22s ease-out;
+}
+.portal-sheet-handle {
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 auto 12px;
+  flex-shrink: 0;
+}
+.portal-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  flex-shrink: 0;
+}
+.portal-sheet-head h3 {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 800;
+}
+.portal-sheet-close {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.08);
+  color: #f4fdfb;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+.portal-sheet-close:focus-visible { outline: 3px solid #17b8a6; outline-offset: 2px; }
+.portal-sheet-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-top: 8px;
+}
+.portal-notif-item {
+  background: #152646;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #17b8a6;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-top: 10px;
+}
+.portal-notif-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.portal-notif-kind { font-weight: 800; font-size: 16px; }
+.portal-notif-time { font-size: 13.5px; color: rgba(244, 253, 251, 0.7); white-space: nowrap; }
+.portal-notif-text {
+  margin-top: 8px;
+  font-size: 17px;
+  line-height: 1.55;
+  color: #f4fdfb;
+  overflow-wrap: anywhere;
+}
+
+/* Pop-up kecil saat notifikasi masuk ketika Portal sedang dibuka */
+.portal-toast {
+  position: fixed;
+  top: calc(12px + env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 55;
+  box-sizing: border-box;
+  width: min(448px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  background: #0f1c36;
+  color: #f4fdfb;
+  border: 1px solid #17b8a6;
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: pointer;
+  animation: portal-toast-down 0.22s ease-out;
+}
+.portal-toast-title { font-weight: 800; font-size: 16px; }
+.portal-toast-body {
+  font-size: 15.5px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.portal-toast-hint { font-size: 13px; color: #17b8a6; font-weight: 700; }
+
+@keyframes portal-fade-in { from { opacity: 0; } to { opacity: 1; } }
+@keyframes portal-sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes portal-toast-down { from { opacity: 0; transform: translate(-50%, -12px); } to { opacity: 1; transform: translate(-50%, 0); } }
+@media (prefers-reduced-motion: reduce) {
+  .portal-sheet-overlay, .portal-sheet, .portal-toast { animation: none; }
+}

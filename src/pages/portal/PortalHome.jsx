@@ -3,7 +3,7 @@ import { signOut } from "firebase/auth";
 import { auth } from "../../lib/firebaseApp"; // REVISI PERFORMA: tanpa Firestore
 import { callApi } from "../../lib/api";
 import { usePortalPwa } from "../../pwa/usePortalPwa";
-import { requestAndRegisterPush } from "../../lib/push";
+import { requestAndRegisterPush, refreshPushTokenSilently, listenForegroundMessages } from "../../lib/push";
 import "../../portal-styles.css";
 
 const STATUS_MAP = {
@@ -161,6 +161,9 @@ export default function PortalHome() {
   const [notifPanelOpen, setNotifPanelOpen] = useState(false);
   const [notifList, setNotifList] = useState([]);
   const [notifUnreadCount, setNotifUnreadCount] = useState(0);
+  // BARU: pop-up kecil di dalam aplikasi saat ada notifikasi masuk
+  // ketika Portal sedang dibuka.
+  const [incomingToast, setIncomingToast] = useState(null);
 
   function applyNotifications(summaryData) {
       const signalItems = (summaryData.signals || [])
@@ -198,6 +201,21 @@ export default function PortalHome() {
       return next;
     });
   };
+
+  const openNotifPanel = () => {
+    localStorage.setItem(NOTIF_SEEN_KEY, new Date().toISOString());
+    setNotifUnreadCount(0);
+    setIncomingToast(null);
+    setNotifPanelOpen(true);
+  };
+
+  // BARU: kunci scroll halaman di belakang saat panel notifikasi terbuka.
+  useEffect(() => {
+    if (!notifPanelOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = prev; };
+  }, [notifPanelOpen]);
 
   async function loadSnapshot() {
     setLoading(true);
@@ -249,6 +267,62 @@ export default function PortalHome() {
   }
 
   useEffect(() => { loadHome(); }, []);
+
+  // ==== BARU (Sept 2026 - bug notif iPhone) ====
+  // 1. Token notifikasi diperbarui diam-diam setiap Portal dibuka (tanpa
+  //    pertanyaan izin), supaya token mati otomatis diganti.
+  // 2. Push yang masuk saat Portal sedang dibuka → lonceng langsung
+  //    ter-update + pop-up kecil muncul.
+  // 3. Saat aplikasi kembali dibuka dari background → notifikasi dimuat ulang.
+  // 4. Pasien mengetuk notifikasi di layar HP (link ?notif=1) → panel
+  //    notifikasi langsung terbuka.
+  useEffect(() => {
+    let stopListening = () => {};
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const patientId = await getPatientId();
+        if (patientId) refreshPushTokenSilently(patientId);
+      } catch { /* tidak fatal */ }
+      const stop = await listenForegroundMessages(({ title, body }) => {
+        setIncomingToast({ title, body });
+        loadNotifications();
+      });
+      if (cancelled) stop(); else stopListening = stop;
+    })();
+
+    function onVisible() {
+      if (document.visibilityState === "visible") loadNotifications();
+    }
+    document.addEventListener("visibilitychange", onVisible);
+
+    return () => {
+      cancelled = true;
+      stopListening();
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (loading) return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notif") === "1") {
+      openNotifPanel();
+      params.delete("notif");
+      const qs = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  // Pop-up hilang sendiri setelah 8 detik.
+  useEffect(() => {
+    if (!incomingToast) return undefined;
+    const t = setTimeout(() => setIncomingToast(null), 8000);
+    return () => clearTimeout(t);
+  }, [incomingToast]);
 
   const [pullDistance, setPullDistance] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
@@ -321,6 +395,12 @@ export default function PortalHome() {
   };
 
   const handleEnableNotif = async () => {
+    // BARU: di iPhone, notifikasi HANYA bisa aktif kalau Portal dibuka
+    // dari ikon di Layar Utama (aturan Apple), bukan dari Safari.
+    if (isIOS && !isStandalone) {
+      setNotifMsg("Di iPhone, pasang dulu aplikasi ke Layar Utama (tombol Bagikan → \"Add to Home Screen\"), lalu buka dari ikon tersebut dan tekan tombol ini lagi.");
+      return;
+    }
     setNotifMsg("Memproses...");
     const patientId = await getPatientId();
     const result = await requestAndRegisterPush(patientId);
@@ -469,60 +549,67 @@ export default function PortalHome() {
         </button>
       </header>
 
+      {/* ==== REVISI (Sept 2026): panel notifikasi jadi lembar dari bawah
+          layar dengan latar SOLID (tidak transparan) + latar belakang
+          digelapkan — sebelumnya kartu kaca transparan menumpuk di atas
+          header & kartu status sehingga tulisan sulit dibaca. ==== */}
       {notifPanelOpen && (
-        <>
+        <div className="portal-sheet-overlay" onClick={() => setNotifPanelOpen(false)}>
           <div
-            onClick={() => setNotifPanelOpen(false)}
-            style={{ position: "fixed", inset: 0, zIndex: 40, background: "transparent" }}
-          />
-          <div
-            className="portal-card"
-            style={{
-              position: "absolute",
-              top: 68,
-              right: 16,
-              width: "min(320px, calc(100vw - 32px))",
-              maxHeight: "60vh",
-              overflowY: "auto",
-              zIndex: 50,
-            }}
+            className="portal-sheet"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="portal-sheet-title"
+            onClick={(e) => e.stopPropagation()}
           >
-            <h3 style={{ marginTop: 0 }}>Notifikasi</h3>
-            {notifList.length === 0 ? (
-              <p className="portal-sub">Belum ada notifikasi.</p>
-            ) : (
-              notifList.map((n) => {
-                if (n.kind === "message") {
-                  return (
-                    <div key={`msg-${n.id}`} className="portal-history-row">
-                      <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                        <span style={{ color: "var(--p-accent, #34d399)", fontWeight: 700 }}>💬 Pesan dari RS</span>
-                        <span className="portal-sub" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                          {n.date ? new Date(n.date).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
-                        </span>
+            <div className="portal-sheet-handle" aria-hidden="true" />
+            <div className="portal-sheet-head">
+              <h3 id="portal-sheet-title">Notifikasi</h3>
+              <button className="portal-sheet-close" onClick={() => setNotifPanelOpen(false)} aria-label="Tutup notifikasi">✕</button>
+            </div>
+            <div className="portal-sheet-body">
+              {notifList.length === 0 ? (
+                <p className="portal-sub">Belum ada notifikasi.</p>
+              ) : (
+                notifList.map((n) => {
+                  const when = n.date ? new Date(n.date).toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "-";
+                  if (n.kind === "message") {
+                    return (
+                      <div key={`msg-${n.id}`} className="portal-notif-item">
+                        <div className="portal-notif-meta">
+                          <span className="portal-notif-kind" style={{ color: "var(--p-accent)" }}>💬 Pesan dari RS</span>
+                          <span className="portal-notif-time">{when}</span>
+                        </div>
+                        <div className="portal-notif-text">{n.message}</div>
                       </div>
-                      <div style={{ marginTop: 4 }}>{n.message}</div>
+                    );
+                  }
+                  const info = STATUS_MAP[n.status] || STATUS_MAP.ATTENTION;
+                  return (
+                    <div key={`sig-${n.id}`} className="portal-notif-item" style={{ borderLeftColor: info.color }}>
+                      <div className="portal-notif-meta">
+                        <span className="portal-notif-kind" style={{ color: info.color }}>{info.emoji} {info.label}</span>
+                        <span className="portal-notif-time">{when}</span>
+                      </div>
+                      {Array.isArray(n.reason) && n.reason.length > 0 && (
+                        <div className="portal-notif-text">{n.reason[0]}</div>
+                      )}
                     </div>
                   );
-                }
-                const info = STATUS_MAP[n.status] || STATUS_MAP.ATTENTION;
-                return (
-                  <div key={`sig-${n.id}`} className="portal-history-row">
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                      <span style={{ color: info.color, fontWeight: 700 }}>{info.emoji} {info.label}</span>
-                      <span className="portal-sub" style={{ fontSize: 12, whiteSpace: "nowrap" }}>
-                        {n.date ? new Date(n.date).toLocaleString("id-ID", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "-"}
-                      </span>
-                    </div>
-                    {Array.isArray(n.reason) && n.reason.length > 0 && (
-                      <div className="portal-sub" style={{ marginTop: 4 }}>{n.reason[0]}</div>
-                    )}
-                  </div>
-                );
-              })
-            )}
+                })
+              )}
+            </div>
           </div>
-        </>
+        </div>
+      )}
+
+      {/* BARU: pop-up saat notifikasi masuk ketika Portal sedang dibuka */}
+      {incomingToast && !notifPanelOpen && (
+        <button className="portal-toast" onClick={openNotifPanel}>
+          <span className="portal-toast-title">🔔 {incomingToast.title}</span>
+          {incomingToast.body && <span className="portal-toast-body">{incomingToast.body}</span>}
+          <span className="portal-toast-hint">Ketuk untuk membuka</span>
+        </button>
       )}
 
       {view === "home" && (
