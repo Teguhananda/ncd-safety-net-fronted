@@ -18,7 +18,11 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="My NCD Safety" />
-  <link rel="apple-touch-icon" href="/logos/app-icon-square.png" />
+  <!-- PERBAIKAN (Sept 2026): ikon ukuran PAS (dibuat dari app-icon-square.png
+       dengan sips). Sebelumnya manifest menyebut 192x192/512x512 padahal
+       gambarnya 1024x1024 → Chrome menolak ikon & memakai huruf "N". -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/logos/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/logos/icon-192.png" />
 
   <!-- Cegah "kedip putih" sesaat sebelum CSS/JS termuat penuh — theme-color
        di atas cuma mewarnai status bar, bukan latar halaman itu sendiri. -->
