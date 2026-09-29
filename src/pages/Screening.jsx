@@ -81,6 +81,20 @@ const ACCESS_BARRIER_ITEMS = [
   ["noCaregiver", "Tidak ada pendamping/keluarga pendukung"],
 ];
 
+// BARU (Sept 2026): pilihan jam minum obat per slot (jam WIB, inklusif).
+// HARUS sama dengan SLOT_HOUR_RANGE & DEFAULT_SLOT_HOUR di backend
+// lib/medSchedule.js dan tercakup cron vercel.json (04.00–23.00 WIB).
+const MED_SLOT_OPTIONS = [
+  { key: "pagi", label: "Pagi", min: 4, max: 10, defaultHour: 7 },
+  { key: "siang", label: "Siang", min: 11, max: 15, defaultHour: 12 },
+  { key: "malam", label: "Malam", min: 16, max: 23, defaultHour: 19 },
+];
+function hourOptions(min, max) {
+  const out = [];
+  for (let h = min; h <= max; h++) out.push(h);
+  return out;
+}
+
 export default function Screening() {
   const [params] = useSearchParams();
   const patientId = params.get("patientId") || "";
@@ -104,7 +118,7 @@ export default function Screening() {
   const [pastScreenings, setPastScreenings] = useState([]);
   const [selectedPastDate, setSelectedPastDate] = useState("");
   const [historyItems, setHistoryItems] = useState([]);
-  const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [] }]);
+  const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [], slotTimes: {} }]);
   const [step, setStep] = useState("screening"); // screening -> medication -> result
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -279,7 +293,7 @@ export default function Screening() {
   };
 
   const addMedRow = () =>
-    setMedications((prev) => [...prev, { name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [] }]);
+    setMedications((prev) => [...prev, { name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [], slotTimes: {} }]);
   const updateMedRow = (i, field, value) =>
     setMedications((prev) => prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)));
   const removeMedRow = (i) =>
@@ -288,6 +302,12 @@ export default function Screening() {
   // satu baris obat. Dipakai cron di backend (api/scheduled.js) untuk tahu
   // jam berapa obat ini harus diingatkan ke pasien lewat push notifikasi.
   // Boleh dikosongkan semua kalau obat "jika perlu" (PRN) — tidak diingatkan.
+  // BARU (Sept 2026): jam minum per slot (jam bulat WIB). HARUS sama dengan
+  // SLOT_HOUR_RANGE & DEFAULT_SLOT_HOUR di backend lib/medSchedule.js.
+  const setMedSlotTime = (i, slot, hour) =>
+    setMedications((prev) =>
+      prev.map((m, idx) => (idx === i ? { ...m, slotTimes: { ...(m.slotTimes || {}), [slot]: Number(hour) } } : m))
+    );
   const toggleMedSlot = (i, slot) =>
     setMedications((prev) =>
       prev.map((m, idx) => {
@@ -618,25 +638,34 @@ export default function Screening() {
                   🗑️ Hapus
                 </button>
               </div>
-              {/* Pengingat harian: pilih slot kapan pasien diingatkan minum obat
-                  ini lewat push notifikasi. Kosongkan semua untuk obat "jika
-                  perlu" (PRN) — tidak akan diingatkan otomatis. */}
-              <div style={{ display: "flex", gap: 14, alignItems: "center", paddingLeft: 4 }}>
-                <span className="stat-sub" style={{ fontSize: 12 }}>Ingatkan pasien:</span>
-                {[
-                  { key: "pagi", label: "Pagi (07:00)" },
-                  { key: "siang", label: "Siang (12:00)" },
-                  { key: "malam", label: "Malam (19:00)" },
-                ].map((slotOpt) => (
-                  <label key={slotOpt.key} style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={(m.slots || []).includes(slotOpt.key)}
-                      onChange={() => toggleMedSlot(i, slotOpt.key)}
-                    />
-                    {slotOpt.label}
-                  </label>
-                ))}
+              {/* REVISI (Sept 2026): pilih slot + JAM minum obat sesuai kebiasaan
+                  pasien (jam bulat, karena pengingat dikirim per jam). Kosongkan
+                  semua untuk obat "jika perlu" (PRN) — tidak diingatkan. */}
+              <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", paddingLeft: 4 }}>
+                <span className="stat-sub" style={{ fontSize: 12 }}>Jadwal minum &amp; pengingat:</span>
+                {MED_SLOT_OPTIONS.map((slotOpt) => {
+                  const checked = (m.slots || []).includes(slotOpt.key);
+                  const hour = (m.slotTimes && m.slotTimes[slotOpt.key]) ?? slotOpt.defaultHour;
+                  return (
+                    <div key={slotOpt.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, cursor: "pointer" }}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleMedSlot(i, slotOpt.key)} />
+                        {slotOpt.label}
+                      </label>
+                      <select
+                        aria-label={`Jam minum ${slotOpt.label}`}
+                        value={hour}
+                        disabled={!checked}
+                        onChange={(e) => setMedSlotTime(i, slotOpt.key, e.target.value)}
+                        style={{ fontSize: 13, padding: "4px 6px", width: "auto", opacity: checked ? 1 : 0.45 }}
+                      >
+                        {hourOptions(slotOpt.min, slotOpt.max).map((h) => (
+                          <option key={h} value={h}>{String(h).padStart(2, "0")}.00</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           ))}

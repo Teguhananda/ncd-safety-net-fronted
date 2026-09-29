@@ -23,6 +23,13 @@ const NOTIF_SEEN_KEY = "ncdPortalNotifSeenAt";
 
 // ==== BAGIAN BARU: kartu "Jadwal Hari Ini" (obat + TTV) ====
 const SLOT_LABEL = { pagi: "Pagi (07:00)", siang: "Siang (12:00)", malam: "Malam (19:00)" };
+// REVISI (Sept 2026): jam minum bisa berbeda per obat — label memakai jam
+// dari server (mis. "Pagi 05.00"); SLOT_LABEL di atas hanya cadangan
+// kalau server belum di-update.
+const SLOT_NAME = { pagi: "Pagi", siang: "Siang", malam: "Malam" };
+function slotLabel(slot, time) {
+  return time ? `${SLOT_NAME[slot] || slot} ${time}` : (SLOT_LABEL[slot] || slot);
+}
 
 // ==== REVISI (Sept 2026): tombol konfirmasi obat ====
 // - Tombol muncul begitu jadwal tiba (due, dihitung server), TIDAK perlu
@@ -46,8 +53,8 @@ const SKIP_ADVICE = {
   lainnya: "Jangan minum dobel di jadwal berikutnya. Jika ragu, tanyakan ke petugas RSUD.",
 };
 
-function SlotButton({ slot, status, due, skipReason, onTaken, onSkip, busy }) {
-  const label = SLOT_LABEL[slot] || slot;
+function SlotButton({ slot, time, status, due, skipReason, onTaken, onSkip, busy }) {
+  const label = slotLabel(slot, time);
   if (status === "confirmed_taken") {
     return (
       <span className="portal-yn-active" style={{ padding: "8px 14px", borderRadius: 999, fontSize: 14, display: "inline-block" }}>
@@ -660,7 +667,7 @@ export default function PortalHome() {
                 </div>
                 <div className="portal-sheet-body">
                   <p className="portal-notif-text" style={{ marginTop: 12 }}>
-                    <b>{skipTarget.name}</b> — jadwal {SLOT_LABEL[skipTarget.slot] || skipTarget.slot}
+                    <b>{skipTarget.name}</b> — jadwal {slotLabel(skipTarget.slot, skipTarget.time)}
                   </p>
                   {SKIP_REASONS.map((r) => (
                     <button key={r.value} className="portal-reason-btn" disabled={doseBusy} onClick={() => handleSkipReason(r.value)}>
@@ -753,12 +760,13 @@ export default function PortalHome() {
                       <SlotButton
                         key={s.slot}
                         slot={s.slot}
+                        time={s.time}
                         status={s.status}
                         due={s.due}
                         skipReason={s.skipReason}
                         busy={doseBusy}
                         onTaken={() => handleConfirmDose(m.id, s.slot, "confirmed_taken")}
-                        onSkip={() => { setSkipDone(null); setSkipTarget({ medicationId: m.id, name: `${m.name}${m.dose ? " " + m.dose : ""}`, slot: s.slot }); }}
+                        onSkip={() => { setSkipDone(null); setSkipTarget({ medicationId: m.id, name: `${m.name}${m.dose ? " " + m.dose : ""}`, slot: s.slot, time: s.time }); }}
                       />
                     ))}
                   </div>
@@ -889,7 +897,7 @@ export default function PortalHome() {
                     💊 <b>{m.name}</b>{m.dose ? ` ${m.dose}` : ""}
                     {m.slots.length > 0 && (
                       <div className="portal-sub" style={{ marginTop: 0 }}>
-                        Diminum: {m.slots.map((sl) => (SLOT_LABEL[sl] || sl)).join(", ")}
+                        Diminum: {m.slots.map((sl) => slotLabel(sl, m.slotTimes && m.slotTimes[sl])).join(", ")}
                       </div>
                     )}
                   </div>
