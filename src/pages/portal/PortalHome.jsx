@@ -53,6 +53,58 @@ const SKIP_ADVICE = {
   lainnya: "Jangan minum dobel di jadwal berikutnya. Jika ragu, tanyakan ke petugas RSUD.",
 };
 
+// ==== BARU (Sept 2026): layar peringatan hasil TTV ====
+// level "critical" = batas berbahaya (bingkai berkedip merah-biru),
+// level "high" = di atas batas (oranye, tanpa kedip). Bahasa sengaja
+// tenang & jelas — pasien lansia yang panik bisa menaikkan tensinya.
+// Isi saran BUKAN diagnosis; mengarahkan ke fasilitas kesehatan.
+const DANGER_SIGNS_BP = [
+  "Nyeri dada atau sesak napas",
+  "Lemah/kesemutan separuh badan, wajah mencong, atau bicara pelo",
+  "Sakit kepala hebat, pandangan kabur, atau bingung",
+  "Mual-muntah hebat atau pingsan",
+];
+const DANGER_SIGNS_GLUCOSE_HIGH = [
+  "Sangat haus dan sering buang air kecil",
+  "Mual-muntah, nyeri perut, atau napas cepat/berbau buah",
+  "Sangat lemas, mengantuk berat, atau bingung",
+];
+function vitalsAdvice(alert) {
+  if (!alert) return null;
+  if (alert.level === "critical" && alert.kind === "glucose_low") {
+    return {
+      title: "Gula darah Anda rendah",
+      steps: [
+        "Segera makan atau minum yang manis sesuai edukasi petugas (mis. teh manis, air gula, atau permen), lalu duduk dan istirahat.",
+        "Cek ulang gula darah 15 menit lagi.",
+        "Jika tidak membaik, bingung, kejang, atau sulit dibangunkan: segera ke IGD atau minta keluarga menghubungi layanan darurat.",
+      ],
+      signs: null,
+    };
+  }
+  if (alert.level === "critical") {
+    const isBp = alert.kind === "bp_high";
+    return {
+      title: isBp ? "Tekanan darah Anda sangat tinggi" : "Gula darah Anda sangat tinggi",
+      steps: [
+        "Tetap tenang. Duduk dan istirahat 5 menit, lalu ukur ulang.",
+        "Walaupun belum ada keluhan, segera periksakan diri ke puskesmas, klinik, atau rumah sakit terdekat hari ini. Jangan menunggu jadwal kontrol.",
+        "Jangan menambah dosis obat sendiri tanpa petunjuk dokter.",
+      ],
+      signs: isBp ? DANGER_SIGNS_BP : DANGER_SIGNS_GLUCOSE_HIGH,
+    };
+  }
+  return {
+    title: alert.kind === "glucose_high" ? "Gula darah Anda di atas batas" : "Hasil Anda di atas batas aman",
+    steps: [
+      "Istirahat sebentar, lalu ukur ulang.",
+      "Minum obat sesuai jadwal dan jaga makanan (kurangi garam/gula).",
+      "Jika tetap tinggi beberapa hari atau muncul keluhan, hubungi RSUD atau puskesmas.",
+    ],
+    signs: null,
+  };
+}
+
 function SlotButton({ slot, time, status, due, skipReason, onTaken, onSkip, busy }) {
   const label = slotLabel(slot, time);
   if (status === "confirmed_taken") {
@@ -186,6 +238,7 @@ export default function PortalHome() {
   const [monitoringForm, setMonitoringForm] = useState({ parameterType: "systolicBP", value: "", diastolic: "", symptom: "" });
   const [monitoringSubmitting, setMonitoringSubmitting] = useState(false);
   const [monitoringMsg, setMonitoringMsg] = useState("");
+  const [vitalsAlert, setVitalsAlert] = useState(null); // BARU: layar peringatan TTV
   const [summary, setSummary] = useState(null);
   // BAGIAN BARU: jadwal obat + status TTV hari ini, untuk kartu "Jadwal Hari Ini"
   const [todayReminders, setTodayReminders] = useState(null);
@@ -248,11 +301,11 @@ export default function PortalHome() {
 
   // BARU: kunci scroll halaman di belakang saat panel notifikasi terbuka.
   useEffect(() => {
-    if (!notifPanelOpen && !skipTarget && !skipDone) return undefined;
+    if (!notifPanelOpen && !skipTarget && !skipDone && !vitalsAlert) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [notifPanelOpen, skipTarget, skipDone]);
+  }, [notifPanelOpen, skipTarget, skipDone, vitalsAlert]);
 
   async function loadSnapshot() {
     setLoading(true);
@@ -504,6 +557,7 @@ export default function PortalHome() {
       }
       const res = await callApi("patientPortal", { action: "submitMonitoring", patientId, entries });
       setMonitoringMsg(`Tersimpan. Status keselamatan Anda: ${STATUS_MAP[res.data.currentSafetyStatus]?.label || res.data.currentSafetyStatus}`);
+      if (res.data.vitalsAlert) setVitalsAlert(res.data.vitalsAlert);
       setMonitoringForm({ parameterType: "systolicBP", value: "", diastolic: "", symptom: "" });
       await loadSnapshot();
       await loadNotifications();
@@ -654,6 +708,46 @@ export default function PortalHome() {
         </div>
       )}
 
+      {/* BARU: layar peringatan hasil TTV */}
+      {vitalsAlert && (() => {
+        const adv = vitalsAdvice(vitalsAlert);
+        const critical = vitalsAlert.level === "critical";
+        return (
+          <div className="portal-sheet-overlay" style={{ alignItems: "center", padding: 12 }}>
+            <div
+              className={`portal-vitals-alert ${critical ? "critical portal-alert-flash" : "high"}`}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="portal-vitals-title"
+              aria-describedby="portal-vitals-reason"
+            >
+              <div className="portal-vitals-icon" aria-hidden="true">{critical ? "🚨" : "⚠️"}</div>
+              <h3 id="portal-vitals-title">{adv.title}</h3>
+              <p id="portal-vitals-reason" className="portal-vitals-reason">{vitalsAlert.reason}</p>
+              <ol className="portal-vitals-steps">
+                {adv.steps.map((t) => <li key={t}>{t}</li>)}
+              </ol>
+              {adv.signs && (
+                <div className="portal-vitals-signs">
+                  <b>Segera ke IGD sekarang jika disertai:</b>
+                  <ul>{adv.signs.map((t) => <li key={t}>{t}</li>)}</ul>
+                </div>
+              )}
+              {critical && (
+                <button
+                  className="portal-primary-btn"
+                  style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }}
+                  onClick={() => { setVitalsAlert(null); setEmergencyStep("idle"); setView("help"); }}
+                >
+                  🆘 Ada tanda bahaya — buka Tombol Emergency
+                </button>
+              )}
+              <button className="portal-link-btn" onClick={() => setVitalsAlert(null)}>Saya mengerti</button>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* BARU: pilih alasan "Tidak Minum" (sekali ketuk), lalu pesan keselamatan */}
       {(skipTarget || skipDone) && (
         <div className="portal-sheet-overlay" onClick={() => { if (!doseBusy) { setSkipTarget(null); setSkipDone(null); } }}>
@@ -737,7 +831,7 @@ export default function PortalHome() {
             </div>
           )}
 
-          <div className="portal-status-card" style={{ borderColor: statusInfo.color }}>
+          <div className={`portal-status-card${snapshot?.currentSafetyStatus === "URGENT" ? " portal-alert-flash" : ""}`} style={{ borderColor: statusInfo.color }}>
             <div className="portal-status-icon-wrap" style={{ color: statusInfo.color }}>
               <IconStatus />
             </div>

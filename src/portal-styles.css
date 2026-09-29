@@ -467,3 +467,51 @@ html, body {
 .portal-reason-btn:disabled { opacity: 0.6; }
 .portal-reason-btn:focus-visible,
 .portal-dose-skip-btn:focus-visible { outline: 3px solid #17b8a6; outline-offset: 2px; }
+
+/* ==== BARU (Sept 2026): peringatan hasil TTV ====
+   Kedip merah-biru dibatasi 2 kali per detik (di bawah batas aman 3x/detik
+   untuk epilepsi fotosensitif, WCAG 2.3.1) dan dimatikan otomatis bila HP
+   memakai setelan "kurangi gerakan" — diganti bingkai merah diam. */
+@keyframes portal-alert-flash {
+  0%, 49% { border-color: #ff3b30; box-shadow: 0 0 0 4px rgba(255, 59, 48, 0.45), 0 12px 40px rgba(0,0,0,0.6); }
+  50%, 100% { border-color: #2f7bff; box-shadow: 0 0 0 4px rgba(47, 123, 255, 0.45), 0 12px 40px rgba(0,0,0,0.6); }
+}
+.portal-alert-flash {
+  border-width: 3px !important;
+  border-style: solid !important;
+  animation: portal-alert-flash 1s steps(1, end) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-alert-flash { animation: none; border-color: #ff3b30 !important; }
+}
+
+.portal-vitals-alert {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 460px;
+  max-height: 88vh;
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: #10192f;
+  color: #f4fdfb;
+  border: 3px solid #f5934a;
+  border-radius: 22px;
+  padding: 22px 20px calc(18px + env(safe-area-inset-bottom));
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+.portal-vitals-alert.critical { background: #1a1024; }
+.portal-vitals-icon { font-size: 40px; text-align: center; }
+.portal-vitals-alert h3 { margin: 6px 0 4px; font-size: 22px; font-weight: 800; text-align: center; }
+.portal-vitals-reason { margin: 0 0 12px; text-align: center; font-size: 17px; font-weight: 700; color: #ffd7cf; }
+.portal-vitals-alert.high .portal-vitals-reason { color: #ffc9a3; }
+.portal-vitals-steps { margin: 0 0 12px; padding-left: 22px; font-size: 16.5px; line-height: 1.55; }
+.portal-vitals-steps li { margin-bottom: 8px; }
+.portal-vitals-signs {
+  background: rgba(255, 59, 48, 0.12);
+  border: 1px solid rgba(255, 92, 80, 0.5);
+  border-radius: 14px;
+  padding: 12px 14px;
+  font-size: 15.5px;
+  line-height: 1.5;
+}
+.portal-vitals-signs ul { margin: 6px 0 0; padding-left: 20px; }

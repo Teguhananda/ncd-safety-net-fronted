@@ -55,20 +55,26 @@ function groupMonitoringByPatient(entries) {
   }));
 }
 
-// Penanda warna TAMPILAN SAJA (bukan pengganti Safety Engine/ambang di
-// Safety Plan). [REQUIRES CLINICAL VALIDATION]
-function bpFlag(sys, dia) {
+// Penanda warna mengikuti ambang TTV Safety Engine (dikirim server lewat
+// vitalThresholds, bisa diubah admin). DEFAULT_VITAL_THRESHOLDS hanya
+// cadangan bila server belum di-update — SAMA dengan bawaan
+// lib/safetyEngine.js. [REQUIRES CLINICAL VALIDATION]
+const DEFAULT_VITAL_THRESHOLDS = {
+  high: { systolic: 140, diastolic: 90, glucoseHigh: 200 },
+  critical: { systolic: 180, diastolic: 120, glucoseHigh: 300, glucoseLow: 70 },
+};
+function bpFlag(sys, dia, th = DEFAULT_VITAL_THRESHOLDS) {
   if (sys == null && dia == null) return null;
-  if ((sys != null && sys >= 180) || (dia != null && dia >= 120)) return { color: "#ff5c50", text: "sangat tinggi" };
-  if ((sys != null && sys >= 140) || (dia != null && dia >= 90)) return { color: "#f5a623", text: "tinggi" };
+  if ((sys != null && sys >= th.critical.systolic) || (dia != null && dia >= th.critical.diastolic)) return { color: "#ff5c50", text: "sangat tinggi", critical: true };
+  if ((sys != null && sys >= th.high.systolic) || (dia != null && dia >= th.high.diastolic)) return { color: "#f5a623", text: "tinggi" };
   if (sys != null && sys < 90) return { color: "#f5a623", text: "rendah" };
   return null;
 }
-function glucoseFlag(v) {
+function glucoseFlag(v, th = DEFAULT_VITAL_THRESHOLDS) {
   if (v == null) return null;
-  if (v < 70) return { color: "#ff5c50", text: "rendah (hipoglikemia)" };
-  if (v >= 300) return { color: "#ff5c50", text: "sangat tinggi" };
-  if (v >= 200) return { color: "#f5a623", text: "tinggi" };
+  if (v < th.critical.glucoseLow) return { color: "#ff5c50", text: "rendah (hipoglikemia)", critical: true };
+  if (v >= th.critical.glucoseHigh) return { color: "#ff5c50", text: "sangat tinggi", critical: true };
+  if (v >= th.high.glucoseHigh) return { color: "#f5a623", text: "tinggi" };
   return null;
 }
 function formatBP(sess) {
@@ -312,6 +318,8 @@ export default function Dashboard() {
   const [activeSignalCount, setActiveSignalCount] = useState(0);
   const [latestSignalTime, setLatestSignalTime] = useState(null);
   const [recentMonitoring, setRecentMonitoring] = useState([]);
+  const [vitalThresholds, setVitalThresholds] = useState(DEFAULT_VITAL_THRESHOLDS); // BARU
+  const [urgentSignals, setUrgentSignals] = useState([]); // BARU: sinyal URGENT belum selesai
   // BARU: pasien yang riwayat TTV-nya sedang dibuka, & tampilkan semua pasien
   const [openMonitoringPatient, setOpenMonitoringPatient] = useState(null);
   const [showAllMonitoring, setShowAllMonitoring] = useState(false);
@@ -446,6 +454,25 @@ export default function Dashboard() {
         if (dtDate && (!latest || dtDate > latest)) latest = dtDate;
       });
       setLatestSignalTime(latest);
+
+      // BARU: sinyal URGENT yang belum ditutup → banner berkedip di atas dasbor.
+      const urgentDocs = signalSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((x) => x.status === "URGENT")
+        .sort((a, b) => (b.detectedAt?.toMillis?.() || 0) - (a.detectedAt?.toMillis?.() || 0));
+      const firstFive = urgentDocs.slice(0, 5);
+      const names = await Promise.all(
+        firstFive.map((x) => getDoc(doc(db, "patients", x.patientId)).then((snap) => (snap.exists() ? snap.data().name : x.patientId)).catch(() => x.patientId))
+      );
+      setUrgentSignals(
+        urgentDocs.map((x, i) => ({
+          id: x.id,
+          patientId: x.patientId,
+          patientName: names[i] || x.patientId,
+          reason: Array.isArray(x.reason) ? x.reason[0] : x.reason || "",
+          detectedAt: x.detectedAt?.toDate ? x.detectedAt.toDate() : null,
+        }))
+      );
     } catch (err) {
       // diamkan — widget tambahan, tidak boleh mengganggu dashboard utama
     }
@@ -462,6 +489,9 @@ export default function Dashboard() {
         res = await callApi("patientHistory", { action: "recentMonitoring" });
       }
       setRecentMonitoring(res.data.entries || []);
+      if (res.data.vitalThresholds && res.data.vitalThresholds.high && res.data.vitalThresholds.critical) {
+        setVitalThresholds(res.data.vitalThresholds);
+      }
     } catch (err) {
       // diamkan — widget tambahan
     }
@@ -524,6 +554,42 @@ export default function Dashboard() {
 
   return (
     <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
+      {/* BARU (Sept 2026): kedip merah-biru maks 2x/detik (aman untuk
+          epilepsi fotosensitif), mati otomatis dengan "kurangi gerakan". */}
+      <style>{`
+        @keyframes ncd-alert-flash {
+          0%, 49% { border-color: #ff3b30; box-shadow: 0 0 0 3px rgba(255,59,48,0.45); }
+          50%, 100% { border-color: #2f7bff; box-shadow: 0 0 0 3px rgba(47,123,255,0.45); }
+        }
+        .ncd-alert-flash { border: 3px solid #ff3b30; animation: ncd-alert-flash 1s steps(1, end) infinite; }
+        @keyframes ncd-alert-row {
+          0%, 49% { background: rgba(255,59,48,0.22); }
+          50%, 100% { background: rgba(47,123,255,0.22); }
+        }
+        tr.ncd-alert-row td { animation: ncd-alert-row 1s steps(1, end) infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .ncd-alert-flash { animation: none; }
+          tr.ncd-alert-row td { animation: none; background: rgba(255,59,48,0.22); }
+        }
+      `}</style>
+      {urgentSignals.length > 0 && (
+        <div className="card ncd-alert-flash" role="alert" style={{ marginBottom: 16, background: "rgba(255,59,48,0.12)" }}>
+          <div style={{ fontWeight: 800, fontSize: 18, marginBottom: 6 }}>
+            🚨 {urgentSignals.length} pasien URGENT belum ditangani
+          </div>
+          {urgentSignals.slice(0, 5).map((u) => (
+            <div key={u.id} style={{ marginBottom: 4 }}>
+              <Link to={`/patient-history?patientId=${u.patientId}`}><b>{u.patientName}</b></Link>
+              {u.reason ? ` — ${u.reason}` : ""}
+              {u.detectedAt && <span className="stat-sub"> ({u.detectedAt.toLocaleString("id-ID", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })})</span>}
+            </div>
+          ))}
+          {urgentSignals.length > 5 && <div className="stat-sub">dan {urgentSignals.length - 5} pasien lainnya</div>}
+          <Link className="btn btn-primary" style={{ display: "inline-block", marginTop: 10 }} to="/safety-signals">
+            Tangani di Home Safety Signals
+          </Link>
+        </div>
+      )}
       {!audioUnlocked && (
         <div className="card" style={{ marginBottom: 16, textAlign: "center", border: "1px dashed var(--line, rgba(255,255,255,0.25))" }}>
           🔊 Ketuk di mana saja pada layar ini untuk mengaktifkan suara peringatan darurat.
@@ -764,7 +830,11 @@ export default function Dashboard() {
                       const gl = p.lastGlucose;
                       return (
                         <FragmentRow key={p.patientId}>
-                          <tr style={{ cursor: "pointer" }} onClick={() => setOpenMonitoringPatient(isOpen ? null : p.patientId)}>
+                          <tr
+                            className={(bp && bpFlag(bp.systolicBP, bp.diastolicBP, vitalThresholds)?.critical && bp === p.sessions[0]) || (gl && glucoseFlag(gl.bloodGlucose, vitalThresholds)?.critical && gl === p.sessions[0]) ? "ncd-alert-row" : undefined}
+                            style={{ cursor: "pointer" }}
+                            onClick={() => setOpenMonitoringPatient(isOpen ? null : p.patientId)}
+                          >
                             <td>
                               <button
                                 type="button"
@@ -778,8 +848,8 @@ export default function Dashboard() {
                               {p.patientMrn && <span className="stat-sub"> ({p.patientMrn})</span>}
                             </td>
                             <td className="mono">{formatWhen(p.lastTime)}</td>
-                            <td>{bp ? <FlagValue text={formatBP(bp)} flag={bpFlag(bp.systolicBP, bp.diastolicBP)} /> : "-"}</td>
-                            <td>{gl ? <FlagValue text={`${gl.bloodGlucose} mg/dL`} flag={glucoseFlag(gl.bloodGlucose)} /> : "-"}</td>
+                            <td>{bp ? <FlagValue text={formatBP(bp)} flag={bpFlag(bp.systolicBP, bp.diastolicBP, vitalThresholds)} /> : "-"}</td>
+                            <td>{gl ? <FlagValue text={`${gl.bloodGlucose} mg/dL`} flag={glucoseFlag(gl.bloodGlucose, vitalThresholds)} /> : "-"}</td>
                             <td>{p.sessions.length}x</td>
                           </tr>
                           {isOpen && (
@@ -795,8 +865,8 @@ export default function Dashboard() {
                                       {p.sessions.slice(0, 30).map((x) => (
                                         <tr key={x.time}>
                                           <td className="mono">{formatWhen(x.time)}</td>
-                                          <td>{x.systolicBP != null || x.diastolicBP != null ? <FlagValue text={formatBP(x)} flag={bpFlag(x.systolicBP, x.diastolicBP)} /> : "-"}</td>
-                                          <td>{x.bloodGlucose != null ? <FlagValue text={`${x.bloodGlucose} mg/dL`} flag={glucoseFlag(x.bloodGlucose)} /> : "-"}</td>
+                                          <td>{x.systolicBP != null || x.diastolicBP != null ? <FlagValue text={formatBP(x)} flag={bpFlag(x.systolicBP, x.diastolicBP, vitalThresholds)} /> : "-"}</td>
+                                          <td>{x.bloodGlucose != null ? <FlagValue text={`${x.bloodGlucose} mg/dL`} flag={glucoseFlag(x.bloodGlucose, vitalThresholds)} /> : "-"}</td>
                                           <td>{[...x.symptoms, ...x.others].join("; ") || "-"}</td>
                                         </tr>
                                       ))}
