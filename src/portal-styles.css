@@ -406,3 +406,64 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .portal-sheet-overlay, .portal-sheet, .portal-toast { animation: none; }
 }
+
+/* ==== BARU (Sept 2026): tombol konfirmasi obat "Sudah Minum" / "Tidak
+   Minum" + pilihan alasan. Tombol besar (min 48px) untuk pasien lansia. ==== */
+.portal-dose-row {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--p-glass-border);
+  border-radius: 14px;
+  padding: 12px;
+  box-sizing: border-box;
+}
+.portal-dose-label { font-weight: 700; font-size: 15px; margin-bottom: 8px; }
+.portal-dose-actions { display: flex; gap: 10px; }
+.portal-dose-actions > * { flex: 1; }
+.portal-primary-btn.portal-dose-btn {
+  margin-top: 0;
+  padding: 12px 10px;
+  font-size: 15.5px;
+  min-height: 48px;
+}
+.portal-dose-skip-btn {
+  min-height: 48px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(245, 147, 74, 0.6);
+  background: rgba(245, 147, 74, 0.1);
+  color: #ffc9a3;
+  font-family: inherit;
+  font-size: 15.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.portal-dose-skip-btn:disabled { opacity: 0.6; }
+.portal-dose-skipped {
+  display: inline-block;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 14px;
+  background: rgba(245, 147, 74, 0.14);
+  color: #ffc9a3;
+}
+.portal-reason-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  margin-top: 10px;
+  min-height: 54px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #152646;
+  color: #f4fdfb;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.portal-reason-btn:active { background: #1d3358; }
+.portal-reason-btn:disabled { opacity: 0.6; }
+.portal-reason-btn:focus-visible,
+.portal-dose-skip-btn:focus-visible { outline: 3px solid #17b8a6; outline-offset: 2px; }

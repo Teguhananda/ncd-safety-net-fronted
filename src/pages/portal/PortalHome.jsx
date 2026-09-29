@@ -24,37 +24,62 @@ const NOTIF_SEEN_KEY = "ncdPortalNotifSeenAt";
 // ==== BAGIAN BARU: kartu "Jadwal Hari Ini" (obat + TTV) ====
 const SLOT_LABEL = { pagi: "Pagi (07:00)", siang: "Siang (12:00)", malam: "Malam (19:00)" };
 
-// SlotButton — render satu slot pengingat obat sesuai statusnya:
-// null = belum ada reminder terkirim (cron belum jalan/belum waktunya),
-// "sent"/"send_failed" = sudah diingatkan, MENUNGGU konfirmasi pasien →
-// tampil tombol, "confirmed_taken"/"confirmed_skipped" = sudah
-// dikonfirmasi → tampil badge saja (tidak bisa ditekan lagi).
-function SlotButton({ slot, status, onConfirm }) {
+// ==== REVISI (Sept 2026): tombol konfirmasi obat ====
+// - Tombol muncul begitu jadwal tiba (due, dihitung server), TIDAK perlu
+//   menunggu notifikasi pengingat terkirim.
+// - Ada 2 pilihan: "Sudah Minum" dan "Tidak Minum" (wajib pilih alasan).
+const SKIP_REASONS = [
+  { value: "lupa", label: "Lupa" },
+  { value: "obat_habis", label: "Obat habis" },
+  { value: "efek_samping", label: "Ada efek samping / keluhan setelah minum" },
+  { value: "merasa_sehat", label: "Merasa sudah sehat" },
+  { value: "lainnya", label: "Alasan lain" },
+];
+const SKIP_REASON_LABEL = Object.fromEntries(SKIP_REASONS.map((r) => [r.value, r.label]));
+
+// Pesan keselamatan setelah pasien memilih "Tidak Minum" — sesuai alasan.
+const SKIP_ADVICE = {
+  lupa: "Jangan minum dobel di jadwal berikutnya. Minum obat berikutnya seperti biasa sesuai jadwal.",
+  obat_habis: "Segera hubungi RSUD atau puskesmas terdekat untuk menebus obat. Jangan minum dobel di jadwal berikutnya.",
+  efek_samping: "Hubungi RSUD untuk konsultasi sebelum minum obat ini lagi. Jika keluhan berat (sesak napas, bengkak di wajah/bibir, pingsan), segera ke IGD.",
+  merasa_sehat: "Obat tekanan darah dan gula darah tetap perlu diminum walau badan terasa sehat, kecuali dokter yang menghentikan. Bicarakan dengan petugas saat kontrol. Jangan minum dobel di jadwal berikutnya.",
+  lainnya: "Jangan minum dobel di jadwal berikutnya. Jika ragu, tanyakan ke petugas RSUD.",
+};
+
+function SlotButton({ slot, status, due, skipReason, onTaken, onSkip, busy }) {
   const label = SLOT_LABEL[slot] || slot;
   if (status === "confirmed_taken") {
     return (
-      <span className="portal-yn-active" style={{ padding: "8px 14px", borderRadius: 999, fontSize: 13, display: "inline-block" }}>
+      <span className="portal-yn-active" style={{ padding: "8px 14px", borderRadius: 999, fontSize: 14, display: "inline-block" }}>
         ✅ {label} — Sudah Minum
       </span>
     );
   }
   if (status === "confirmed_skipped") {
     return (
-      <span style={{ padding: "8px 14px", borderRadius: 999, fontSize: 13, opacity: 0.7, display: "inline-block" }}>
-        ⏭️ {label} — Dilewati
+      <span className="portal-dose-skipped">
+        ⏭️ {label} — Tidak Minum{skipReason ? ` (${SKIP_REASON_LABEL[skipReason] || skipReason})` : ""}
       </span>
     );
   }
-  if (status === "sent" || status === "send_failed") {
+  if (due || status === "sent" || status === "send_failed") {
     return (
-      <button className="portal-primary-btn" style={{ fontSize: 13, padding: "8px 14px" }} onClick={() => onConfirm("confirmed_taken")}>
-        ✅ {label} — Sudah Minum Obat
-      </button>
+      <div className="portal-dose-row">
+        <div className="portal-dose-label">{label}</div>
+        <div className="portal-dose-actions">
+          <button className="portal-primary-btn portal-dose-btn" disabled={busy} onClick={onTaken}>
+            ✅ Sudah Minum
+          </button>
+          <button className="portal-dose-skip-btn" disabled={busy} onClick={onSkip}>
+            Tidak Minum
+          </button>
+        </div>
+      </div>
     );
   }
   return (
-    <span className="portal-sub" style={{ fontSize: 12, padding: "8px 10px", display: "inline-block" }}>
-      {label}: menunggu jadwal
+    <span className="portal-sub" style={{ fontSize: 13, padding: "8px 10px", display: "inline-block" }}>
+      {label}: belum waktunya
     </span>
   );
 }
@@ -164,6 +189,11 @@ export default function PortalHome() {
   // BARU: pop-up kecil di dalam aplikasi saat ada notifikasi masuk
   // ketika Portal sedang dibuka.
   const [incomingToast, setIncomingToast] = useState(null);
+  // BARU: alur "Tidak Minum" — obat yang sedang dipilih alasannya, dan
+  // hasil (untuk menampilkan pesan keselamatan).
+  const [skipTarget, setSkipTarget] = useState(null); // { medicationId, name, slot }
+  const [skipDone, setSkipDone] = useState(null); // { name, reason }
+  const [doseBusy, setDoseBusy] = useState(false);
 
   function applyNotifications(summaryData) {
       const signalItems = (summaryData.signals || [])
@@ -211,11 +241,11 @@ export default function PortalHome() {
 
   // BARU: kunci scroll halaman di belakang saat panel notifikasi terbuka.
   useEffect(() => {
-    if (!notifPanelOpen) return undefined;
+    if (!notifPanelOpen && !skipTarget && !skipDone) return undefined;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => { document.body.style.overflow = prev; };
-  }, [notifPanelOpen]);
+  }, [notifPanelOpen, skipTarget, skipDone]);
 
   async function loadSnapshot() {
     setLoading(true);
@@ -427,13 +457,27 @@ export default function PortalHome() {
   };
 
   // BAGIAN BARU: konfirmasi "Sudah Minum Obat" dari kartu Jadwal Hari Ini.
-  const handleConfirmDose = async (medicationId, slot, status) => {
+  const handleConfirmDose = async (medicationId, slot, status, reason) => {
+    setDoseBusy(true);
     try {
       const patientId = await getPatientId();
-      await callApi("patientPortal", { action: "confirmMedicationDose", patientId, medicationId, slot, status });
+      await callApi("patientPortal", { action: "confirmMedicationDose", patientId, medicationId, slot, status, reason });
       await loadTodayReminders();
+      return true;
     } catch (err) {
       alert(err.message || "Gagal menyimpan konfirmasi.");
+      return false;
+    } finally {
+      setDoseBusy(false);
+    }
+  };
+
+  const handleSkipReason = async (reason) => {
+    if (!skipTarget) return;
+    const ok = await handleConfirmDose(skipTarget.medicationId, skipTarget.slot, "confirmed_skipped", reason);
+    if (ok) {
+      setSkipDone({ name: skipTarget.name, reason });
+      setSkipTarget(null);
     }
   };
 
@@ -603,6 +647,53 @@ export default function PortalHome() {
         </div>
       )}
 
+      {/* BARU: pilih alasan "Tidak Minum" (sekali ketuk), lalu pesan keselamatan */}
+      {(skipTarget || skipDone) && (
+        <div className="portal-sheet-overlay" onClick={() => { if (!doseBusy) { setSkipTarget(null); setSkipDone(null); } }}>
+          <div className="portal-sheet" role="dialog" aria-modal="true" aria-labelledby="portal-skip-title" onClick={(e) => e.stopPropagation()}>
+            <div className="portal-sheet-handle" aria-hidden="true" />
+            {skipTarget ? (
+              <>
+                <div className="portal-sheet-head">
+                  <h3 id="portal-skip-title">Kenapa tidak minum?</h3>
+                  <button className="portal-sheet-close" disabled={doseBusy} onClick={() => setSkipTarget(null)} aria-label="Batal">✕</button>
+                </div>
+                <div className="portal-sheet-body">
+                  <p className="portal-notif-text" style={{ marginTop: 12 }}>
+                    <b>{skipTarget.name}</b> — jadwal {SLOT_LABEL[skipTarget.slot] || skipTarget.slot}
+                  </p>
+                  {SKIP_REASONS.map((r) => (
+                    <button key={r.value} className="portal-reason-btn" disabled={doseBusy} onClick={() => handleSkipReason(r.value)}>
+                      {r.label}
+                    </button>
+                  ))}
+                  {doseBusy && <p className="portal-sub">Menyimpan...</p>}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="portal-sheet-head">
+                  <h3 id="portal-skip-title">Sudah dicatat</h3>
+                  <button className="portal-sheet-close" onClick={() => setSkipDone(null)} aria-label="Tutup">✕</button>
+                </div>
+                <div className="portal-sheet-body">
+                  <div className="portal-notif-item" style={{ borderLeftColor: skipDone.reason === "efek_samping" ? "#ff5c50" : "#f5934a" }}>
+                    <div className="portal-notif-kind" style={{ color: skipDone.reason === "efek_samping" ? "#ff8a80" : "#f5a623" }}>⚠️ Penting</div>
+                    <div className="portal-notif-text">{SKIP_ADVICE[skipDone.reason] || SKIP_ADVICE.lainnya}</div>
+                  </div>
+                  {(skipDone.reason === "efek_samping" || skipDone.reason === "obat_habis") && (
+                    <button className="portal-primary-btn" onClick={() => { setSkipDone(null); setView("help"); }}>
+                      Lihat Kontak & Tanda Bahaya
+                    </button>
+                  )}
+                  <button className="portal-link-btn" onClick={() => setSkipDone(null)}>Mengerti</button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* BARU: pop-up saat notifikasi masuk ketika Portal sedang dibuka */}
       {incomingToast && !notifPanelOpen && (
         <button className="portal-toast" onClick={openNotifPanel}>
@@ -659,7 +750,16 @@ export default function PortalHome() {
                   <div style={{ fontWeight: 600 }}>{m.name}{m.dose ? ` — ${m.dose}` : ""}</div>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 6 }}>
                     {m.slots.map((s) => (
-                      <SlotButton key={s.slot} slot={s.slot} status={s.status} onConfirm={(st) => handleConfirmDose(m.id, s.slot, st)} />
+                      <SlotButton
+                        key={s.slot}
+                        slot={s.slot}
+                        status={s.status}
+                        due={s.due}
+                        skipReason={s.skipReason}
+                        busy={doseBusy}
+                        onTaken={() => handleConfirmDose(m.id, s.slot, "confirmed_taken")}
+                        onSkip={() => { setSkipDone(null); setSkipTarget({ medicationId: m.id, name: `${m.name}${m.dose ? " " + m.dose : ""}`, slot: s.slot }); }}
+                      />
                     ))}
                   </div>
                 </div>
