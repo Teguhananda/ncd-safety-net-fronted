@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
 // HARUS sama dengan STAFF_ROLES di components/ProtectedRoute.jsx
-const STAFF_ROLES = ["admin", "petugas", "dokter", "manajemen", "case_manager"];
+// REVISI (1 Okt 2026): + ambulans & UGD — sama dengan ProtectedRoute.jsx
+const STAFF_ROLES = ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"];
 
 export default function Login() {
   const { login, logout, user, role, loading: authLoading } = useAuth();
