@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { callApi } from "../lib/api";
 import { Link } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { canCloseSignal } from "../lib/signalAccess";
 
 const SEVERITY_LABEL = {
   URGENT: { emoji: "🔴", text: "URGENT" },
@@ -66,6 +68,7 @@ function buildWhatsAppMessage(patientName, sev, reasons) {
  * tetap pakai "card" karena cuma satu instance per halaman.
  */
 export default function SafetySignals() {
+  const { role } = useAuth();
   const [signals, setSignals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -229,10 +232,21 @@ export default function SafetySignals() {
                     </button>
                   </div>
                 )}
-                {s.workflowStatus === "ACTION_TAKEN" && (
+                {/* REVISI (1 Okt 2026): SOS hanya boleh ditutup tim Ambulans */}
+                {s.workflowStatus === "ACTION_TAKEN" && canCloseSignal(role, s) && (
                   <button className="btn btn-primary" style={{ marginTop: 8 }} disabled={busyId === s.id} onClick={() => handleClose(s.id)}>
                     Tutup (Closed)
                   </button>
+                )}
+                {s.workflowStatus === "ACTION_TAKEN" && !canCloseSignal(role, s) && (
+                  <div className="stat-sub" style={{ marginTop: 8 }}>
+                    {isEmergencyButton ? "🔒 SOS ini ditutup oleh tim Ambulans setelah penanganan selesai." : "🔒 Penutupan oleh dokter / case manager."}
+                  </div>
+                )}
+                {isEmergencyButton && role === "ambulance_rsud" && (
+                  <Link className="btn btn-primary" style={{ marginTop: 8, marginLeft: 8, display: "inline-block", textDecoration: "none" }} to="/prehospital">
+                    🚑 Asesmen Pra-RS
+                  </Link>
                 )}
 
                 <Link className="btn btn-ghost" style={{ marginTop: 8, display: "inline-block" }} to={`/patient-history?patientId=${s.patientId}`}>

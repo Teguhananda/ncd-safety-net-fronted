@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
+import { canSeeSignal } from "../lib/signalAccess";
 
 const ROLE_LABEL = {
   admin: "Admin",
@@ -23,7 +24,7 @@ const NAV_ITEMS = [
   { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas", "dokter", "manajemen"] },
   { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter", "manajemen"] },
   { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter", "manajemen"] },
-  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119"] },
+  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"] },
   { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
   { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
   { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen", "dokter"] },
@@ -52,7 +53,8 @@ export default function Sidebar() {
     if (!role) return;
     const unsub = onSnapshot(
       query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED")),
-      (snap) => setActiveSignalCount(snap.size),
+      // REVISI (1 Okt 2026): hitung hanya sinyal yang boleh dilihat role ini
+      (snap) => setActiveSignalCount(snap.docs.filter((d) => canSeeSignal(role, d.data())).length),
       () => {} // diamkan kalau gagal — widget tambahan, tidak boleh mengganggu sidebar utama
     );
     return unsub;

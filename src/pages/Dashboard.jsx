@@ -8,6 +8,7 @@ import RiskBadge from "../components/RiskBadge";
 import TrendChart from "../components/TrendChart";
 import RiskPieChart from "../components/RiskPieChart";
 import { useAuth } from "../context/AuthContext";
+import { canSeeSignal } from "../lib/signalAccess";
 import { requestAndRegisterStaffPush } from "../lib/staffPush";
 
 const PARAM_LABEL_ID = {
@@ -446,9 +447,12 @@ export default function Dashboard() {
       const signalSnap = await getDocs(
         query(collection(db, "safety_signals"), where("workflowStatus", "!=", "CLOSED"))
       );
-      setActiveSignalCount(signalSnap.size);
+      // REVISI (1 Okt 2026): hanya sinyal yang boleh dilihat role ini
+      // (SOS hanya untuk Ambulans, UGD, Admin).
+      const visibleDocs = signalSnap.docs.filter((d) => canSeeSignal(role, d.data()));
+      setActiveSignalCount(visibleDocs.length);
       let latest = null;
-      signalSnap.docs.forEach((d) => {
+      visibleDocs.forEach((d) => {
         const dt = d.data().detectedAt;
         const dtDate = dt && dt.toDate ? dt.toDate() : null;
         if (dtDate && (!latest || dtDate > latest)) latest = dtDate;
@@ -456,7 +460,7 @@ export default function Dashboard() {
       setLatestSignalTime(latest);
 
       // BARU: sinyal URGENT yang belum ditutup → banner berkedip di atas dasbor.
-      const urgentDocs = signalSnap.docs
+      const urgentDocs = visibleDocs
         .map((d) => ({ id: d.id, ...d.data() }))
         .filter((x) => x.status === "URGENT")
         .sort((a, b) => (b.detectedAt?.toMillis?.() || 0) - (a.detectedAt?.toMillis?.() || 0));
