@@ -1,7 +1,9 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-const STAFF_ROLES = ["admin", "petugas", "dokter", "manajemen", "case_manager"];
+// REVISI (Sept 2026): + ambulans & UGD — sebelumnya akun ambulans yang
+// login dilempar ke Portal Pasien karena tidak dikenal sebagai staff.
+const STAFF_ROLES = ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"];
 
 export default function ProtectedRoute({ children }) {
   const { user, role, loading } = useAuth();

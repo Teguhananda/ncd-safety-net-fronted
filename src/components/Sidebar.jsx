@@ -10,15 +10,20 @@ const ROLE_LABEL = {
   dokter: "Dokter",
   manajemen: "PMKP",
   case_manager: "Case Manager",
+  ambulance_rsud: "Ambulans RSUD",
+  ambulance_psc119: "Ambulans PSC 119",
+  ugd: "UGD",
 };
 
 const NAV_ITEMS = [
-  { to: "/", label: "Dasbor", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
+  { to: "/", label: "Dasbor", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"] },
+  // BARU (Sept 2026): satu halaman, label menyesuaikan role (lihat labelFor)
+  { to: "/prehospital", label: "Asesmen Pra-RS & UGD", roles: ["admin", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"] },
   { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
   { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas", "dokter", "manajemen"] },
   { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter", "manajemen"] },
   { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter", "manajemen"] },
-  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
+  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119"] },
   { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
   { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
   { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen", "dokter"] },
@@ -26,6 +31,13 @@ const NAV_ITEMS = [
   { to: "/audit-trail", label: "Jejak Audit", roles: ["admin", "manajemen", "dokter"] },
   { to: "/admin", label: "Administrasi", roles: ["admin"] },
 ];
+
+function labelFor(item, role) {
+  if (item.to !== "/prehospital") return item.label;
+  if (role === "ugd") return "🚑 Kasus Masuk UGD";
+  if (role === "ambulance_rsud" || role === "ambulance_psc119") return "🚑 Asesmen Pra-RS";
+  return item.label;
+}
 
 export default function Sidebar() {
   const { role, user, logout } = useAuth();
@@ -79,7 +91,7 @@ export default function Sidebar() {
             className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
           >
             <span className="nav-dot"></span>
-            {item.label}
+            {labelFor(item, role)}
             {item.to === "/safety-signals" && activeSignalCount > 0 && (
               <span
                 style={{

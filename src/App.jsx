@@ -3,6 +3,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import IdleWarningModal from "./components/IdleWarningModal";
+// BARU (Sept 2026): alarm pra-RS/UGD yang aktif di SEMUA halaman staff
+import PrehospitalAlarm from "./components/PrehospitalAlarm";
 import Login from "./pages/Login";
 
 // ==== REVISI PERFORMA (Sept 2026): lazy loading per halaman ====
@@ -24,6 +26,7 @@ const pageLoaders = {
   Administration: () => import("./pages/Administration"),
   PatientHistory: () => import("./pages/PatientHistory"),
   SafetySignals: () => import("./pages/SafetySignals"),
+  Prehospital: () => import("./pages/Prehospital"),
 };
 
 const Dashboard = lazy(pageLoaders.Dashboard);
@@ -39,6 +42,7 @@ const AuditTrail = lazy(pageLoaders.AuditTrail);
 const Administration = lazy(pageLoaders.Administration);
 const PatientHistory = lazy(pageLoaders.PatientHistory);
 const SafetySignals = lazy(pageLoaders.SafetySignals);
+const Prehospital = lazy(pageLoaders.Prehospital);
 
 // Setelah layar pertama selesai tampil dan HP sedang santai, halaman lain
 // diunduh diam-diam di latar belakang — supaya pindah menu tetap instan
@@ -77,6 +81,7 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <IdleWarningModal />
+        <PrehospitalAlarm />
         <Suspense fallback={<PageLoading />}>
           <Routes>
             <Route path="/login" element={<Login />} />
@@ -93,6 +98,7 @@ export default function App() {
             <Route path="/admin" element={withProtection(<Administration />)} />
             <Route path="/patient-history" element={withProtection(<PatientHistory />)} />
             <Route path="/safety-signals" element={withProtection(<SafetySignals />)} />
+            <Route path="/prehospital" element={withProtection(<Prehospital />)} />
             {/* Rute /portal & /portal/login TIDAK lagi di sini — sudah
                 ditangani halaman HTML terpisah (portal.html) lewat rewrite
                 di vercel.json, supaya manifest PWA-nya tertanam statis. */}

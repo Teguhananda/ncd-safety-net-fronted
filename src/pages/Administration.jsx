@@ -8,6 +8,9 @@ const ROLE_LABEL_ADMIN = {
   dokter: "Dokter",
   manajemen: "PMKP",
   case_manager: "Case Manager",
+  ambulance_rsud: "Ambulans RSUD",
+  ambulance_psc119: "Ambulans PSC 119",
+  ugd: "UGD",
 };
 
 function fmtDate(iso) {
@@ -818,6 +821,9 @@ const runResetAnalytics = async () => {
                 <option value="petugas">Petugas</option>
                 <option value="manajemen">PMKP</option>
                 <option value="case_manager">Case Manager</option>
+                <option value="ambulance_rsud">Ambulans RSUD</option>
+                <option value="ambulance_psc119">Ambulans PSC 119</option>
+                <option value="ugd">UGD (dokter jaga)</option>
                 <option value="admin">Admin</option>
               </select>
             </div>
@@ -840,6 +846,9 @@ const runResetAnalytics = async () => {
                 <option value="petugas">Petugas</option>
                 <option value="manajemen">PMKP</option>
                 <option value="case_manager">Case Manager</option>
+                <option value="ambulance_rsud">Ambulans RSUD</option>
+                <option value="ambulance_psc119">Ambulans PSC 119</option>
+                <option value="ugd">UGD (dokter jaga)</option>
                 <option value="admin">Admin</option>
               </select>
             </div>

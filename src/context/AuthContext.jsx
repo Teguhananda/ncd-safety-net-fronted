@@ -18,6 +18,13 @@ const AuthContext = createContext(null);
 const IDLE_LIMIT_MS = 15 * 60 * 1000; // 15 menit
 const WARNING_DURATION_MS = 60 * 1000; // 60 detik peringatan sebelum logout
 
+// BARU (Sept 2026): akun UGD dikecualikan dari logout otomatis — layar
+// UGD sengaja dibiarkan terbuka sepanjang shift supaya alarm pra-RS
+// tidak pernah mati karena sesi habis. Kompensasinya: PC/tablet UGD
+// wajib berada di ruang UGD yang selalu dijaga.
+// [REQUIRES GOVERNANCE VALIDATION]
+const NO_IDLE_LOGOUT_ROLES = ["ugd"];
+
 const ACTIVITY_EVENTS = ["mousemove", "mousedown", "keydown", "touchstart", "scroll"];
 
 export function AuthProvider({ children }) {
@@ -85,12 +92,13 @@ export function AuthProvider({ children }) {
 
   const resetIdleTimer = useCallback(() => {
     if (!user) return; // hanya aktif untuk user yang sudah login
+    if (NO_IDLE_LOGOUT_ROLES.includes(role)) return; // BARU: UGD tidak auto-logout
     clearTimeout(idleTimerRef.current);
     clearTimeout(warningTimerRef.current);
     clearInterval(countdownIntervalRef.current);
     setIdleWarning(false);
     idleTimerRef.current = setTimeout(startWarningCountdown, IDLE_LIMIT_MS);
-  }, [user, startWarningCountdown]);
+  }, [user, role, startWarningCountdown]);
 
   // "Tetap Login" — dipanggil dari IdleWarningModal
   const extendSession = useCallback(() => {
@@ -126,7 +134,7 @@ export function AuthProvider({ children }) {
       clearInterval(countdownIntervalRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, idleWarning]);
+  }, [user, role, idleWarning]);
 
   return (
     <AuthContext.Provider
