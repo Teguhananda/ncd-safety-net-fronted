@@ -12,6 +12,19 @@ import { callApi } from "../lib/api";
 
 const NCD_OPTIONS = ["Hipertensi", "Diabetes Mellitus", "Dislipidemia", "Obesitas", "Penyakit Jantung", "Stroke", "CKD", "Lainnya"];
 
+// BARU (Okt 2026): alasan mengakhiri monitoring (status Selesai/PRB).
+const END_REASONS = [
+  "PRB — dikembalikan ke Faskes Tingkat 1",
+  "Pindah berobat ke faskes lain",
+  "Lainnya (isi catatan)",
+];
+
+function todayLocalStr() {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function Patients() {
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
@@ -25,6 +38,59 @@ export default function Patients() {
   const [editPhonePatient, setEditPhonePatient] = useState(null);
   const [editPhoneValue, setEditPhoneValue] = useState("");
   const [editPhoneBusy, setEditPhoneBusy] = useState(false);
+
+  // BARU (Okt 2026): status monitoring Aktif / Selesai (PRB)
+  const [statusFilter, setStatusFilter] = useState("active"); // active | ended | all
+  const [monitorTarget, setMonitorTarget] = useState(null); // pasien yang sedang diubah statusnya
+  const [monitorReasonType, setMonitorReasonType] = useState(END_REASONS[0]);
+  const [monitorNote, setMonitorNote] = useState("");
+  const [monitorDate, setMonitorDate] = useState(todayLocalStr());
+  const [monitorBusy, setMonitorBusy] = useState(false);
+  const [monitorError, setMonitorError] = useState("");
+
+  const openMonitorModal = (patient) => {
+    setMonitorTarget(patient);
+    setMonitorReasonType(END_REASONS[0]);
+    setMonitorNote("");
+    setMonitorDate(todayLocalStr());
+    setMonitorError("");
+  };
+
+  const submitMonitorStatus = async () => {
+    if (!monitorTarget) return;
+    const isEnding = monitorTarget.monitoringStatus !== "ended";
+    let reason;
+    if (isEnding) {
+      if (monitorReasonType.startsWith("Lainnya") && monitorNote.trim().length < 3) {
+        setMonitorError("Untuk alasan 'Lainnya', catatan wajib diisi.");
+        return;
+      }
+      reason = monitorNote.trim() ? `${monitorReasonType} — ${monitorNote.trim()}` : monitorReasonType;
+    } else {
+      if (monitorNote.trim().length < 3) {
+        setMonitorError("Alasan mengaktifkan lagi wajib diisi (mis. dirujuk balik ke RS).");
+        return;
+      }
+      reason = monitorNote.trim();
+    }
+    setMonitorBusy(true);
+    setMonitorError("");
+    try {
+      await callApi("patientHistory", {
+        action: "setMonitoringStatus",
+        patientId: monitorTarget.id,
+        status: isEnding ? "ended" : "active",
+        reason,
+        effectiveDate: isEnding ? monitorDate : undefined,
+      });
+      setMonitorTarget(null);
+      await loadPatients();
+    } catch (err) {
+      setMonitorError(err.message || "Gagal mengubah status monitoring.");
+    } finally {
+      setMonitorBusy(false);
+    }
+  };
 
   const savePhone = async () => {
     if (!editPhonePatient) return;
@@ -172,12 +238,19 @@ export default function Patients() {
     }
   };
 
-  const filtered = rows.filter(
-    (r) =>
-      !search ||
-      (r.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      (r.mrn || "").includes(search)
-  );
+  const filtered = rows
+    .filter((r) => {
+      const isEnded = r.monitoringStatus === "ended";
+      if (statusFilter === "active") return !isEnded;
+      if (statusFilter === "ended") return isEnded;
+      return true;
+    })
+    .filter(
+      (r) =>
+        !search ||
+        (r.name || "").toLowerCase().includes(search.toLowerCase()) ||
+        (r.mrn || "").includes(search)
+    );
 
   return (
     <Layout title="Daftar Pasien" meta="Seluruh pasien yang sudah discan/discreen">
@@ -191,7 +264,16 @@ export default function Patients() {
             onKeyDown={handleSearchKeyDown}
             style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13, width: 300 }}
           />
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13 }}
+            >
+              <option value="active">Monitoring Aktif</option>
+              <option value="ended">Selesai / PRB</option>
+              <option value="all">Semua pasien</option>
+            </select>
             <button className="btn btn-primary" onClick={() => setAdding(true)}>
               + Tambah Pasien
             </button>
@@ -285,6 +367,7 @@ export default function Patients() {
                 <th>Nama</th>
                 <th>No. RM</th>
                 <th>Risk Status</th>
+                <th>Monitoring</th>
                 <th></th>
               </tr>
             </thead>
@@ -294,6 +377,15 @@ export default function Patients() {
                   <td>{p.name}</td>
                   <td className="mono">{p.mrn}</td>
                   <td>{p.riskStatus ? <RiskBadge status={p.riskStatus} /> : <span className="stat-sub">Belum discreen</span>}</td>
+                  <td>
+                    {p.monitoringStatus === "ended" ? (
+                      <span className="stat-sub" style={{ fontWeight: 700 }}>
+                        Selesai / PRB{p.monitoringEndDate ? ` (${p.monitoringEndDate})` : ""}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#1e8449", fontWeight: 700, fontSize: 13 }}>Aktif</span>
+                    )}
+                  </td>
                   <td style={{ display: "flex", gap: 6 }}>
                     <Link className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 12 }} to={`/screening?patientId=${p.id}`}>
                       Screening
@@ -319,6 +411,13 @@ export default function Patients() {
                     </button>
                     <button
                       className="btn btn-ghost"
+                      style={{ padding: "4px 10px", fontSize: 12 }}
+                      onClick={() => openMonitorModal(p)}
+                    >
+                      {p.monitoringStatus === "ended" ? "▶️ Aktifkan Lagi" : "⏹️ Akhiri Monitoring (PRB)"}
+                    </button>
+                    <button
+                      className="btn btn-ghost"
                       style={{ padding: "4px 10px", fontSize: 12, color: "#c0392b" }}
                       onClick={() => handleDeletePatient(p)}
                       disabled={deletingId === p.id}
@@ -336,6 +435,60 @@ export default function Patients() {
       {qrPatient && <PatientQRModal patient={qrPatient} onClose={() => setQrPatient(null)} />}
       {portalQrPatient && <PatientPortalQRModal patient={portalQrPatient} onClose={() => setPortalQrPatient(null)} />}
       {planPatient && <PersonalSafetyPlanModal patient={planPatient} onClose={() => setPlanPatient(null)} />}
+
+      {monitorTarget && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(23,38,43,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div className="card" style={{ width: 380, maxWidth: "92vw" }}>
+            {monitorTarget.monitoringStatus === "ended" ? (
+              <>
+                <h3>Aktifkan Monitoring Lagi — {monitorTarget.name}</h3>
+                <div className="stat-sub" style={{ marginBottom: 10 }}>
+                  Pasien akan kembali bisa memakai Portal (isi TTV &amp; tombol SOS) dan menerima pengingat. Pasien perlu membuka Portal lagi agar notifikasi aktif.
+                </div>
+                <div className="field">
+                  <label>Alasan diaktifkan lagi</label>
+                  <input value={monitorNote} onChange={(e) => setMonitorNote(e.target.value)} placeholder="mis. dirujuk balik ke RS, kontrol di poli" autoFocus />
+                </div>
+              </>
+            ) : (
+              <>
+                <h3>Akhiri Monitoring — {monitorTarget.name}</h3>
+                <div className="stat-sub" style={{ marginBottom: 10 }}>
+                  Pasien akan <b>tidak bisa lagi</b> memakai Portal (isi TTV &amp; tombol SOS), pengingat berhenti, dan pasien hilang dari dasbor aktif. Riwayat data tetap tersimpan. Lakukan ini hanya bila pasien sudah PRB / tidak kontrol lagi di RS.
+                </div>
+                <div className="field">
+                  <label>Alasan</label>
+                  <select value={monitorReasonType} onChange={(e) => setMonitorReasonType(e.target.value)}>
+                    {END_REASONS.map((r) => <option key={r}>{r}</option>)}
+                  </select>
+                </div>
+                <div className="field">
+                  <label>Tanggal berlaku</label>
+                  <input type="date" value={monitorDate} onChange={(e) => setMonitorDate(e.target.value)} />
+                </div>
+                <div className="field">
+                  <label>Catatan (opsional)</label>
+                  <input value={monitorNote} onChange={(e) => setMonitorNote(e.target.value)} placeholder="mis. nama puskesmas tujuan" />
+                </div>
+              </>
+            )}
+            {monitorError && <div className="error-text" style={{ marginBottom: 8 }}>{monitorError}</div>}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, background: monitorTarget.monitoringStatus === "ended" ? undefined : "#c0392b" }}
+                onClick={submitMonitorStatus}
+                disabled={monitorBusy}
+              >
+                {monitorBusy ? "Memproses..." : monitorTarget.monitoringStatus === "ended" ? "Aktifkan Lagi" : "Ya, Akhiri Monitoring"}
+              </button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setMonitorTarget(null)} disabled={monitorBusy}>
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {editPhonePatient && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(23,38,43,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>

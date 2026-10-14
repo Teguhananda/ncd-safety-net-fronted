@@ -231,6 +231,8 @@ export default function PortalHome() {
   const [snapshot, setSnapshot] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
+  // BARU (Okt 2026): terisi bila monitoring pasien sudah diakhiri (PRB).
+  const [ended, setEnded] = useState(null);
   const [view, setView] = useState("home");
   const [checkinAnswers, setCheckinAnswers] = useState({});
   const [checkinSubmitting, setCheckinSubmitting] = useState(false);
@@ -345,6 +347,12 @@ export default function PortalHome() {
     try {
       const patientId = await getPatientId();
       const res = await callApi("patientPortal", { action: "getHome", patientId, days: 30 });
+      // BARU (Okt 2026): monitoring sudah berakhir (PRB) → tampilkan layar penutup.
+      if (res.data && res.data.monitoringEnded) {
+        setEnded(res.data.ended || {});
+        setLoading(false);
+        return;
+      }
       const { snapshot: snap, summary: sum, today } = res.data || {};
       if (!snap) throw new Error("getHome belum tersedia");
       setSnapshot({ ...snap, patientId });
@@ -583,6 +591,31 @@ export default function PortalHome() {
 
   if (loading) return <div className="portal-shell portal-center"><p>Memuat...</p></div>;
   if (loadError) return <div className="portal-shell portal-center"><p className="portal-error">{loadError}</p></div>;
+
+  // BARU (Okt 2026): layar penutup untuk pasien yang sudah PRB. Tidak ada
+  // tombol SOS maupun isian TTV di sini — server juga menolak semuanya.
+  if (ended) {
+    return (
+      <div className="portal-shell portal-center" style={{ textAlign: "center", padding: 24 }}>
+        <div style={{ maxWidth: 420 }}>
+          <div style={{ fontSize: 44, marginBottom: 8 }}>🏥</div>
+          <h2 style={{ marginTop: 0 }}>Monitoring Telah Berakhir</h2>
+          <p style={{ lineHeight: 1.6 }}>
+            Monitoring mandiri dari RSUD Kab. Rejang Lebong untuk Anda sudah berakhir
+            {ended.endDate ? ` (sejak ${ended.endDate})` : ""}.
+          </p>
+          <p style={{ lineHeight: 1.6 }}>
+            Kontrol selanjutnya dilakukan di <b>Faskes Tingkat 1</b> (Puskesmas/klinik tempat Anda terdaftar).
+          </p>
+          <p style={{ lineHeight: 1.6, fontWeight: 700 }}>
+            Jika ada keadaan darurat, segera ke IGD terdekat atau hubungi{" "}
+            <a href="tel:119" style={{ color: "inherit" }}>119</a>.
+          </p>
+          <button className="portal-link-btn" style={{ marginTop: 18 }} onClick={handleLogout}>Keluar</button>
+        </div>
+      </div>
+    );
+  }
 
   const statusInfo = STATUS_MAP[snapshot?.currentSafetyStatus] || STATUS_MAP.SAFE;
   const plan = snapshot?.plan;
