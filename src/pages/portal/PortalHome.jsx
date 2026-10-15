@@ -222,6 +222,31 @@ function getPatientId() {
   return auth.currentUser?.getIdTokenResult().then((r) => r.claims.patientId);
 }
 
+// BARU (Okt 2026): Check-In cukup sekali sehari. Penanda disimpan di perangkat
+// (per pasien, tanggal WIB) supaya pasien yang mengisi tensi lalu gula darah
+// tidak diminta mengisi Check-In dua kali. Bila penyimpanan gagal, paling buruk
+// Check-In ditawarkan lagi.
+function todayWib() {
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "Asia/Jakarta" });
+}
+function checkinKey(patientId) {
+  return `ncd_checkin_${patientId}`;
+}
+function isCheckinDoneToday(patientId) {
+  try {
+    return localStorage.getItem(checkinKey(patientId)) === todayWib();
+  } catch (e) {
+    return false;
+  }
+}
+function markCheckinDoneToday(patientId) {
+  try {
+    localStorage.setItem(checkinKey(patientId), todayWib());
+  } catch (e) {
+    /* abaikan */
+  }
+}
+
 export default function PortalHome() {
   const { canInstall, promptInstall, isStandalone, isIOS } = usePortalPwa();
   const [notifStatus, setNotifStatus] = useState(
@@ -237,6 +262,9 @@ export default function PortalHome() {
   const [checkinAnswers, setCheckinAnswers] = useState({});
   const [checkinSubmitting, setCheckinSubmitting] = useState(false);
   const [checkinDone, setCheckinDone] = useState(false);
+  // BARU (Okt 2026): pesan hasil simpan Kontrol Saya yang ditampilkan di atas
+  // Safety Check-In saat pasien diarahkan otomatis ke Check-In.
+  const [checkinIntro, setCheckinIntro] = useState("");
   const [monitoringForm, setMonitoringForm] = useState({ parameterType: "systolicBP", value: "", diastolic: "", symptom: "" });
   const [monitoringSubmitting, setMonitoringSubmitting] = useState(false);
   const [monitoringMsg, setMonitoringMsg] = useState("");
@@ -515,6 +543,7 @@ export default function PortalHome() {
     try {
       const patientId = await getPatientId();
       await callApi("patientPortal", { action: "submitCheckin", patientId, answers: checkinAnswers });
+      markCheckinDoneToday(patientId);
       setCheckinDone(true);
       await loadSnapshot();
     } catch (err) {
@@ -564,9 +593,19 @@ export default function PortalHome() {
         entries.push({ parameterType: "bloodGlucose", value: Number(monitoringForm.value), unit: "mg/dL", symptom: monitoringForm.symptom || null });
       }
       const res = await callApi("patientPortal", { action: "submitMonitoring", patientId, entries });
-      setMonitoringMsg(`Tersimpan. Status keselamatan Anda: ${STATUS_MAP[res.data.currentSafetyStatus]?.label || res.data.currentSafetyStatus}`);
+      const savedMsg = `Tersimpan. Status keselamatan Anda: ${STATUS_MAP[res.data.currentSafetyStatus]?.label || res.data.currentSafetyStatus}`;
+      setMonitoringMsg(savedMsg);
       if (res.data.vitalsAlert) setVitalsAlert(res.data.vitalsAlert);
       setMonitoringForm({ parameterType: "systolicBP", value: "", diastolic: "", symptom: "" });
+      // BARU: bila Check-In hari ini belum diisi, lanjut otomatis ke Safety
+      // Check-In. Layar peringatan TTV (bila ada) tetap tampil di atasnya.
+      if (!isCheckinDoneToday(patientId)) {
+        setCheckinAnswers({});
+        setCheckinDone(false);
+        setCheckinIntro(savedMsg);
+        setMonitoringMsg("");
+        setView("checkin");
+      }
       await loadSnapshot();
       await loadNotifications();
       await loadTodayReminders();
@@ -928,7 +967,7 @@ export default function PortalHome() {
           )}
 
           <div className="portal-menu-grid">
-            <button className="portal-menu-btn" onClick={() => { setCheckinDone(false); setCheckinAnswers({}); setView("checkin"); }}>
+            <button className="portal-menu-btn" onClick={() => { setCheckinDone(false); setCheckinAnswers({}); setCheckinIntro(""); setView("checkin"); }}>
               <span className="portal-menu-illustration"><IconCheckIn /></span>
               Safety Check-In
             </button>
@@ -958,10 +997,16 @@ export default function PortalHome() {
           {checkinDone ? (
             <>
               <p>Terima kasih, jawaban Anda sudah tersimpan.</p>
-              <button className="portal-primary-btn" onClick={() => setView("home")}>Kembali</button>
+              <button className="portal-primary-btn" onClick={() => { setCheckinIntro(""); setView("home"); }}>Kembali</button>
             </>
           ) : (
             <>
+              {checkinIntro && (
+                <>
+                  <p>✅ {checkinIntro}</p>
+                  <p className="portal-sub">Satu langkah lagi: jawab pertanyaan singkat berikut.</p>
+                </>
+              )}
               {CHECKIN_QUESTIONS.map((q) => (
                 <div key={q.key} className="portal-question">
                   <div>{q.text}</div>
@@ -974,7 +1019,7 @@ export default function PortalHome() {
               <button className="portal-primary-btn" disabled={checkinSubmitting} onClick={handleCheckinSubmit}>
                 {checkinSubmitting ? "Mengirim..." : "Kirim Check-In"}
               </button>
-              <button className="portal-link-btn" onClick={() => setView("home")}>Batal</button>
+              <button className="portal-link-btn" onClick={() => { setCheckinIntro(""); setView("home"); }}>{checkinIntro ? "Lewati" : "Batal"}</button>
             </>
           )}
         </div>
