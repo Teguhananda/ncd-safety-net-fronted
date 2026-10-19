@@ -778,10 +778,11 @@ export default function PortalHome() {
       )}
       <header className="portal-header">
         <div className="portal-brand">
-          <img src="/logos/app-logo.png" alt="My NCD Safety" className="portal-logo-img" />
+          <img src="/logos/app-logo.png" alt="BERENDO SEHAT" className="portal-logo-img" />
           <div>
-            <h2>My NCD Safety</h2>
+            <h2>BERENDO SEHAT</h2>
             <div className="portal-brand-sub">RSUD KAB. REJANG LEBONG</div>
+            <div className="portal-brand-sub" style={{ fontStyle: "italic", textTransform: "none", letterSpacing: 0, marginTop: 2 }}>"Dari Berendo Rumah, RS Tetap Menjaga"</div>
           </div>
         </div>
 

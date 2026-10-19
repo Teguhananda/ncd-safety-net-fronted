@@ -39,7 +39,7 @@ export default function PatientPortalQRModal({ patient, onClose }) {
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(23,38,43,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
       <div className="card" style={{ width: 340, textAlign: "center" }}>
-        <h3 style={{ marginBottom: 4 }}>QR Portal Pasien — My NCD Safety</h3>
+        <h3 style={{ marginBottom: 4 }}>QR Portal Pasien — BERENDO SEHAT</h3>
         <p style={{ fontSize: 13, color: "var(--ink-soft)", marginBottom: 12 }}>
           {patient.name} — No. RM: {patient.mrn}
         </p>

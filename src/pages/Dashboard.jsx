@@ -812,7 +812,7 @@ export default function Dashboard() {
       <div className="card" style={{ marginTop: 16 }}>
         <h3>🏠 Aktivitas Monitoring Mandiri Terbaru</h3>
         <div className="stat-sub" style={{ marginBottom: 10 }}>
-          Hasil tensi/gula darah yang diinput pasien dari rumah lewat Portal My NCD Safety — satu baris per pasien. Klik nama pasien untuk melihat riwayat pengisiannya.
+          Hasil tensi/gula darah yang diinput pasien dari rumah lewat Portal BERENDO SEHAT — satu baris per pasien. Klik nama pasien untuk melihat riwayat pengisiannya.
         </div>
         {(() => {
           const grouped = groupMonitoringByPatient(recentMonitoring);

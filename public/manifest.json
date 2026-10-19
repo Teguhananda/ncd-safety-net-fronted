@@ -1,6 +1,7 @@
 {
-  "name": "NCD Safety Net",
-  "short_name": "NCD Safety Net",
+  "name": "BERENDO SEHAT — Petugas",
+  "short_name": "BERENDO Petugas",
+  "description": "BERENDO SEHAT (aplikasi petugas) — Dari Berendo Rumah, RS Tetap Menjaga. RSUD Kab. Rejang Lebong.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

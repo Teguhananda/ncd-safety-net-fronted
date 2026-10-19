@@ -74,13 +74,14 @@ export default function Sidebar() {
       <div className="brand">
         <img
           src="/logos/app-logo.png"
-          alt="NCD Safety Net"
+          alt="BERENDO SEHAT"
           className="app-logo-img"
           style={{ width: 40, height: 40, objectFit: "contain" }}
         />
         <div className="brand-text">
-          <div className="name">NCD Safety Net</div>
+          <div className="name">BERENDO SEHAT</div>
           <div className="sub">RSUD KAB. REJANG LEBONG</div>
+          <div className="sub" style={{ fontStyle: "italic", textTransform: "none", letterSpacing: 0, opacity: 0.85, marginTop: 2 }}>"Dari Berendo Rumah, RS Tetap Menjaga"</div>
         </div>
       </div>
       <nav>

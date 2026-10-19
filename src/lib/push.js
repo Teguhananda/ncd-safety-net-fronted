@@ -61,7 +61,7 @@ export async function requestAndRegisterPush(patientId) {
 
     const permission = await Notification.requestPermission();
     if (permission !== "granted") {
-      return { ok: false, reason: "Izin notifikasi ditolak. Aktifkan lewat Pengaturan HP → Notifikasi → My NCD Safety." };
+      return { ok: false, reason: "Izin notifikasi ditolak. Aktifkan lewat Pengaturan HP → Notifikasi → BERENDO SEHAT." };
     }
 
     return await fetchAndSaveToken(patientId, { force: true });
@@ -100,7 +100,7 @@ export async function listenForegroundMessages(onReceive) {
     return onMessage(messaging, async (payload) => {
       const n = payload.notification || {};
       const d = payload.data || {};
-      const title = n.title || d.title || "My NCD Safety";
+      const title = n.title || d.title || "BERENDO SEHAT";
       const body = n.body || d.body || "";
       try {
         if (Notification.permission === "granted") {

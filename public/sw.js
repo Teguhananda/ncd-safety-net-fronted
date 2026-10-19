@@ -1,6 +1,6 @@
 /**
- * sw.js — service worker MINIMAL, khusus dipakai halaman /portal/* (My NCD
- * Safety). Didaftarkan secara manual lewat usePortalPwa.js, BUKAN otomatis
+ * sw.js — service worker MINIMAL, khusus dipakai halaman /portal/* (BERENDO SEHAT).
+ * Didaftarkan secara manual lewat usePortalPwa.js, BUKAN otomatis
  * untuk seluruh aplikasi — halaman staff tidak terpengaruh sama sekali.
  *
  * Strategi: network-first, fallback ke cache kalau offline. Sengaja
@@ -8,7 +8,7 @@
  * selalu berganti hash) — cukup untuk "buka lagi tanpa internet" di HP
  * pasien setelah pernah dibuka sekali.
  */
-const CACHE_NAME = "ncd-portal-v1";
+const CACHE_NAME = "ncd-portal-v2"; // v2: ganti nama jadi BERENDO SEHAT (Okt 2026)
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();

@@ -207,7 +207,7 @@ export function buildSbar(d, triage, patient, finalCategory) {
   const reasons = [...triage.merah, ...triage.kuning];
   const lines = [];
   lines.push(`S (Situation): Pasien ${p.name || "-"}${p.age ? `, ${p.age} th` : ""}${p.mrn ? `, No.RM ${p.mrn}` : ""}. Keluhan utama: ${data.chiefComplaint || "-"}. Kategori pra-RS: ${cat}.`);
-  lines.push(`B (Background): ${p.conditions || "Pasien program NCD Safety Net (HT/DM)"}. Tombol SOS ditekan pasien; onset keluhan: ${data.onsetTime ? new Date(data.onsetTime).toLocaleString("id-ID") : "tidak diketahui"}.`);
+  lines.push(`B (Background): ${p.conditions || "Pasien program BERENDO SEHAT (HT/DM)"}. Tombol SOS ditekan pasien; onset keluhan: ${data.onsetTime ? new Date(data.onsetTime).toLocaleString("id-ID") : "tidak diketahui"}.`);
   const vit = [
     `TD ${c.sbp ?? "?"}/${c.dbp ?? "?"} mmHg`,
     `Nadi ${c.hr ?? "?"}x/mnt`,

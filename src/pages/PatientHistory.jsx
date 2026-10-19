@@ -223,7 +223,7 @@ export default function PatientHistory() {
             <div className="card" style={{ marginBottom: 20 }}>
               <h3>🏠 Home Safety Summary — {homeSafetySummary.periodDays} Hari Terakhir</h3>
               <div className="stat-sub" style={{ marginBottom: 12 }}>
-                Data yang dikirim pasien sendiri dari rumah lewat Portal My NCD Safety.
+                Data yang dikirim pasien sendiri dari rumah lewat Portal BERENDO SEHAT.
               </div>
 
               {(homeSafetySummary.monitoringEntries || []).length === 0 ? (

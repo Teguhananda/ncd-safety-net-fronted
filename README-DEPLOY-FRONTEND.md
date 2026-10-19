@@ -18,7 +18,7 @@ Cloud Functions yang pindah rumah ke Vercel.
 
 ---
 
-# Panduan Deploy Frontend — NCD Safety Net (Fase 8)
+# Panduan Deploy Frontend — BERENDO SEHAT (Fase 8)
 
 Frontend ini adalah aplikasi React (Vite) yang terhubung langsung ke Firebase
 (Auth, Firestore, Cloud Functions). Fase 8 sekarang **lengkap** — seluruh 16

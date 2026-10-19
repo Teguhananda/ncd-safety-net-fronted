@@ -7,8 +7,8 @@ import PatientProtectedRoute from "./components/PatientProtectedRoute";
 import "./portal-styles.css";
 
 /**
- * portal-main.jsx — entry point TERPISAH khusus Portal Pasien (My NCD
- * Safety), dipakai oleh portal.html (build multi-page Vite). Sengaja
+ * portal-main.jsx — entry point TERPISAH khusus Portal Pasien (BERENDO SEHAT),
+ * dipakai oleh portal.html (build multi-page Vite). Sengaja
  * tidak mengimpor App.jsx/AuthProvider staff sama sekali — supaya bundle
  * Portal Pasien ringan dan 100% terisolasi dari kode staff.
  *

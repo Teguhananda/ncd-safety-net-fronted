@@ -48,7 +48,7 @@ export default function BeforeAfter() {
   };
 
   return (
-    <Layout title="Before–After Dashboard" meta="Impact of NCD Safety Net">
+    <Layout title="Before–After Dashboard" meta="Impact of BERENDO SEHAT">
       {loading ? (
         <div className="stat-sub">Memuat...</div>
       ) : !baseline ? (

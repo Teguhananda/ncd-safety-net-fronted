@@ -40,7 +40,7 @@ messaging.onBackgroundMessage((payload) => {
   if (payload.notification) return; // sudah ditampilkan otomatis oleh Firebase SDK
   const d = payload.data || {};
   const link = (payload.fcmOptions && payload.fcmOptions.link) || d.link || "/";
-  return self.registration.showNotification(d.title || "My NCD Safety", {
+  return self.registration.showNotification(d.title || "BERENDO SEHAT", {
     body: d.body || "",
     icon: "/logos/app-logo.png",
     badge: "/logos/app-logo.png",

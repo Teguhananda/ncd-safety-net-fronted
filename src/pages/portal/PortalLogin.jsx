@@ -8,7 +8,7 @@ import QRScanner from "../../components/PortalQRScanner";
 import "../../portal-styles.css";
 
 /**
- * PortalLogin.jsx — pintu masuk "My NCD Safety". Dibuka dari QR yang
+ * PortalLogin.jsx — pintu masuk "BERENDO SEHAT". Dibuka dari QR yang
  * dicetak petugas (URL: /portal/login?pid=<patientId>&token=<qrLoginToken>).
  * TIDAK memakai AuthContext staff (idle timeout dkk) — sesi pasien memang
  * dirancang bertahan lama.
@@ -133,8 +133,10 @@ export default function PortalLogin() {
     <div className="portal-shell portal-center">
       <div className="portal-card" style={{ width: "100%", maxWidth: 380 }}>
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 12 }}>
-          <img src="/logos/app-logo.png" alt="My NCD Safety" className="portal-logo-img" style={{ width: 64, height: 64 }} />
-          <h2 style={{ margin: 0 }}>My NCD Safety</h2>
+          <img src="/logos/app-logo.png" alt="BERENDO SEHAT" className="portal-logo-img" style={{ width: 64, height: 64 }} />
+          <h2 style={{ margin: 0 }}>BERENDO SEHAT</h2>
+          <div className="portal-sub" style={{ marginTop: -4, fontStyle: "italic", textAlign: "center" }}>"Dari Berendo Rumah, RS Tetap Menjaga"</div>
+          <div className="portal-sub" style={{ marginTop: -6, fontSize: 12, textAlign: "center" }}>Pemantauan mandiri Hipertensi &amp; Diabetes — RSUD Kab. Rejang Lebong</div>
         </div>
 
         {status === "loading" && <p>Memuat, mohon tunggu...</p>}
