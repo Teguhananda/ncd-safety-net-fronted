@@ -1,7 +1,7 @@
 {
   "name": "BERENDO SEHAT",
   "short_name": "BERENDO SEHAT",
-  "description": "BERENDO SEHAT — Dari Berendo Rumah, RS Tetap Menjaga. Pemantauan mandiri pasien Hipertensi & Diabetes Melitus, RSUD Kab. Rejang Lebong.",
+  "description": "BERENDO SEHAT — Dari Berendo Rumah, RS Tetap Menjago. Pemantauan mandiri pasien Hipertensi & Diabetes Melitus, RSUD Kab. Rejang Lebong.",
   "start_url": "/portal",
   "scope": "/portal",
   "display": "standalone",

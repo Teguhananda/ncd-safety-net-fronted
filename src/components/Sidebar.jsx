@@ -81,7 +81,7 @@ export default function Sidebar() {
         <div className="brand-text">
           <div className="name">BERENDO SEHAT</div>
           <div className="sub">RSUD KAB. REJANG LEBONG</div>
-          <div className="sub" style={{ fontStyle: "italic", textTransform: "none", letterSpacing: 0, opacity: 0.85, marginTop: 2 }}>"Dari Berendo Rumah, RS Tetap Menjaga"</div>
+          <div className="sub" style={{ fontStyle: "italic", textTransform: "none", letterSpacing: 0, opacity: 0.85, marginTop: 2 }}>"Dari Berendo Rumah, RS Tetap Menjago"</div>
         </div>
       </div>
       <nav>

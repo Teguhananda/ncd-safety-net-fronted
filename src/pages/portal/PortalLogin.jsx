@@ -135,7 +135,7 @@ export default function PortalLogin() {
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, marginBottom: 12 }}>
           <img src="/logos/app-logo.png" alt="BERENDO SEHAT" className="portal-logo-img" style={{ width: 64, height: 64 }} />
           <h2 style={{ margin: 0 }}>BERENDO SEHAT</h2>
-          <div className="portal-sub" style={{ marginTop: -4, fontStyle: "italic", textAlign: "center" }}>"Dari Berendo Rumah, RS Tetap Menjaga"</div>
+          <div className="portal-sub" style={{ marginTop: -4, fontStyle: "italic", textAlign: "center" }}>"Dari Berendo Rumah, RS Tetap Menjago"</div>
           <div className="portal-sub" style={{ marginTop: -6, fontSize: 12, textAlign: "center" }}>Pemantauan mandiri Hipertensi &amp; Diabetes — RSUD Kab. Rejang Lebong</div>
         </div>
 
