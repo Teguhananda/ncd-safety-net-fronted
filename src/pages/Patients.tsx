@@ -9,6 +9,7 @@ import PatientPortalQRModal from "../components/PatientPortalQRModal";
 import PersonalSafetyPlanModal from "../components/PersonalSafetyPlanModal";
 import { Link, useNavigate } from "react-router-dom";
 import { callApi } from "../lib/api";
+import { useAuth } from "../context/AuthContext";
 
 const NCD_OPTIONS = ["Hipertensi", "Diabetes Mellitus", "Dislipidemia", "Obesitas", "Penyakit Jantung", "Stroke", "CKD", "Lainnya"];
 
@@ -26,6 +27,10 @@ function todayLocalStr() {
 }
 
 export default function Patients() {
+  // BARU (Okt 2026): tombol Hapus hanya untuk Admin & Perawat (perawat dibatasi
+  // server: hanya pasien tanpa riwayat).
+  const { role } = useAuth();
+  const canDeletePatient = role === "admin" || role === "petugas";
   const [rows, setRows] = useState([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
@@ -478,14 +483,16 @@ export default function Patients() {
                     >
                       {p.monitoringStatus === "ended" ? "▶️ Aktifkan Lagi" : "⏹️ Akhiri Monitoring (PRB)"}
                     </button>
-                    <button
-                      className="btn btn-ghost"
-                      style={{ padding: "4px 10px", fontSize: 12, color: "#c0392b" }}
-                      onClick={() => handleDeletePatient(p)}
-                      disabled={deletingId === p.id}
-                    >
-                      {deletingId === p.id ? "Menghapus..." : "🗑️ Hapus"}
-                    </button>
+                    {canDeletePatient && (
+                      <button
+                        className="btn btn-ghost"
+                        style={{ padding: "4px 10px", fontSize: 12, color: "#c0392b" }}
+                        onClick={() => handleDeletePatient(p)}
+                        disabled={deletingId === p.id}
+                      >
+                        {deletingId === p.id ? "Menghapus..." : "🗑️ Hapus"}
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
