@@ -20,6 +20,67 @@ function hourOptions(min, max) {
 }
 const emptyMed = () => ({ name: "", dose: "", frequency: "", slots: [], slotTimes: {} });
 
+// ==== BARU (Okt 2026): Tanda Bahaya & Instruksi Eskalasi jadi PILIHAN CENTANG ====
+// Supaya dokter tidak perlu mengetik. Disimpan tetap sebagai teks per baris
+// (field warningSigns & escalationInstruction yang sama), sehingga Portal
+// Pasien menampilkannya per poin tanpa perubahan backend.
+// Angka ambang = batas umum (krisis hipertensi ≥180/120, hipoglikemia <70,
+// hiperglikemia berat >300) — [perlu validasi Komite Medik].
+const WARNING_GROUPS = [
+  {
+    key: "ht",
+    label: "Hipertensi / Jantung / Stroke",
+    condition: "Hipertensi",
+    items: [
+      "Nyeri dada atau dada terasa berat/tertekan",
+      "Sesak napas",
+      "Lemah/kesemutan separuh badan, wajah mencong, atau bicara pelo",
+      "Sakit kepala hebat mendadak, pandangan kabur, atau bingung",
+      "Tensi 180/120 mmHg atau lebih saat diukur ulang",
+      "Pingsan atau sulit dibangunkan",
+    ],
+  },
+  {
+    key: "dm",
+    label: "Diabetes Melitus",
+    condition: "Diabetes",
+    items: [
+      "Gula darah di bawah 70 mg/dL, atau gemetar, keringat dingin, berdebar, lapar hebat",
+      "Gula darah di atas 300 mg/dL disertai sangat haus, sering kencing, atau mual-muntah",
+      "Napas cepat/berbau buah, nyeri perut, atau sangat lemas",
+      "Luka di kaki yang bengkak, bernanah, menghitam, atau berbau",
+    ],
+  },
+  {
+    key: "umum",
+    label: "Umum",
+    condition: null,
+    items: [
+      "Kejang",
+      "Bengkak di kaki/wajah dan berat badan naik cepat",
+    ],
+  },
+];
+const ALL_WARNING_ITEMS = WARNING_GROUPS.flatMap((g) => g.items);
+
+const ESCALATION_OPTIONS = [
+  "Segera ke IGD RSUD Kab. Rejang Lebong",
+  "Segera ke IGD rumah sakit atau puskesmas terdekat",
+  "Tekan Tombol Darurat (SOS) di aplikasi ini",
+  "Minta keluarga mengantar — jangan menyetir sendiri",
+  "Jangan menambah dosis obat sendiri",
+];
+const DEFAULT_ESCALATION = [ESCALATION_OPTIONS[0], ESCALATION_OPTIONS[2]];
+
+function splitLines(text) {
+  return (text || "").split(/\r?\n+/).map((t) => t.replace(/^\s*(\d+[.)]|[-•])\s*/, "").trim()).filter(Boolean);
+}
+function defaultWarnings(conditions) {
+  const cond = (conditions || []).join(" ").toLowerCase();
+  const picked = WARNING_GROUPS.filter((g) => g.condition && cond.includes(g.condition.toLowerCase())).flatMap((g) => g.items);
+  return picked.length > 0 ? picked : WARNING_GROUPS[0].items;
+}
+
 /**
  * PersonalSafetyPlanModal.jsx — form Personal Safety Plan dari Daftar Pasien.
  * REVISI (Okt 2026):
@@ -40,6 +101,12 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
     escalationInstruction: "Segera hubungi IGD RSUD Kab. Rejang Lebong jika tanda bahaya muncul.",
   });
   const [meds, setMeds] = useState([emptyMed()]);
+  const [warnings, setWarnings] = useState(() => defaultWarnings(patient.conditions));
+  const [warningOther, setWarningOther] = useState("");
+  const [escalations, setEscalations] = useState(DEFAULT_ESCALATION);
+  const toggleIn = (setter) => (item) => setter((prev) => (prev.includes(item) ? prev.filter((x) => x !== item) : [...prev, item]));
+  const toggleWarning = toggleIn(setWarnings);
+  const toggleEscalation = toggleIn(setEscalations);
   const [canEditMeds, setCanEditMeds] = useState(false);
   const [hasPlan, setHasPlan] = useState(false);
   const [loadingForm, setLoadingForm] = useState(true);
@@ -65,6 +132,15 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
             warningSigns: plan.warningSigns || "",
             escalationInstruction: plan.escalationInstruction || f.escalationInstruction,
           }));
+          // Isi ulang centang dari teks yang tersimpan; baris yang bukan
+          // pilihan baku masuk ke kolom "lainnya" supaya tidak hilang.
+          const savedWarnings = splitLines(plan.warningSigns);
+          if (savedWarnings.length > 0) {
+            setWarnings(savedWarnings.filter((w) => ALL_WARNING_ITEMS.includes(w)));
+            setWarningOther(savedWarnings.filter((w) => !ALL_WARNING_ITEMS.includes(w)).join("; "));
+          }
+          const savedEsc = splitLines(plan.escalationInstruction).filter((e) => ESCALATION_OPTIONS.includes(e));
+          if (savedEsc.length > 0) setEscalations(savedEsc);
         }
         if (medications && medications.length > 0) {
           setMeds(medications.map((m) => ({ name: m.name, dose: m.dose, frequency: m.frequency, slots: m.slots || [], slotTimes: m.slotTimes || {} })));
@@ -103,6 +179,16 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
       setError("Pilih minimal 1 parameter yang dipantau.");
       return;
     }
+    const warningList = [...ALL_WARNING_ITEMS.filter((w) => warnings.includes(w)), ...(warningOther.trim() ? [warningOther.trim()] : [])];
+    const escalationList = ESCALATION_OPTIONS.filter((e) => escalations.includes(e));
+    if (warningList.length === 0) {
+      setError("Centang minimal 1 tanda bahaya.");
+      return;
+    }
+    if (escalationList.length === 0) {
+      setError("Centang minimal 1 instruksi bila tanda bahaya muncul.");
+      return;
+    }
     const filledMeds = meds.filter((m) => m.name.trim());
     if (canEditMeds) {
       const noSchedule = filledMeds.filter((m) => m.slots.length === 0);
@@ -120,6 +206,8 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
         action: "createPersonalPlan",
         patientId: patient.id,
         ...form,
+        warningSigns: warningList.join("\n"),
+        escalationInstruction: escalationList.join("\n"),
         ...(canEditMeds ? { updateMedications: true, medications: filledMeds } : {}),
       });
       setDone({ medicationCount: res.data.medicationCount });
@@ -241,12 +329,46 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
               <input type="date" value={form.followUpDate} onChange={(e) => setForm({ ...form, followUpDate: e.target.value })} />
             </div>
             <div className="field">
-              <label>Tanda Bahaya (untuk pasien)</label>
-              <textarea rows={2} value={form.warningSigns} onChange={(e) => setForm({ ...form, warningSigns: e.target.value })} />
+              <label>⚠️ Tanda Bahaya (untuk pasien) — centang satu atau lebih</label>
+              {WARNING_GROUPS.map((g) => (
+                <div key={g.key} style={{ marginBottom: 8 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span className="stat-sub" style={{ fontWeight: 700 }}>{g.label}</span>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      style={{ padding: "2px 8px", fontSize: 11 }}
+                      onClick={() => {
+                        const allOn = g.items.every((it) => warnings.includes(it));
+                        setWarnings((prev) => (allOn ? prev.filter((x) => !g.items.includes(x)) : [...new Set([...prev, ...g.items])]));
+                      }}
+                    >
+                      {g.items.every((it) => warnings.includes(it)) ? "Kosongkan" : "Pilih semua"}
+                    </button>
+                  </div>
+                  {g.items.map((it) => (
+                    <label key={it} style={{ fontSize: 13, display: "flex", alignItems: "flex-start", gap: 6, margin: "4px 0" }}>
+                      <input type="checkbox" checked={warnings.includes(it)} onChange={() => toggleWarning(it)} style={{ marginTop: 3 }} />
+                      {it}
+                    </label>
+                  ))}
+                </div>
+              ))}
+              <input
+                placeholder="Tanda bahaya lain (opsional, boleh dikosongkan)"
+                value={warningOther}
+                onChange={(e) => setWarningOther(e.target.value)}
+                style={{ marginTop: 4 }}
+              />
             </div>
             <div className="field">
-              <label>Instruksi Eskalasi</label>
-              <textarea rows={2} value={form.escalationInstruction} onChange={(e) => setForm({ ...form, escalationInstruction: e.target.value })} />
+              <label>🚑 Jika Tanda Bahaya Muncul — centang satu atau lebih</label>
+              {ESCALATION_OPTIONS.map((it) => (
+                <label key={it} style={{ fontSize: 13, display: "flex", alignItems: "flex-start", gap: 6, margin: "4px 0" }}>
+                  <input type="checkbox" checked={escalations.includes(it)} onChange={() => toggleEscalation(it)} style={{ marginTop: 3 }} />
+                  {it}
+                </label>
+              ))}
             </div>
             {error && <div className="error-text">{error}</div>}
             <button className="btn btn-primary" style={{ width: "100%", marginTop: 8 }} disabled={saving} onClick={handleSave}>
