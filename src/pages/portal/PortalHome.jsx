@@ -1066,13 +1066,12 @@ export default function PortalHome() {
           )}
 
           <div className="portal-menu-grid">
-            <button className="portal-menu-btn" onClick={() => { setCheckinDone(false); setCheckinAnswers({}); setCheckinIntro(""); setView("checkin"); }}>
-              <span className="portal-menu-illustration"><IconCheckIn /></span>
-              Safety Check-In
-            </button>
-            <button className="portal-menu-btn" onClick={() => setView("monitoring")}>
+            {/* Okt 2026: Safety Check-In tidak lagi berdiri sendiri. Pasien cukup
+                menekan tombol ini; setelah tensi/GDS disimpan, Check-In muncul
+                otomatis (sekali sehari). */}
+            <button className="portal-menu-btn" onClick={() => setView("monitoring")} style={{ gridColumn: "1 / -1" }}>
               <span className="portal-menu-illustration"><IconMonitoring /></span>
-              Kontrol Saya (Isi Hasil)
+              Cek Kondisi Harian (Tensi / Gula Darah)
             </button>
             <button className="portal-menu-btn" onClick={() => setView("plan")}>
               <span className="portal-menu-illustration"><IconSafetyPlan /></span>
@@ -1148,7 +1147,9 @@ export default function PortalHome() {
           ) : (
             <div className="portal-field"><label>Nilai Gula Darah (mg/dL)</label><input type="number" value={monitoringForm.value} onChange={(e) => setMonitoringForm((f) => ({ ...f, value: e.target.value }))} /></div>
           )}
-          <div className="portal-field"><label>Keluhan (opsional)</label><input value={monitoringForm.symptom} onChange={(e) => setMonitoringForm((f) => ({ ...f, symptom: e.target.value }))} /></div>
+          {/* Okt 2026: kolom Keluhan dihapus — sudah ditanyakan di Safety Check-In
+              yang muncul otomatis setelah Simpan. */}
+          <p className="portal-sub">Setelah Simpan, Anda akan diminta menjawab 6 pertanyaan singkat (±30 detik, cukup sekali sehari).</p>
           {monitoringMsg && <p>{monitoringMsg}</p>}
           <button className="portal-primary-btn" disabled={monitoringSubmitting} onClick={handleMonitoringSubmit}>
             {monitoringSubmitting ? "Menyimpan..." : "Simpan"}
