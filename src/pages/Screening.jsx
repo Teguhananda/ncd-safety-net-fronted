@@ -81,20 +81,6 @@ const ACCESS_BARRIER_ITEMS = [
   ["noCaregiver", "Tidak ada pendamping/keluarga pendukung"],
 ];
 
-// BARU (Sept 2026): pilihan jam minum obat per slot (jam WIB, inklusif).
-// HARUS sama dengan SLOT_HOUR_RANGE & DEFAULT_SLOT_HOUR di backend
-// lib/medSchedule.js dan tercakup cron vercel.json (04.00–23.00 WIB).
-const MED_SLOT_OPTIONS = [
-  { key: "pagi", label: "Pagi", min: 4, max: 10, defaultHour: 7 },
-  { key: "siang", label: "Siang", min: 11, max: 15, defaultHour: 12 },
-  { key: "malam", label: "Malam", min: 16, max: 23, defaultHour: 19 },
-];
-function hourOptions(min, max) {
-  const out = [];
-  for (let h = min; h <= max; h++) out.push(h);
-  return out;
-}
-
 export default function Screening() {
   const [params] = useSearchParams();
   const patientId = params.get("patientId") || "";
@@ -118,8 +104,10 @@ export default function Screening() {
   const [pastScreenings, setPastScreenings] = useState([]);
   const [selectedPastDate, setSelectedPastDate] = useState("");
   const [historyItems, setHistoryItems] = useState([]);
-  const [medications, setMedications] = useState([{ name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [], slotTimes: {} }]);
-  const [step, setStep] = useState("screening"); // screening -> medication -> result
+  // REVISI (Okt 2026): langkah Rekonsiliasi Obat DIHAPUS dari Skrining.
+  // Obat, dosis & jadwal minum kini diinput DOKTER di Personal Safety Plan
+  // (tombol "Safety Plan" di Daftar Pasien) — satu sumber obat.
+  const [step, setStep] = useState("screening"); // screening -> result
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -221,34 +209,20 @@ export default function Screening() {
           glucoseType: vitalSigns.glucoseType,
         },
       });
-      setResult(res.data);
       if (res.data.status === "RED_FLAG") {
-        setStep("result");
+        setResult(res.data);
       } else {
-        setStep("medication");
+        // Skor risiko dihitung langsung (tanpa isian obat) lewat mode riskOnly.
+        const riskRes = await callApi("medication", { screeningId: res.data.screeningId, patientId, riskOnly: true });
+        setResult({
+          ...res.data,
+          ...riskRes.data,
+          status: riskRes.data.riskResult?.riskStatus || res.data.status,
+        });
       }
-    } catch (e) {
-      setError(e.message || "Gagal mengirim screening.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const submitMedicationStep = async () => {
-    setBusy(true);
-    setError("");
-    try {
-      // patientId WAJIB dikirim sekarang (update backend medication.js) —
-      // dipakai cron pengingat obat untuk tahu push notif ini milik pasien mana.
-      const res = await callApi("medication", { screeningId: result.screeningId, patientId, medications });
-      setResult((prev) => ({
-        ...prev,
-        ...res.data,
-        status: res.data.riskResult?.riskStatus || prev.status,
-      }));
       setStep("result");
     } catch (e) {
-      setError(e.message || "Gagal mengirim data obat.");
+      setError(e.message || "Gagal mengirim screening.");
     } finally {
       setBusy(false);
     }
@@ -291,32 +265,6 @@ export default function Screening() {
       setBusy(false);
     }
   };
-
-  const addMedRow = () =>
-    setMedications((prev) => [...prev, { name: "", dose: "", frequency: "", source: "rutin", knownByPatient: true, slots: [], slotTimes: {} }]);
-  const updateMedRow = (i, field, value) =>
-    setMedications((prev) => prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)));
-  const removeMedRow = (i) =>
-    setMedications((prev) => prev.filter((_, idx) => idx !== i));
-  // toggleMedSlot — centang/hilangkan slot pengingat (pagi/siang/malam) untuk
-  // satu baris obat. Dipakai cron di backend (api/scheduled.js) untuk tahu
-  // jam berapa obat ini harus diingatkan ke pasien lewat push notifikasi.
-  // Boleh dikosongkan semua kalau obat "jika perlu" (PRN) — tidak diingatkan.
-  // BARU (Sept 2026): jam minum per slot (jam bulat WIB). HARUS sama dengan
-  // SLOT_HOUR_RANGE & DEFAULT_SLOT_HOUR di backend lib/medSchedule.js.
-  const setMedSlotTime = (i, slot, hour) =>
-    setMedications((prev) =>
-      prev.map((m, idx) => (idx === i ? { ...m, slotTimes: { ...(m.slotTimes || {}), [slot]: Number(hour) } } : m))
-    );
-  const toggleMedSlot = (i, slot) =>
-    setMedications((prev) =>
-      prev.map((m, idx) => {
-        if (idx !== i) return m;
-        const current = m.slots || [];
-        const next = current.includes(slot) ? current.filter((s) => s !== slot) : [...current, slot];
-        return { ...m, slots: next };
-      })
-    );
 
   return (
     <Layout title="NCD Screening" meta={patientId ? `Pasien: ${patientId}` : "Pilih pasien dari Daftar Pasien"}>
@@ -616,70 +564,7 @@ export default function Screening() {
         </div>
       )}
 
-      {step === "medication" && (
-        <div className="card">
-          <h3>Rekonsiliasi Obat</h3>
-          {medications.map((m, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 14, paddingBottom: 14, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <div className="grid cols-3" style={{ flex: 1 }}>
-                  <input placeholder="Nama obat" value={m.name} onChange={(e) => updateMedRow(i, "name", e.target.value)} />
-                  <input placeholder="Dosis" value={m.dose} onChange={(e) => updateMedRow(i, "dose", e.target.value)} />
-                  <input placeholder="Frekuensi" value={m.frequency} onChange={(e) => updateMedRow(i, "frequency", e.target.value)} />
-                </div>
-                <button
-                  type="button"
-                  className="btn btn-ghost"
-                  style={{ padding: "6px 10px", fontSize: 12, color: "#c0392b" }}
-                  onClick={() => removeMedRow(i)}
-                  disabled={medications.length <= 1}
-                  title={medications.length <= 1 ? "Minimal satu baris obat" : "Hapus baris ini"}
-                >
-                  🗑️ Hapus
-                </button>
-              </div>
-              {/* REVISI (Sept 2026): pilih slot + JAM minum obat sesuai kebiasaan
-                  pasien (jam bulat, karena pengingat dikirim per jam). Kosongkan
-                  semua untuk obat "jika perlu" (PRN) — tidak diingatkan. */}
-              <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", paddingLeft: 4 }}>
-                <span className="stat-sub" style={{ fontSize: 12 }}>Jadwal minum &amp; pengingat:</span>
-                {MED_SLOT_OPTIONS.map((slotOpt) => {
-                  const checked = (m.slots || []).includes(slotOpt.key);
-                  const hour = (m.slotTimes && m.slotTimes[slotOpt.key]) ?? slotOpt.defaultHour;
-                  return (
-                    <div key={slotOpt.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                      <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13, cursor: "pointer" }}>
-                        <input type="checkbox" checked={checked} onChange={() => toggleMedSlot(i, slotOpt.key)} />
-                        {slotOpt.label}
-                      </label>
-                      <select
-                        aria-label={`Jam minum ${slotOpt.label}`}
-                        value={hour}
-                        disabled={!checked}
-                        onChange={(e) => setMedSlotTime(i, slotOpt.key, e.target.value)}
-                        style={{ fontSize: 13, padding: "4px 6px", width: "auto", opacity: checked ? 1 : 0.45 }}
-                      >
-                        {hourOptions(slotOpt.min, slotOpt.max).map((h) => (
-                          <option key={h} value={h}>{String(h).padStart(2, "0")}.00</option>
-                        ))}
-                      </select>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-          <button className="btn btn-ghost" onClick={addMedRow} style={{ marginBottom: 16 }}>
-            + Tambah Obat
-          </button>
-          {error && <div className="error-text">{error}</div>}
-          <div>
-            <button className="btn btn-primary" onClick={submitMedicationStep} disabled={busy}>
-              {busy ? "Menghitung..." : "Simpan & Hitung Risiko"}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* REVISI (Okt 2026): langkah "Rekonsiliasi Obat" dihapus — obat diisi dokter di Safety Plan. */}
 
       {step === "result" && result && (
         <div>
@@ -773,6 +658,13 @@ export default function Screening() {
               </div>
             );
           })()}
+
+          <div className="alert warn" style={{ marginTop: 16 }}>
+            <span>💊</span>
+            <div>
+              Obat &amp; jadwal minum pasien diisi oleh <b>Dokter</b> di menu <b>Safety Plan</b> (Daftar Pasien), bukan di Skrining.
+            </div>
+          </div>
 
           {/* Education — untuk semua status kecuali sudah selesai */}
           {!eduDone && (result.status || result.riskResult?.riskStatus) !== "RED_FLAG" && (

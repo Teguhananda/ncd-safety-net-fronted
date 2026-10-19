@@ -1166,7 +1166,7 @@ export default function PortalHome() {
               ditampilkan sebagai "Catatan dari petugas". */}
           {activeMeds.length > 0 && (
             <div style={{ marginBottom: 16 }}>
-              <b>Obat Saya (daftar dari petugas RSUD):</b>
+              <b>Obat Saya (dari dokter RSUD):</b>
               <div style={{ marginTop: 6 }}>
                 {activeMeds.map((m) => (
                   <div key={m.id} style={{ marginBottom: 8 }}>
@@ -1187,7 +1187,7 @@ export default function PortalHome() {
             <>
               {(activeMeds.length === 0 || plan.medicationPlan) && (
                 <div style={{ marginBottom: 16 }}>
-                  <b>{activeMeds.length > 0 ? "Catatan Obat dari Petugas:" : "Obat Saya:"}</b>
+                  <b>{activeMeds.length > 0 ? "Catatan Obat dari Dokter:" : "Obat Saya:"}</b>
                   <div style={{ marginTop: 4 }}>{renderMultiPoint(plan.medicationPlan)}</div>
                 </div>
               )}
