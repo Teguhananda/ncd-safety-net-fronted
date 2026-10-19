@@ -18,6 +18,12 @@ function hourOptions(min, max) {
   for (let h = min; h <= max; h++) out.push(h);
   return out;
 }
+// PERBAIKAN (Okt 2026): CSS global ".field input { width:100% }" ikut
+// melebarkan kotak centang → kotak Pagi/Siang/Malam tidak terlihat & teks
+// tanda bahaya terdorong ke kanan. Kotak centang diberi ukuran tetap.
+const CB = { width: 18, height: 18, minWidth: 18, flex: "0 0 18px", margin: 0, padding: 0, cursor: "pointer", accentColor: "#34d399" };
+const CB_LABEL = { fontSize: 13, display: "flex", alignItems: "flex-start", justifyContent: "flex-start", textAlign: "left", gap: 8, margin: "5px 0", cursor: "pointer" };
+
 const emptyMed = () => ({ name: "", dose: "", frequency: "", slots: [], slotTimes: {} });
 
 // ==== BARU (Okt 2026): Tanda Bahaya & Instruksi Eskalasi jadi PILIHAN CENTANG ====
@@ -244,8 +250,8 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
               <label>Parameter yang Dipantau di Rumah</label>
               <div style={{ display: "flex", gap: 10 }}>
                 {PARAM_OPTIONS.map((p) => (
-                  <label key={p} style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 4 }}>
-                    <input type="checkbox" checked={form.monitoringParameters.includes(p)} onChange={() => toggleParam(p)} />
+                  <label key={p} style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, whiteSpace: "nowrap", cursor: "pointer" }}>
+                    <input type="checkbox" style={CB} checked={form.monitoringParameters.includes(p)} onChange={() => toggleParam(p)} />
                     {PARAM_LABEL[p]}
                   </label>
                 ))}
@@ -292,8 +298,8 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
                       const hour = (m.slotTimes && m.slotTimes[o.key]) ?? o.defaultHour;
                       return (
                         <div key={o.key} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 13 }}>
-                            <input type="checkbox" checked={checked} disabled={!canEditMeds} onChange={() => toggleSlot(i, o.key)} />
+                          <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, cursor: canEditMeds ? "pointer" : "default", whiteSpace: "nowrap" }}>
+                            <input type="checkbox" style={CB} checked={checked} disabled={!canEditMeds} onChange={() => toggleSlot(i, o.key)} />
                             {o.label}
                           </label>
                           <select
@@ -347,8 +353,8 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
                     </button>
                   </div>
                   {g.items.map((it) => (
-                    <label key={it} style={{ fontSize: 13, display: "flex", alignItems: "flex-start", gap: 6, margin: "4px 0" }}>
-                      <input type="checkbox" checked={warnings.includes(it)} onChange={() => toggleWarning(it)} style={{ marginTop: 3 }} />
+                    <label key={it} style={CB_LABEL}>
+                      <input type="checkbox" checked={warnings.includes(it)} onChange={() => toggleWarning(it)} style={{ ...CB, marginTop: 1 }} />
                       {it}
                     </label>
                   ))}
@@ -364,8 +370,8 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
             <div className="field">
               <label>🚑 Jika Tanda Bahaya Muncul — centang satu atau lebih</label>
               {ESCALATION_OPTIONS.map((it) => (
-                <label key={it} style={{ fontSize: 13, display: "flex", alignItems: "flex-start", gap: 6, margin: "4px 0" }}>
-                  <input type="checkbox" checked={escalations.includes(it)} onChange={() => toggleEscalation(it)} style={{ marginTop: 3 }} />
+                <label key={it} style={CB_LABEL}>
+                  <input type="checkbox" checked={escalations.includes(it)} onChange={() => toggleEscalation(it)} style={{ ...CB, marginTop: 1 }} />
                   {it}
                 </label>
               ))}
