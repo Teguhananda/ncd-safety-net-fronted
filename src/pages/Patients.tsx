@@ -92,6 +92,37 @@ export default function Patients() {
     }
   };
 
+  // ==== BARU (Okt 2026): Dokter Penanggung Jawab (DPJP) ====
+  // Dipilih dari daftar akun dokter (bukan diketik) supaya notifikasi
+  // Tanya Dokter pasti sampai ke HP dokter yang benar.
+  const [doctors, setDoctors] = useState([]);
+  const [doctorsError, setDoctorsError] = useState("");
+  const [dpjpPatient, setDpjpPatient] = useState(null);
+  const [dpjpValue, setDpjpValue] = useState("");
+  const [dpjpBusy, setDpjpBusy] = useState(false);
+  const [dpjpError, setDpjpError] = useState("");
+
+  useEffect(() => {
+    callApi("patientHistory", { action: "listDoctors" })
+      .then((res) => setDoctors(res.data.doctors || []))
+      .catch((err) => setDoctorsError(err.message || "Gagal memuat daftar dokter."));
+  }, []);
+
+  const saveDpjp = async () => {
+    if (!dpjpPatient) return;
+    setDpjpBusy(true);
+    setDpjpError("");
+    try {
+      await callApi("patientHistory", { action: "setDpjp", patientId: dpjpPatient.id, dpjpUid: dpjpValue || null });
+      setDpjpPatient(null);
+      await loadPatients();
+    } catch (err) {
+      setDpjpError(err.message || "Gagal menyimpan DPJP.");
+    } finally {
+      setDpjpBusy(false);
+    }
+  };
+
   const savePhone = async () => {
     if (!editPhonePatient) return;
     setEditPhoneBusy(true);
@@ -114,7 +145,7 @@ export default function Patients() {
   const searchInputRef = useRef(null);
 
   const [form, setForm] = useState({
-    mrn: "", name: "", dob: "", gender: "Laki-laki", phone: "", conditions: [],
+    mrn: "", name: "", dob: "", gender: "Laki-laki", phone: "", dpjpUid: "", conditions: [],
   });
 
   const toggleCondition = (c) => {
@@ -203,10 +234,12 @@ export default function Patients() {
         dob: form.dob || null,
         gender: form.gender,
         phone: form.phone || null,
+        dpjpUid: form.dpjpUid || null,
+        dpjpName: (doctors.find((d) => d.uid === form.dpjpUid) || {}).name || null,
         conditions: form.conditions,
         createdAt: serverTimestamp(),
       });
-      setForm({ mrn: "", name: "", dob: "", gender: "Laki-laki", phone: "", conditions: [] });
+      setForm({ mrn: "", name: "", dob: "", gender: "Laki-laki", phone: "", dpjpUid: "", conditions: [] });
       setAdding(false);
       await loadPatients();
     } catch (err) {
@@ -323,6 +356,20 @@ export default function Patients() {
                 <input type="tel" placeholder="08xxxxxxxxxx" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <div className="field">
+                <label>Dokter Penanggung Jawab (DPJP)</label>
+                <select value={form.dpjpUid} onChange={(e) => setForm({ ...form, dpjpUid: e.target.value })}>
+                  <option value="">— Pilih dokter —</option>
+                  {doctors.map((d) => <option key={d.uid} value={d.uid}>{d.name}</option>)}
+                </select>
+                <div className="stat-sub" style={{ marginTop: 4 }}>
+                  {doctorsError
+                    ? `⚠️ ${doctorsError}`
+                    : doctors.length === 0
+                      ? "⚠️ Belum ada akun dokter. Buat dulu di menu Administrasi (role Dokter)."
+                      : "Wajib diisi agar pasien bisa memakai menu Tanya Dokter."}
+                </div>
+              </div>
+              <div className="field">
                 <label>Kondisi NCD</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                   {NCD_OPTIONS.map((c) => (
@@ -368,6 +415,7 @@ export default function Patients() {
                 <th>No. RM</th>
                 <th>Risk Status</th>
                 <th>Monitoring</th>
+                <th>DPJP</th>
                 <th></th>
               </tr>
             </thead>
@@ -384,6 +432,13 @@ export default function Patients() {
                       </span>
                     ) : (
                       <span style={{ color: "#1e8449", fontWeight: 700, fontSize: 13 }}>Aktif</span>
+                    )}
+                  </td>
+                  <td>
+                    {p.dpjpUid ? (
+                      <span style={{ fontSize: 13 }}>{p.dpjpName || "—"}</span>
+                    ) : (
+                      <span style={{ color: "#c0392b", fontWeight: 700, fontSize: 12 }}>⚠️ DPJP belum diisi</span>
                     )}
                   </td>
                   <td style={{ display: "flex", gap: 6 }}>
@@ -408,6 +463,13 @@ export default function Patients() {
                       onClick={() => { setEditPhonePatient(p); setEditPhoneValue(p.phone || ""); }}
                     >
                       📱 {p.phone ? "Ubah" : "Isi"} No. HP
+                    </button>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ padding: "4px 10px", fontSize: 12 }}
+                      onClick={() => { setDpjpPatient(p); setDpjpValue(p.dpjpUid || ""); setDpjpError(""); }}
+                    >
+                      👨‍⚕️ {p.dpjpUid ? "Ubah" : "Isi"} DPJP
                     </button>
                     <button
                       className="btn btn-ghost"
@@ -483,6 +545,33 @@ export default function Patients() {
                 {monitorBusy ? "Memproses..." : monitorTarget.monitoringStatus === "ended" ? "Aktifkan Lagi" : "Ya, Akhiri Monitoring"}
               </button>
               <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setMonitorTarget(null)} disabled={monitorBusy}>
+                Batal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {dpjpPatient && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(23,38,43,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+          <div className="card" style={{ width: 380, maxWidth: "92vw" }}>
+            <h3>Dokter Penanggung Jawab — {dpjpPatient.name}</h3>
+            <div className="stat-sub" style={{ marginBottom: 10 }}>
+              Hanya DPJP yang bisa menjawab pertanyaan Tanya Dokter pasien ini. Pertanyaan yang belum dijawab ikut pindah ke DPJP baru.
+            </div>
+            <div className="field">
+              <label>Pilih dokter</label>
+              <select value={dpjpValue} onChange={(e) => setDpjpValue(e.target.value)} autoFocus>
+                <option value="">— Belum ada DPJP —</option>
+                {doctors.map((d) => <option key={d.uid} value={d.uid}>{d.name}</option>)}
+              </select>
+            </div>
+            {dpjpError && <div className="error-text" style={{ marginBottom: 8 }}>{dpjpError}</div>}
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveDpjp} disabled={dpjpBusy}>
+                {dpjpBusy ? "Menyimpan..." : "Simpan"}
+              </button>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setDpjpPatient(null)} disabled={dpjpBusy}>
                 Batal
               </button>
             </div>

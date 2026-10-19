@@ -209,6 +209,22 @@ function IconStatus() {
   );
 }
 
+// BARU (Okt 2026): ikon menu Tanya Dokter (gelembung chat + tanda plus).
+function IconTanya() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4h0A1.5 1.5 0 0 1 4 14.5Z" />
+      <path d="M12 6.8v5.4M9.3 9.5h5.4" />
+    </svg>
+  );
+}
+
+const TANYA_STATUS = {
+  open: "⏳ Menunggu jawaban dokter",
+  awaiting_patient: "✍️ Dokter meminta keterangan tambahan",
+  answered: "✅ Sudah dijawab",
+};
+
 const CHECKIN_QUESTIONS = [
   { key: "medicationAsPlanned", text: "Apakah obat diminum sesuai rencana?", positiveIsGood: true },
   { key: "newComplaint", text: "Apakah ada keluhan baru?", positiveIsGood: false },
@@ -284,6 +300,16 @@ export default function PortalHome() {
   const [skipTarget, setSkipTarget] = useState(null); // { medicationId, name, slot }
   const [skipDone, setSkipDone] = useState(null); // { name, reason }
   const [doseBusy, setDoseBusy] = useState(false);
+
+  // ==== BARU (Okt 2026): Tanya Dokter ====
+  const [tanya, setTanya] = useState(null); // hasil getDoctorQuestions
+  const [tanyaStep, setTanyaStep] = useState("precheck"); // precheck | form
+  const [tanyaText, setTanyaText] = useState("");
+  const [tanyaBusy, setTanyaBusy] = useState(false);
+  const [tanyaMsg, setTanyaMsg] = useState("");
+  const [tanyaErr, setTanyaErr] = useState("");
+  const [tanyaDanger, setTanyaDanger] = useState(null); // kata tanda bahaya yang terdeteksi
+  const [replyText, setReplyText] = useState({}); // { [questionId]: teks }
 
   function applyNotifications(summaryData) {
       const signalItems = (summaryData.signals || [])
@@ -439,6 +465,13 @@ export default function PortalHome() {
       params.delete("notif");
       const qs = params.toString();
       window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+    }
+    // BARU (Okt 2026): ketuk notifikasi jawaban dokter → langsung ke Tanya Dokter.
+    if (params.get("tanya") === "1") {
+      params.delete("tanya");
+      const qs = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+      openTanya();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading]);
@@ -613,6 +646,71 @@ export default function PortalHome() {
       setMonitoringMsg("Gagal menyimpan: " + (err.message || "terjadi kesalahan."));
     } finally {
       setMonitoringSubmitting(false);
+    }
+  };
+
+  // ==== BARU (Okt 2026): Tanya Dokter ====
+  async function loadTanya() {
+    setTanyaErr("");
+    try {
+      const patientId = await getPatientId();
+      const res = await callApi("patientPortal", { action: "getDoctorQuestions", patientId });
+      setTanya(res.data);
+    } catch (err) {
+      setTanya({ error: err.message || "Gagal memuat Tanya Dokter." });
+    }
+  }
+
+  const openTanya = () => {
+    setTanyaStep("precheck");
+    setTanyaText("");
+    setTanyaMsg("");
+    setTanyaErr("");
+    setTanyaDanger(null);
+    setView("tanya");
+    loadTanya();
+  };
+
+  const goToSos = () => {
+    setTanyaDanger(null);
+    setEmergencyStep("idle");
+    setView("help");
+  };
+
+  const handleAskDoctor = async (confirmNotEmergency = false) => {
+    setTanyaBusy(true);
+    setTanyaErr("");
+    try {
+      const patientId = await getPatientId();
+      const res = await callApi("patientPortal", { action: "askDoctor", patientId, question: tanyaText, confirmNotEmergency });
+      if (res.data.dangerDetected) {
+        setTanyaDanger(res.data.keywords || []);
+        return;
+      }
+      setTanyaDanger(null);
+      setTanyaText("");
+      setTanyaMsg(`Pertanyaan terkirim ke ${tanya?.dpjpName || "dokter Anda"}. Akan dijawab ${res.data.service?.nextOpenText || "pada jam layanan"}.`);
+      await loadTanya();
+    } catch (err) {
+      setTanyaErr(err.message || "Gagal mengirim pertanyaan.");
+    } finally {
+      setTanyaBusy(false);
+    }
+  };
+
+  const handleReplyClarification = async (questionId) => {
+    setTanyaBusy(true);
+    setTanyaErr("");
+    try {
+      const patientId = await getPatientId();
+      await callApi("patientPortal", { action: "replyDoctorClarification", patientId, questionId, text: replyText[questionId] || "" });
+      setReplyText((r) => ({ ...r, [questionId]: "" }));
+      setTanyaMsg("Balasan terkirim ke dokter.");
+      await loadTanya();
+    } catch (err) {
+      setTanyaErr(err.message || "Gagal mengirim balasan.");
+    } finally {
+      setTanyaBusy(false);
     }
   };
 
@@ -983,6 +1081,12 @@ export default function PortalHome() {
               <span className="portal-menu-illustration"><IconHistory /></span>
               Riwayat Monitoring
             </button>
+            {snapshot?.tanyaDokter?.enabled && (
+              <button className="portal-menu-btn" onClick={openTanya} style={{ gridColumn: "1 / -1" }}>
+                <span className="portal-menu-illustration"><IconTanya /></span>
+                Tanya Dokter
+              </button>
+            )}
             <button className="portal-menu-btn" onClick={() => setView("help")} style={{ gridColumn: "1 / -1" }}>
               <span className="portal-menu-illustration warm"><IconHelp /></span>
               Bantuan / Tanda Bahaya
@@ -1125,6 +1229,124 @@ export default function PortalHome() {
                   {e.symptom && <div className="portal-sub" style={{ marginTop: 2 }}>Keluhan: {e.symptom}</div>}
                 </div>
               ))}
+            </>
+          )}
+          <button className="portal-link-btn" onClick={() => setView("home")}>Kembali</button>
+        </div>
+      )}
+
+      {/* ==== BARU (Okt 2026): TANYA DOKTER ==== */}
+      {view === "tanya" && (
+        <div className="portal-card">
+          <h3 style={{ marginTop: 0 }}>💬 Tanya Dokter</h3>
+          {!tanya ? (
+            <p>Memuat...</p>
+          ) : tanya.error ? (
+            <p className="portal-error">{tanya.error}</p>
+          ) : !tanya.enabled ? (
+            <p>Dokter penanggung jawab Anda belum dicatat. Minta petugas mengisinya saat kontrol.</p>
+          ) : (
+            <>
+              <p className="portal-sub" style={{ marginTop: 0 }}>
+                Dokter: <b>{tanya.dpjpName || "-"}</b><br />
+                Jam layanan: {tanya.service?.hoursText}{tanya.service?.open ? " — 🟢 sedang buka" : ""}<br />
+                1 pertanyaan per hari. Untuk edukasi (makanan, cara cek tensi/gula, cara minum obat).
+                Dokter <b>tidak mengubah dosis obat</b> lewat chat — perubahan obat hanya saat kontrol.
+              </p>
+
+              {tanyaMsg && <div className="portal-info-card" style={{ borderColor: "var(--p-accent)" }}>✅ {tanyaMsg}</div>}
+              {tanyaErr && <p className="portal-error">{tanyaErr}</p>}
+
+              {tanya.usedToday ? (
+                <div className="portal-info-card">
+                  🔒 Jatah pertanyaan hari ini sudah dipakai. Anda bisa bertanya lagi besok.
+                  {!tanya.service?.open && <div className="portal-sub" style={{ marginTop: 4 }}>Pertanyaan Anda akan dijawab {tanya.service?.nextOpenText}.</div>}
+                </div>
+              ) : tanyaStep === "precheck" ? (
+                <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
+                  <p style={{ marginTop: 0, fontWeight: 700 }}>Sebelum bertanya: apakah SEKARANG Anda mengalami salah satu ini?</p>
+                  <ul style={{ marginTop: 0 }}>
+                    <li>Nyeri dada</li>
+                    <li>Lemas / kesemutan separuh badan, wajah mencong, atau bicara pelo</li>
+                    <li>Sesak napas</li>
+                  </ul>
+                  <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={goToSos}>
+                    Ya — buka Tombol Emergency
+                  </button>
+                  <button className="portal-primary-btn" style={{ marginTop: 8 }} onClick={() => setTanyaStep("form")}>
+                    Tidak — lanjut menulis pertanyaan
+                  </button>
+                </div>
+              ) : tanyaDanger ? (
+                <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
+                  <p style={{ marginTop: 0, fontWeight: 700 }}>🚨 Pertanyaan Anda menyebut tanda bahaya ({tanyaDanger.join(", ")}).</p>
+                  <p className="portal-sub">Jika keluhan itu sedang terjadi sekarang, jangan menunggu jawaban chat — segera tekan Tombol Emergency atau ke IGD.</p>
+                  <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={goToSos}>
+                    🆘 Buka Tombol Emergency
+                  </button>
+                  <button className="portal-link-btn" disabled={tanyaBusy} onClick={() => handleAskDoctor(true)}>
+                    {tanyaBusy ? "Mengirim..." : "Bukan darurat sekarang, tetap kirim pertanyaan"}
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {!tanya.service?.open && (
+                    <div className="portal-info-card">
+                      🕙 Di luar jam layanan. Pertanyaan tetap bisa dikirim sekarang dan akan dijawab {tanya.service?.nextOpenText}.
+                    </div>
+                  )}
+                  <div className="portal-field">
+                    <label>Pertanyaan Anda</label>
+                    <textarea
+                      rows={4}
+                      maxLength={tanya.maxChars || 500}
+                      value={tanyaText}
+                      onChange={(e) => setTanyaText(e.target.value)}
+                      placeholder="Contoh: Bolehkah saya makan durian? / Jam berapa sebaiknya cek gula darah?"
+                      style={{ width: "100%", boxSizing: "border-box", font: "inherit", padding: 10, borderRadius: 10 }}
+                    />
+                    <div className="portal-sub" style={{ fontSize: 12, textAlign: "right" }}>{tanyaText.length}/{tanya.maxChars || 500}</div>
+                  </div>
+                  <button className="portal-primary-btn" disabled={tanyaBusy || tanyaText.trim().length < 5} onClick={() => handleAskDoctor(false)}>
+                    {tanyaBusy ? "Mengirim..." : "Kirim ke Dokter"}
+                  </button>
+                </>
+              )}
+
+              {(tanya.questions || []).length > 0 && (
+                <div style={{ marginTop: 20 }}>
+                  <b>Riwayat Pertanyaan</b>
+                  {tanya.questions.map((q) => (
+                    <div key={q.id} className="portal-notif-item" style={{ marginTop: 10 }}>
+                      <div className="portal-notif-meta">
+                        <span className="portal-notif-kind">{TANYA_STATUS[q.status] || q.status}</span>
+                        <span className="portal-notif-time">{q.askedAt ? new Date(q.askedAt).toLocaleDateString("id-ID", { day: "2-digit", month: "short" }) : q.dateWib}</span>
+                      </div>
+                      {q.messages.map((m, i) => (
+                        <div key={i} className="portal-notif-text" style={{ marginTop: 6 }}>
+                          <b>{m.from === "doctor" ? `👨‍⚕️ ${m.byName || "Dokter"}:` : "Saya:"}</b>{" "}
+                          <span style={{ whiteSpace: "pre-wrap" }}>{m.text}</span>
+                        </div>
+                      ))}
+                      {q.status === "awaiting_patient" && (
+                        <div style={{ marginTop: 8 }}>
+                          <textarea
+                            rows={3}
+                            maxLength={tanya.maxChars || 500}
+                            value={replyText[q.id] || ""}
+                            onChange={(e) => setReplyText((r) => ({ ...r, [q.id]: e.target.value }))}
+                            placeholder="Tulis keterangan yang diminta dokter..."
+                            style={{ width: "100%", boxSizing: "border-box", font: "inherit", padding: 10, borderRadius: 10 }}
+                          />
+                          <button className="portal-primary-btn" disabled={tanyaBusy || !(replyText[q.id] || "").trim()} onClick={() => handleReplyClarification(q.id)}>
+                            {tanyaBusy ? "Mengirim..." : "Balas Dokter (tidak memakai jatah)"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </>
           )}
           <button className="portal-link-btn" onClick={() => setView("home")}>Kembali</button>

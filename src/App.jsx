@@ -27,6 +27,7 @@ const pageLoaders = {
   PatientHistory: () => import("./pages/PatientHistory"),
   SafetySignals: () => import("./pages/SafetySignals"),
   Prehospital: () => import("./pages/Prehospital"),
+  TanyaDokter: () => import("./pages/TanyaDokter"), // BARU (Okt 2026)
 };
 
 const Dashboard = lazy(pageLoaders.Dashboard);
@@ -43,6 +44,7 @@ const Administration = lazy(pageLoaders.Administration);
 const PatientHistory = lazy(pageLoaders.PatientHistory);
 const SafetySignals = lazy(pageLoaders.SafetySignals);
 const Prehospital = lazy(pageLoaders.Prehospital);
+const TanyaDokter = lazy(pageLoaders.TanyaDokter);
 
 // Setelah layar pertama selesai tampil dan HP sedang santai, halaman lain
 // diunduh diam-diam di latar belakang — supaya pindah menu tetap instan
@@ -99,6 +101,7 @@ export default function App() {
             <Route path="/patient-history" element={withProtection(<PatientHistory />)} />
             <Route path="/safety-signals" element={withProtection(<SafetySignals />)} />
             <Route path="/prehospital" element={withProtection(<Prehospital />)} />
+            <Route path="/tanya-dokter" element={withProtection(<TanyaDokter />)} />
             {/* Rute /portal & /portal/login TIDAK lagi di sini — sudah
                 ditangani halaman HTML terpisah (portal.html) lewat rewrite
                 di vercel.json, supaya manifest PWA-nya tertanam statis. */}
