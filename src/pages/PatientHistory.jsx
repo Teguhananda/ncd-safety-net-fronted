@@ -59,9 +59,9 @@ function shortDate(dateStr) {
 
 function pctColor(p) {
   if (p === null || p === undefined) return "inherit";
-  if (p >= 80) return "#34d399";
-  if (p >= 50) return "#f5a623";
-  return "#ff5c50";
+  if (p >= 80) return "#15803d";
+  if (p >= 50) return "#b45309";
+  return "#c62828";
 }
 
 function ComplianceCard({ compliance }) {
@@ -136,7 +136,7 @@ function ComplianceCard({ compliance }) {
         <>
           <div style={{ marginBottom: 8 }}>
             Diisi <b>{ttv.done}/{ttv.expected}</b> hari-parameter
-            {ttv.missed > 0 && <span style={{ color: "#ff5c50", fontWeight: 700 }}> — {ttv.missed} terlewat</span>}
+            {ttv.missed > 0 && <span style={{ color: "#c62828", fontWeight: 700 }}> — {ttv.missed} terlewat</span>}
             {ttv.percent !== null && <span style={{ color: pctColor(ttv.percent), fontWeight: 700 }}> ({ttv.percent}%)</span>}
             {ttv.frequency && <span className="stat-sub"> · Target: {ttv.frequency}</span>}
           </div>
@@ -236,8 +236,8 @@ export default function PatientHistory() {
                       <TrendChart
                         data={buildTrendData(bpEntries)}
                         lines={[
-                          { key: "systolicBP", label: "Sistolik", color: "#ff5c50" },
-                          { key: "diastolicBP", label: "Diastolik", color: "#17b8a6" },
+                          { key: "systolicBP", label: "Sistolik", color: "#0F9F9A" },
+                          { key: "diastolicBP", label: "Diastolik", color: "#4385C5" },
                         ]}
                         height={180}
                       />
@@ -248,7 +248,7 @@ export default function PatientHistory() {
                       <div className="stat-label">Tren Gula Darah</div>
                       <TrendChart
                         data={buildTrendData(glucoseEntries)}
-                        lines={[{ key: "bloodGlucose", label: "Gula Darah", color: "#f5a623" }]}
+                        lines={[{ key: "bloodGlucose", label: "Gula Darah", color: "#FF7A6B" }]}
                         height={180}
                       />
                     </div>

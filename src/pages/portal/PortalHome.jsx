@@ -10,10 +10,10 @@ import { ArtCekKondisi, ArtSafetyPlan, ArtRiwayat, ArtTanyo, ArtBantuan } from "
 import DoctorMascot, { MASCOT_MESSAGE } from "./DoctorMascot";
 
 const STATUS_MAP = {
-  SAFE: { emoji: "🟢", label: "AMAN", color: "#34d399" },
-  ATTENTION: { emoji: "🟡", label: "PERLU PERHATIAN", color: "#f5a623" },
-  ACTION_NEEDED: { emoji: "🟠", label: "PERLU TINDAKAN", color: "#f2994a" },
-  URGENT: { emoji: "🔴", label: "SEGERA HUBUNGI RS", color: "#ff5c50" },
+  SAFE: { emoji: "🟢", label: "AMAN", color: "#0b7a5f" },
+  ATTENTION: { emoji: "🟡", label: "PERLU PERHATIAN", color: "#a86a00" },
+  ACTION_NEEDED: { emoji: "🟠", label: "PERLU TINDAKAN", color: "#c2410c" },
+  URGENT: { emoji: "🔴", label: "SEGERA HUBUNGI RS", color: "#c53a3a" },
 };
 
 const PARAM_LABEL_ID = {
@@ -1573,14 +1573,14 @@ export default function PortalHome() {
           bottom: 20,
           right: 20,
           zIndex: 30,
-          background: "rgba(20, 30, 45, 0.9)",
-          color: "var(--p-accent, #34d399)",
+          background: "#ffffff",
+          color: "#0a6b60",
           border: "1px solid var(--p-glass-border, rgba(255,255,255,0.15))",
           borderRadius: 999,
           padding: "10px 18px",
           fontSize: 14,
           fontWeight: 600,
-          boxShadow: "0 4px 14px rgba(0,0,0,0.35)",
+          boxShadow: "0 2px 10px rgba(18,41,58,0.18)",
           cursor: "pointer",
         }}
       >

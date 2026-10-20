@@ -5,6 +5,7 @@ import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { canSeeSignal } from "../lib/signalAccess";
 import { SOS_ENABLED } from "../lib/features";
+import { NavIcon } from "./NavIcons";
 
 const ROLE_LABEL = {
   admin: "Admin",
@@ -97,7 +98,7 @@ export default function Sidebar() {
             onClick={() => setMobileOpen(false)}
             className={({ isActive }) => "nav-item" + (isActive ? " active" : "")}
           >
-            <span className="nav-dot"></span>
+            <NavIcon to={item.to} />
             {labelFor(item, role)}
             {item.to === "/safety-signals" && activeSignalCount > 0 && (
               <span
@@ -130,11 +131,11 @@ export default function Sidebar() {
             padding: "14px 18px",
             marginBottom: 14,
             borderRadius: 16,
-            background: "rgba(255, 255, 255, 0.10)",
-            border: "1px solid rgba(255, 255, 255, 0.18)",
+            background: "#f2f7f9",
+            border: "1px solid var(--line)",
             backdropFilter: "blur(12px)",
             WebkitBackdropFilter: "blur(12px)",
-            boxShadow: "0 4px 18px rgba(0, 0, 0, 0.25)",
+            boxShadow: "none",
           }}
         >
           {/* 20 Okt 2026: logo Komite Mutu diganti — kiri Pemda Rejang Lebong, kanan RSUD */}

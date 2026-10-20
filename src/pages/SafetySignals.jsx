@@ -142,7 +142,7 @@ export default function SafetySignals() {
                 }}
               >
                 {isEmergencyButton && (
-                  <div style={{ fontWeight: 800, color: "#ff5c50", marginBottom: 8, fontSize: 15 }}>
+                  <div style={{ fontWeight: 800, color: "#c62828", marginBottom: 8, fontSize: 15 }}>
                     🆘 PASIEN MENEKAN TOMBOL EMERGENCY — SEGERA TINDAK LANJUTI
                   </div>
                 )}

@@ -24,14 +24,14 @@ export default function RiskPieChart({ data, size = 220 }) {
         <filter id="pieShadow3d" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="7" stdDeviation="7" floodColor="#000" floodOpacity="0.5"/></filter>
       </defs></svg>
       <PieChart width={size} height={size}>
-        <Pie data={d} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={size*0.22} outerRadius={size*0.42} paddingAngle={3} startAngle={90} endAngle={-270} stroke="rgba(255,255,255,0.18)" strokeWidth={1} style={{ filter:"url(#pieShadow3d)" }}>
+        <Pie data={d} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={size*0.22} outerRadius={size*0.42} paddingAngle={3} startAngle={90} endAngle={-270} stroke="#ffffff" strokeWidth={1} style={{ filter:"url(#pieShadow3d)" }}>
           {d.map((e) => <Cell key={e.name} fill={`url(#pg-${e.name.replace(" ","")})`} />)}
         </Pie>
         <Tooltip content={<CustomTooltip total={total} />} />
       </PieChart>
       <div style={{ position:"absolute", top:"50%", left:"50%", transform:"translate(-50%,-50%)", textAlign:"center", pointerEvents:"none" }}>
-        <div style={{ fontSize:24, fontWeight:700, color:"#fff" }}>{total}</div>
-        <div style={{ fontSize:11, color:"rgba(244,253,251,0.7)" }}>Pasien</div>
+        <div style={{ fontSize:24, fontWeight:700, color:"var(--ink)" }}>{total}</div>
+        <div style={{ fontSize:12, color:"var(--ink-soft)" }}>Pasien</div>
       </div>
     </div>
   );

@@ -292,13 +292,13 @@ export default function Screening() {
               {selectedPastDate && (
                 <div className="stat-sub" style={{ marginTop: 6 }}>
                   {selectedDayItems.map((item, i) => (
-                    <div key={i} style={{ marginTop: i > 0 ? 8 : 0, paddingTop: i > 0 ? 8 : 0, borderTop: i > 0 ? "1px solid rgba(255,255,255,0.08)" : "none" }}>
+                    <div key={i} style={{ marginTop: i > 0 ? 8 : 0, paddingTop: i > 0 ? 8 : 0, borderTop: i > 0 ? "1px solid var(--line)" : "none" }}>
                       <strong>{item.summary}</strong>
                       {item.detail && item.detail.ncdConditions && item.detail.ncdConditions.length > 0 && (
                         <div>Kondisi NCD: {item.detail.ncdConditions.join(", ")}</div>
                       )}
                       {item.detail && item.detail.redFlags && item.detail.redFlags.length > 0 && (
-                        <div style={{ color: "#ffd7cf" }}>Red Flag: {item.detail.redFlags.join(", ")}</div>
+                        <div style={{ color: "#b91c1c" }}>Red Flag: {item.detail.redFlags.join(", ")}</div>
                       )}
                       {item.detail && item.detail.totalScore != null && (
                         <div>Skor risiko total: {item.detail.totalScore}</div>

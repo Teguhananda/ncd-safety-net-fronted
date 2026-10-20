@@ -631,3 +631,122 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .dm * , .dm { animation: none !important; }
 }
+
+/* =========================================================================
+   TEMA TERANG TOSCA + CORAL "GUNUNG" — BARU (20 Okt 2026)
+   Palet: Tosca #0F9F9A (utama), Coral #FF7A6B (aksen), latar #F5FAFA,
+   kartu putih, teks #173B46. Kepala halaman = spanduk ilustrasi gunung
+   (public/tema/gunung-banner.svg — ilustrasi asli). Huruf besar & kontras
+   tinggi untuk pasien lansia. Blok ini MENIMPA tema gelap di atas. Untuk
+   kembali ke tema gelap: hapus seluruh blok dari judul ini sampai akhir
+   file (+ kembalikan warna di portal.html).
+   ========================================================================= */
+html, body { background: #f5fafa; }
+
+.portal-shell {
+  --p-bg-1: #f5fafa;
+  --p-bg-2: #f5fafa;
+  --p-bg-3: #e8f5f4;
+  --p-glass-bg: #ffffff;
+  --p-glass-bg-strong: #ffffff;
+  --p-glass-border: #d5e8e7;
+  --p-ink: #173b46;
+  --p-ink-soft: #5e737c;
+  --p-accent: #087f8c;
+  --p-accent-strong: #066571;
+  --p-warm: #b8382b;
+  --p-warm-strong: #9c2c20;
+  --p-shadow: 0 4px 18px rgba(6, 101, 113, 0.07);
+  color: var(--p-ink);
+  background: url("/tema/gunung-lembut.svg") center bottom / 100% auto no-repeat, #f5fafa;
+}
+
+/* Kepala halaman: spanduk tosca + ilustrasi gunung */
+.portal-header {
+  border-radius: 24px;
+  padding: 18px 16px;
+  min-height: 108px;
+  background:
+    linear-gradient(90deg, rgba(6, 101, 113, 0.96) 0%, rgba(8, 127, 140, 0.90) 45%, rgba(15, 159, 154, 0.45) 75%, rgba(15, 159, 154, 0.10) 100%),
+    url("/tema/gunung-banner.svg") right bottom / cover no-repeat,
+    #087f8c;
+  box-shadow: 0 6px 18px rgba(8, 127, 140, 0.25);
+}
+.portal-header h2 { color: #ffffff; }
+.portal-header .portal-brand-sub { color: #ecfdfa; }
+.portal-logo-img { background: #ffffff; border: none; box-shadow: 0 2px 8px rgba(6, 101, 113, 0.25); }
+
+.portal-card, .portal-status-card, .portal-info-card {
+  background: #ffffff;
+  border: 1px solid #d5e8e7;
+  border-radius: 22px;
+  color: var(--p-ink);
+}
+.portal-card h3 { color: #173b46; }
+.portal-info-card { background: #e8f5f4; border-color: #cbe9e4; }
+.portal-status-card { border-width: 3px; }
+.portal-status-icon-wrap { background: #e8f5f4; }
+.portal-sub { color: var(--p-ink-soft); font-size: 15px; }
+.portal-error { color: #b23434; }
+
+.portal-menu-btn { background: #ffffff; color: var(--p-ink); border: 1px solid #d5e8e7; border-radius: 22px; box-shadow: 0 3px 14px rgba(6, 101, 113, 0.07); }
+.portal-menu-btn:active { background: #e8f5f4; }
+.portal-menu-btn[class*="theme-"] { background: #ffffff; border-width: 2px; }
+.portal-menu-btn.theme-cek     { --menu-tint: linear-gradient(145deg, #cfeceb, #fff0ed); --menu-glow: rgba(15, 159, 154, 0.20); --menu-edge: #9fded5; }
+.portal-menu-btn.theme-plan    { --menu-tint: linear-gradient(145deg, #fef0d2, #fff0ed); --menu-glow: rgba(245, 158, 11, 0.20); --menu-edge: #f7d08a; }
+.portal-menu-btn.theme-riwayat { --menu-tint: linear-gradient(145deg, #e8f1ff, #cfeceb); --menu-glow: rgba(59, 130, 246, 0.18); --menu-edge: #a9c8f7; }
+.portal-menu-btn.theme-tanyo   { --menu-tint: linear-gradient(145deg, #ffe1dc, #cfeceb); --menu-glow: rgba(255, 122, 107, 0.22); --menu-edge: #ffb0a5; }
+.portal-menu-btn.theme-bantuan { --menu-tint: linear-gradient(145deg, #fde2e2, #fff0ed); --menu-glow: rgba(239, 68, 68, 0.16); --menu-edge: #f3a5a5; }
+.portal-menu-art { box-shadow: inset 0 0 0 1px rgba(6, 101, 113, 0.06), 0 4px 12px var(--menu-glow, rgba(0, 0, 0, 0.08)); }
+.portal-menu-text { font-size: 18px; color: #173b46; }
+.portal-menu-text small { font-size: 14px; opacity: 1; color: var(--p-ink-soft); }
+.portal-menu-illustration { background: #cfeceb; color: #066571; }
+.portal-menu-illustration.warm { background: #fff0ed; color: #b8382b; }
+
+.portal-primary-btn { background: linear-gradient(135deg, #087f8c, #066571); box-shadow: 0 3px 12px rgba(8, 127, 140, 0.30); }
+.portal-link-btn { color: #066571; }
+
+.portal-field label { color: var(--p-ink); }
+.portal-field input, .portal-field select, .portal-shell textarea {
+  background: #ffffff;
+  border: 1px solid #b9d6d4;
+  color: var(--p-ink);
+}
+.portal-field input:focus, .portal-field select:focus { border-color: #087f8c; box-shadow: 0 0 0 3px rgba(15, 159, 154, 0.25); }
+
+.portal-question { color: var(--p-ink); border-bottom-color: #e3efee; }
+.portal-yn button { background: #ffffff; color: var(--p-ink); border: 1px solid #b9d6d4; }
+.portal-history-row { color: var(--p-ink); border-bottom-color: #e3efee; }
+
+/* Panel notifikasi & pop-up — putih solid, teks gelap */
+.portal-sheet-overlay { background: rgba(6, 101, 113, 0.35); }
+.portal-sheet { background: #ffffff; color: #173b46; border: 1px solid #d5e8e7; box-shadow: 0 -8px 30px rgba(6, 101, 113, 0.18); }
+.portal-sheet-handle { background: #b9d6d4; }
+.portal-sheet-head { border-bottom-color: #e3efee; }
+.portal-sheet-head h3 { color: #173b46; }
+.portal-sheet-close { background: #e8f5f4; color: #066571; border: 1px solid #b9d6d4; }
+.portal-notif-item { background: #fbfdfd; border: 1px solid #d5e8e7; border-left: 5px solid #0f9f9a; }
+.portal-notif-time { color: #5e737c; }
+.portal-notif-text { color: #173b46; }
+.portal-toast { background: #ffffff; color: #173b46; border: 2px solid #0f9f9a; box-shadow: 0 8px 24px rgba(6, 101, 113, 0.18); }
+.portal-toast-hint { color: #066571; }
+
+/* Konfirmasi obat */
+.portal-dose-row { background: #e8f5f4; border: 1px solid #cbe9e4; border-radius: 18px; }
+.portal-dose-skip-btn { background: #ffffff; color: #b8382b; border: 1.5px solid #ff7a6b; }
+.portal-dose-skipped { background: #fff0ed; color: #9c2c20; }
+.portal-reason-btn { background: #ffffff; color: #173b46; border: 1px solid #b9d6d4; }
+.portal-reason-btn:active { background: #e8f5f4; }
+
+/* Layar peringatan hasil TTV */
+@keyframes portal-alert-flash {
+  0%, 49% { border-color: #e02424; box-shadow: 0 0 0 4px rgba(224, 36, 36, 0.30), 0 8px 24px rgba(6, 101, 113, 0.15); }
+  50%, 100% { border-color: #1d63e0; box-shadow: 0 0 0 4px rgba(29, 99, 224, 0.30), 0 8px 24px rgba(6, 101, 113, 0.15); }
+}
+.portal-vitals-alert { background: #ffffff; color: #173b46; border-color: #ff7a6b; }
+.portal-vitals-alert.critical { background: #fff8f7; }
+.portal-vitals-reason { color: #b91c1c; }
+.portal-vitals-alert.high .portal-vitals-reason { color: #9c2c20; }
+.portal-vitals-signs { background: #fde9e9; border: 1px solid #f1b3b3; color: #7a1f1f; }
+
+.portal-mascot-msg { color: var(--p-ink); }

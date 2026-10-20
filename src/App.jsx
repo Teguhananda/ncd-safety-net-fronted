@@ -67,7 +67,7 @@ function usePrefetchPages() {
 
 function PageLoading() {
   return (
-    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", color: "rgba(244,253,251,0.72)", fontSize: 15 }}>
+    <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-soft)", fontSize: 15 }}>
       Memuat…
     </div>
   );

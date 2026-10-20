@@ -110,8 +110,8 @@ export default function Analytics() {
             <TrendChart
               data={chartData}
               lines={[
-                { key: "totalScreenings", label: "Total Skrining", color: "#3B5670" },
-                { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#C8552B" },
+                { key: "totalScreenings", label: "Total Skrining", color: "#0F9F9A" },
+                { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#FF7A6B" },
               ]}
             />
           </div>
@@ -126,9 +126,9 @@ export default function Analytics() {
                 followup: r.followupCompletionRate !== undefined && r.followupCompletionRate !== null ? Math.round(r.followupCompletionRate * 100) : null,
               }))}
               lines={[
-                { key: "medRecon", label: "Rekonsiliasi Obat %", color: "#2E9E6D" },
-                { key: "education", label: "Education %", color: "#B8862E" },
-                { key: "followup", label: "Follow-up %", color: "#3B5670" },
+                { key: "medRecon", label: "Rekonsiliasi Obat %", color: "#0F9F9A" },
+                { key: "education", label: "Education %", color: "#8B7CC8" },
+                { key: "followup", label: "Follow-up %", color: "#4385C5" },
               ]}
             />
           </div>

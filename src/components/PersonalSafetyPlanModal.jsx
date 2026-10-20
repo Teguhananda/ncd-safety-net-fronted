@@ -277,7 +277,7 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
                 Daftar ini dipakai untuk pengingat minum obat di HP pasien. Kosongkan semua jadwal untuk obat "jika perlu" (tidak diingatkan).
               </div>
               {meds.map((m, i) => (
-                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+                <div key={i} style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 12, paddingBottom: 12, borderBottom: "1px solid var(--line)" }}>
                   <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                     <div className="grid cols-3" style={{ flex: 1 }}>
                       <input placeholder="Nama obat" value={m.name} disabled={!canEditMeds} onChange={(e) => updateMed(i, "name", e.target.value)} />

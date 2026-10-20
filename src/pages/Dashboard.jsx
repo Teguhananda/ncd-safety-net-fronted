@@ -66,16 +66,16 @@ const DEFAULT_VITAL_THRESHOLDS = {
 };
 function bpFlag(sys, dia, th = DEFAULT_VITAL_THRESHOLDS) {
   if (sys == null && dia == null) return null;
-  if ((sys != null && sys >= th.critical.systolic) || (dia != null && dia >= th.critical.diastolic)) return { color: "#ff5c50", text: "sangat tinggi", critical: true };
-  if ((sys != null && sys >= th.high.systolic) || (dia != null && dia >= th.high.diastolic)) return { color: "#f5a623", text: "tinggi" };
-  if (sys != null && sys < 90) return { color: "#f5a623", text: "rendah" };
+  if ((sys != null && sys >= th.critical.systolic) || (dia != null && dia >= th.critical.diastolic)) return { color: "#c62828", text: "sangat tinggi", critical: true };
+  if ((sys != null && sys >= th.high.systolic) || (dia != null && dia >= th.high.diastolic)) return { color: "#b45309", text: "tinggi" };
+  if (sys != null && sys < 90) return { color: "#b45309", text: "rendah" };
   return null;
 }
 function glucoseFlag(v, th = DEFAULT_VITAL_THRESHOLDS) {
   if (v == null) return null;
-  if (v < th.critical.glucoseLow) return { color: "#ff5c50", text: "rendah (hipoglikemia)", critical: true };
-  if (v >= th.critical.glucoseHigh) return { color: "#ff5c50", text: "sangat tinggi", critical: true };
-  if (v >= th.high.glucoseHigh) return { color: "#f5a623", text: "tinggi" };
+  if (v < th.critical.glucoseLow) return { color: "#c62828", text: "rendah (hipoglikemia)", critical: true };
+  if (v >= th.critical.glucoseHigh) return { color: "#c62828", text: "sangat tinggi", critical: true };
+  if (v >= th.high.glucoseHigh) return { color: "#b45309", text: "tinggi" };
   return null;
 }
 function formatBP(sess) {
@@ -103,12 +103,12 @@ const NOTIF_TYPE_COLLECTION = {
 };
 
 const NOTIF_TYPE_LABEL = {
-  patient_emergency: { text: "🆘 DARURAT — Tombol Emergency Ditekan", color: "#ff5c50" },
-  home_safety_signal: { text: "🏠 Sinyal Keselamatan Rumah", color: "#f5a623" },
-  red_flag: { text: "🚩 Red Flag", color: "#e6553f" },
-  high_risk: { text: "⚠️ Risiko Tinggi", color: "#e6553f" },
-  followup_overdue: { text: "📅 Follow-up Terlewat", color: "#f5a623" },
-  high_followup_risk: { text: "📅 Risiko Follow-up Tinggi", color: "#f5a623" },
+  patient_emergency: { text: "🆘 DARURAT — Tombol Emergency Ditekan", color: "#c62828" },
+  home_safety_signal: { text: "🏠 Sinyal Keselamatan Rumah", color: "#b45309" },
+  red_flag: { text: "🚩 Red Flag", color: "#c62828" },
+  high_risk: { text: "⚠️ Risiko Tinggi", color: "#c62828" },
+  followup_overdue: { text: "📅 Follow-up Terlewat", color: "#b45309" },
+  high_followup_risk: { text: "📅 Risiko Follow-up Tinggi", color: "#b45309" },
 };
 
 // ==== BAGIAN BARU: susun kalimat yang akan dibacakan suara, per jenis
@@ -625,14 +625,14 @@ export default function Dashboard() {
           top: 18,
           right: 18,
           zIndex: 900,
-          background: "var(--surface, #17262b)",
+          background: "var(--surface, #ffffff)",
           border: "1px solid var(--line, rgba(255,255,255,0.15))",
           borderRadius: "50%",
           width: 44,
           height: 44,
           fontSize: 20,
           cursor: "pointer",
-          boxShadow: "0 4px 14px rgba(0,0,0,0.3)",
+          boxShadow: "0 2px 10px rgba(18,41,58,0.15)",
         }}
       >
         🔔
@@ -676,7 +676,7 @@ export default function Dashboard() {
                     key={n.id}
                     style={{
                       padding: "10px 8px",
-                      borderBottom: "1px solid var(--line, rgba(255,255,255,0.08))",
+                      borderBottom: "1px solid var(--line, var(--line))",
                       background: isEmergency ? "rgba(255,92,80,0.12)" : "rgba(255,92,80,0.06)",
                     }}
                   >
@@ -803,8 +803,8 @@ export default function Dashboard() {
           data={history}
           height={180}
           lines={[
-            { key: "totalScreenings", label: "Total Skrining", color: "#3B5670" },
-            { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#C8552B" },
+            { key: "totalScreenings", label: "Total Skrining", color: "#0F9F9A" },
+            { key: "lostToFollowupCount", label: "Hilang dari Tindak Lanjut", color: "#FF7A6B" },
           ]}
         />
       </div>
@@ -858,7 +858,7 @@ export default function Dashboard() {
                           </tr>
                           {isOpen && (
                             <tr>
-                              <td colSpan={5} style={{ background: "rgba(255,255,255,0.04)", padding: 12 }}>
+                              <td colSpan={5} style={{ background: "var(--surface-2, #f2f7f9)", padding: 12 }}>
                                 <div style={{ fontWeight: 700, marginBottom: 8 }}>Riwayat TTV — {p.patientName}</div>
                                 <div style={{ overflowX: "auto" }}>
                                   <table>

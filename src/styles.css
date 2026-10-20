@@ -590,3 +590,205 @@ tbody tr.row-redflag { background: rgba(255,92,80,0.08); }
   }
   .sidebar { background: rgba(10, 17, 40, 0.97); }
 }
+
+/* =========================================================================
+   TEMA TERANG TOSCA + CORAL "GUNUNG" — BARU (20 Okt 2026)
+   Mengikuti UI Palette yang dipilih Komite PMKP: Tosca #0F9F9A (utama),
+   Coral #FF7A6B (aksen), latar #F5FAFA, kartu putih, teks #173B46.
+   Kepala halaman berupa spanduk ilustrasi gunung (public/tema/
+   gunung-banner.svg — ilustrasi asli, bukan foto). Teks tetap gelap di atas
+   latar terang (kontras ≥ 4,5:1), huruf lebih besar untuk petugas lansia.
+   Blok ini MENIMPA tema gelap di atas. Untuk kembali ke tema gelap: hapus
+   seluruh blok dari judul ini sampai akhir file.
+   ========================================================================= */
+:root {
+  --tosca: #0f9f9a;
+  --tosca-dark: #087f8c;
+  --tosca-deep: #066571;
+  --tosca-50: #e8f5f4;
+  --tosca-100: #cfeceb;
+  --coral: #ff7a6b;
+  --coral-dark: #e85d4f;
+  --coral-text: #b8382b;
+  --coral-soft: #fff0ed;
+  --app-bg: #f5fafa;
+  --border: #d5e8e7;
+
+  --bg-1: #f5fafa;
+  --bg-2: #f5fafa;
+  --bg-3: #e8f5f4;
+  --glass-bg: #ffffff;
+  --glass-bg-strong: #ffffff;
+  --glass-border: #d5e8e7;
+  --line: #d5e8e7;
+  --surface: #ffffff;
+  --surface-2: #e8f5f4;
+  --ink: #173b46;
+  --ink-soft: #5e737c;
+  --ink-on-glass: #173b46;
+  --stat-sub-color: #5e737c;
+  --accent: #087f8c;
+  --accent-strong: #066571;
+  --accent-text: #066571;
+  --redflag: #c53a3a;
+  --amber: #a86a00;
+  --green: #0b7a5f;
+  --low: #0b7a5f;
+  --moderate: #a86a00;
+  --shadow: 0 4px 18px rgba(6, 101, 113, 0.07);
+}
+
+body {
+  color: var(--ink);
+  font-size: 16px;
+  background: url("/tema/gunung-lembut.svg") center bottom / 100% auto no-repeat, var(--app-bg);
+}
+
+.card, .card-list, .login-card {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  color: var(--ink);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.card h3, .card h4 { color: var(--ink); }
+.card h3 { font-size: 18px; }
+
+.brand-text .name { color: var(--tosca-deep); }
+.brand-text .sub { color: var(--ink-soft) !important; opacity: 1 !important; }
+.logo-img, .app-logo-img, .brand-mark-img { background: #ffffff; border: 1px solid var(--border); }
+
+.field > label { color: var(--ink); font-size: 14px; font-weight: 600; }
+.field input,
+input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], input[type="tel"],
+input:not([type]), select, textarea {
+  background: #ffffff;
+  border: 1px solid #b9d6d4;
+  color: var(--ink);
+  font-size: 15px;
+}
+input:focus, select:focus, textarea:focus, .field input:focus {
+  border-color: var(--tosca-dark);
+  box-shadow: 0 0 0 3px rgba(15, 159, 154, 0.25);
+}
+input::placeholder, textarea::placeholder { color: #8a99a8; }
+select option { background: #ffffff; color: var(--ink); }
+select optgroup { background: #ffffff; color: var(--tosca-deep); }
+
+.error-text { color: var(--redflag); font-weight: 600; }
+
+.btn { font-size: 15px; border-radius: 12px; }
+.btn-primary {
+  background: linear-gradient(135deg, var(--tosca-dark), var(--tosca-deep));
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(8, 127, 140, 0.28);
+}
+.btn-ghost {
+  background: #ffffff;
+  color: var(--tosca-deep);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--coral-soft); border-color: var(--coral); color: var(--coral-text); }
+
+/* ---- Menu samping putih, menu aktif TOSCA ---- */
+.sidebar {
+  background: #ffffff;
+  border-right: 1px solid var(--border);
+  color: var(--ink);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+.nav-item { color: #173b46; font-size: 16px; font-weight: 500; }
+.nav-item:hover { background: var(--tosca-50); color: var(--tosca-deep); }
+.nav-item.active {
+  background: linear-gradient(135deg, var(--tosca-dark), var(--tosca-deep));
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(8, 127, 140, 0.30);
+}
+.role-switch { color: var(--ink-soft); border-top-color: var(--border); }
+.sidebar-footer { border-top-color: var(--border); }
+.sidebar-footer .brand-logos-bottom {
+  background: var(--tosca-50) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+/* ---- Kepala halaman: spanduk tosca + ilustrasi gunung ---- */
+.topbar {
+  margin: 20px 24px 0;
+  padding: 26px 30px;
+  min-height: 118px;
+  border-radius: 22px;
+  color: #ffffff;
+  background:
+    linear-gradient(90deg, rgba(6, 101, 113, 0.97) 0%, rgba(8, 127, 140, 0.93) 34%, rgba(15, 159, 154, 0.55) 60%, rgba(15, 159, 154, 0) 82%),
+    url("/tema/gunung-banner.svg") right bottom / cover no-repeat,
+    var(--tosca-dark);
+  box-shadow: 0 6px 20px rgba(8, 127, 140, 0.22);
+}
+.topbar h1 { color: #ffffff; font-size: 28px; }
+.topbar .meta { color: #ecfdfa; font-size: 15px; }
+.topbar .btn-ghost { background: #ffffff; color: var(--tosca-deep); border-color: #ffffff; box-shadow: 0 2px 8px rgba(6, 101, 113, 0.25); }
+.topbar .btn-ghost:hover { background: var(--coral-soft); color: var(--coral-text); }
+.net-divider { height: 0; margin: 10px 24px; background: none; }
+.content { background: transparent; }
+
+.stat-value { color: var(--ink); font-size: 34px; }
+.stat-label { color: var(--ink-soft); font-size: 13px; }
+.stat-sub { color: var(--ink-soft); font-size: 14px; }
+.hint { color: var(--ink-soft); font-size: 13px; }
+
+::-webkit-scrollbar-thumb { background: #b9d6d4; }
+
+.check-item { color: var(--ink); border-bottom-color: var(--border); font-size: 15px; }
+.check-item.danger-zone { color: var(--redflag); }
+.check-item input[type="checkbox"] { accent-color: var(--tosca-dark); }
+
+/* Status & tag (sesuai palet: Success / Warning / Coral / Error) */
+.badge.low { background: #e2f7ef; color: #0b7a5f; border: 1px solid #9fdcc5; }
+.badge.moderate { background: #fff4d9; color: #8a5a00; border: 1px solid #f0cf86; }
+.badge.high { background: #fde9e9; color: #b23434; border: 1px solid #f1b3b3; }
+.badge.redflag { background: #c53a3a; color: #ffffff; border: 1px solid #a82f2f; }
+
+/* Tabel */
+table { font-size: 15px; }
+thead th { color: var(--tosca-deep); font-size: 12px; background: var(--tosca-50); border-bottom: 1px solid var(--border); }
+tbody td { color: var(--ink); border-bottom: 1px solid #e3efee; }
+tbody tr:hover { background: #f5fbfa; }
+tbody tr.row-redflag { background: #fde9e9; }
+
+.score-row, .score-total { border-color: var(--border); }
+
+.alert.redflag { background: #fde9e9; border: 1px solid #f1b3b3; color: #8f2525; }
+.alert.warn { background: #fff4d9; border: 1px solid #f0cf86; color: #6b4500; }
+.alert.info { background: #e8f1ff; border: 1px solid #b6cff3; color: #1f4f91; }
+
+@media (max-width: 860px) {
+  .mobile-menu-btn {
+    background: #ffffff;
+    color: var(--tosca-deep);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+  .sidebar { background: #ffffff; box-shadow: 0 0 30px rgba(6, 101, 113, 0.18); }
+  .mobile-overlay { background: rgba(6, 101, 113, 0.30); }
+  .topbar { margin: 64px 12px 0; padding: 20px 18px; min-height: 100px; }
+  .topbar h1 { font-size: 24px; }
+}
+
+/* Ikon ilustrasi DIAM di menu samping (src/components/NavIcons.jsx) */
+.nav-item { gap: 12px; padding: 7px 12px; }
+.nav-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(23, 59, 70, 0.06);
+}
+.nav-item.active .nav-icon { background: #ffffff !important; box-shadow: 0 1px 4px rgba(6, 101, 113, 0.25); }
