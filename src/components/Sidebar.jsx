@@ -18,20 +18,34 @@ const ROLE_LABEL = {
   ugd: "UGD",
 };
 
+// REVISI (20 Okt 2026): tiap peran HANYA melihat menu yang memang ia kerjakan,
+// supaya petugas tidak bingung/salah klik. Menu hanya DISEMBUNYIKAN — tidak ada
+// akses baru yang ditambahkan (izin server/Firestore tidak berubah). Halaman yang
+// dibuka lewat tombol/tautan di halaman lain (mis. Screening dari Daftar Pasien,
+// tautan notifikasi) tetap bisa dibuka sesuai izin server.
+//   Perawat      : Dasbor, Daftar Pasien, Skrining NCD, Tindak Lanjut, Home Safety Signals, Lapor Insiden
+//   Dokter       : Dasbor, Daftar Pasien (Safety Plan/DPJP), Tinjauan Klinis, Home Safety Signals, Lapor Insiden
+//   Case Manager : Dasbor, Daftar Pasien, Home Safety Signals, Lapor Insiden
+//   PMKP         : Dasbor, Daftar Insiden, Analitik PMKP, Before–After, Jejak Audit
+//   Admin        : semua menu
+//   Ambulans/UGD : Dasbor saja selama SOS ditunda (Home Safety Signals + Asesmen Pra-RS muncul lagi bila SOS diaktifkan)
+// Tombol "Tanyo Dokter" di atas halaman tetap tampil untuk Dokter, Perawat, Case Manager & Admin.
 const NAV_ITEMS = [
   { to: "/", label: "Dasbor", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"] },
   // BARU (Sept 2026): satu halaman, label menyesuaikan role (lihat labelFor)
-  { to: "/prehospital", label: "Asesmen Pra-RS & UGD", roles: ["admin", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"] },
-  { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
-  { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas", "dokter", "manajemen"] },
-  { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter", "manajemen"] },
-  { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas", "dokter", "manajemen"] },
-  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager", "ambulance_rsud", "ambulance_psc119", "ugd"] },
-  { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
-  { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "petugas", "dokter", "manajemen", "case_manager"] },
-  { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen", "dokter"] },
-  { to: "/before-after", label: "Before–After", roles: ["admin", "manajemen", "dokter"] },
-  { to: "/audit-trail", label: "Jejak Audit", roles: ["admin", "manajemen", "dokter"] },
+  { to: "/prehospital", label: "Asesmen Pra-RS & UGD", roles: ["admin", "ambulance_rsud", "ambulance_psc119", "ugd"] },
+  { to: "/patients", label: "Daftar Pasien", roles: ["admin", "petugas", "dokter", "case_manager"] },
+  { to: "/screening", label: "Skrining NCD", roles: ["admin", "petugas"] },
+  { to: "/clinical-review", label: "Tinjauan Klinis", roles: ["admin", "dokter"] },
+  { to: "/followup", label: "Tindak Lanjut", roles: ["admin", "petugas"] },
+  // Ambulans/UGD hanya menerima sinyal SOS → selama SOS ditunda halaman ini kosong
+  // bagi mereka, jadi menunya ikut disembunyikan & otomatis muncul lagi bila SOS aktif.
+  { to: "/safety-signals", label: "Home Safety Signals", roles: ["admin", "petugas", "dokter", "case_manager", ...(SOS_ENABLED ? ["ambulance_rsud", "ambulance_psc119", "ugd"] : [])] },
+  { to: "/incident", label: "Lapor Insiden", roles: ["admin", "petugas", "dokter", "case_manager"] },
+  { to: "/incident-list", label: "Daftar Insiden", roles: ["admin", "manajemen"] },
+  { to: "/analytics", label: "Analitik PMKP", roles: ["admin", "manajemen"] },
+  { to: "/before-after", label: "Before–After", roles: ["admin", "manajemen"] },
+  { to: "/audit-trail", label: "Jejak Audit", roles: ["admin", "manajemen"] },
   { to: "/admin", label: "Administrasi", roles: ["admin"] },
 ];
 
