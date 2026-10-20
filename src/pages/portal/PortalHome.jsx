@@ -6,6 +6,7 @@ import { usePortalPwa } from "../../pwa/usePortalPwa";
 import { requestAndRegisterPush, refreshPushTokenSilently, listenForegroundMessages } from "../../lib/push";
 import "../../portal-styles.css";
 import { SOS_ENABLED } from "../../lib/features";
+import { ArtCekKondisi, ArtSafetyPlan, ArtRiwayat, ArtTanyo, ArtBantuan } from "./MenuArt";
 
 const STATUS_MAP = {
   SAFE: { emoji: "🟢", label: "AMAN", color: "#34d399" },
@@ -1085,16 +1086,19 @@ export default function PortalHome() {
             {/* Okt 2026: Safety Check-In tidak lagi berdiri sendiri. Pasien cukup
                 menekan tombol ini; setelah tensi/GDS disimpan, Check-In muncul
                 otomatis (sekali sehari). */}
-            <button className="portal-menu-btn" onClick={() => setView("monitoring")} style={{ gridColumn: "1 / -1" }}>
-              <span className="portal-menu-illustration"><IconMonitoring /></span>
-              Cek Kondisi Harian (Tensi / Gula Darah)
+            <button className="portal-menu-btn wide theme-cek" onClick={() => setView("monitoring")} style={{ gridColumn: "1 / -1" }}>
+              <span className="portal-menu-art"><ArtCekKondisi /></span>
+              <span className="portal-menu-text">
+                Cek Kondisi Harian
+                <small>Isi hasil tensi / gula darah hari ini</small>
+              </span>
             </button>
-            <button className="portal-menu-btn" onClick={() => setView("plan")}>
-              <span className="portal-menu-illustration"><IconSafetyPlan /></span>
+            <button className="portal-menu-btn theme-plan" onClick={() => setView("plan")}>
+              <span className="portal-menu-art"><ArtSafetyPlan /></span>
               Safety Plan Saya
             </button>
-            <button className="portal-menu-btn" onClick={loadHistory}>
-              <span className="portal-menu-illustration"><IconHistory /></span>
+            <button className="portal-menu-btn theme-riwayat" onClick={loadHistory}>
+              <span className="portal-menu-art"><ArtRiwayat /></span>
               Riwayat Monitoring
             </button>
             {/* 20 Okt 2026: selama SOS ditunda, menu Bantuan/Tanda Bahaya (tempat
@@ -1103,20 +1107,23 @@ export default function PortalHome() {
             {SOS_ENABLED ? (
               <>
                 {snapshot?.tanyaDokter?.enabled && (
-                  <button className="portal-menu-btn" onClick={openTanya} style={{ gridColumn: "1 / -1" }}>
-                    <span className="portal-menu-illustration"><IconTanya /></span>
-                    Tanyo Dokter
+                  <button className="portal-menu-btn wide theme-tanyo" onClick={openTanya} style={{ gridColumn: "1 / -1" }}>
+                    <span className="portal-menu-art"><ArtTanyo /></span>
+                    <span className="portal-menu-text">Tanyo Dokter<small>Konsultasi dengan dokter Anda</small></span>
                   </button>
                 )}
-                <button className="portal-menu-btn" onClick={() => setView("help")} style={{ gridColumn: "1 / -1" }}>
-                  <span className="portal-menu-illustration warm"><IconHelp /></span>
-                  Bantuan / Tanda Bahaya
+                <button className="portal-menu-btn wide theme-bantuan" onClick={() => setView("help")} style={{ gridColumn: "1 / -1" }}>
+                  <span className="portal-menu-art"><ArtBantuan /></span>
+                  <span className="portal-menu-text">Bantuan / Tanda Bahaya<small>Tombol darurat & tanda bahaya</small></span>
                 </button>
               </>
             ) : (
-              <button className="portal-menu-btn" onClick={openTanya} style={{ gridColumn: "1 / -1" }}>
-                <span className="portal-menu-illustration warm"><IconTanya /></span>
-                Tanyo Dokter
+              <button className="portal-menu-btn wide theme-tanyo" onClick={openTanya} style={{ gridColumn: "1 / -1" }}>
+                <span className="portal-menu-art"><ArtTanyo /></span>
+                <span className="portal-menu-text">
+                  Tanyo Dokter
+                  <small>Konsultasi dengan dokter Anda, 24 jam</small>
+                </span>
               </button>
             )}
           </div>

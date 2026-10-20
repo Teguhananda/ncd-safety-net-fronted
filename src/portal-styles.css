@@ -515,3 +515,75 @@ html, body {
   line-height: 1.5;
 }
 .portal-vitals-signs ul { margin: 6px 0 0; padding-left: 20px; }
+
+/* ==== BARU (20 Okt 2026): menu Portal berwarna + ilustrasi beranimasi ====
+   Tiap menu punya warna sendiri supaya tidak monoton. Ilustrasi ada di
+   src/pages/portal/MenuArt.jsx. Animasi dimatikan bila HP memakai
+   "Kurangi Gerakan" (prefers-reduced-motion). */
+.portal-menu-art {
+  width: 78px;
+  height: 78px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--menu-tint, rgba(23, 184, 166, 0.16));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 6px 18px var(--menu-glow, rgba(0, 0, 0, 0.2));
+}
+.portal-menu-btn.theme-cek     { --menu-tint: linear-gradient(145deg, rgba(45, 212, 191, 0.28), rgba(239, 68, 68, 0.18)); --menu-glow: rgba(45, 212, 191, 0.25); --menu-edge: rgba(45, 212, 191, 0.55); }
+.portal-menu-btn.theme-plan    { --menu-tint: linear-gradient(145deg, rgba(251, 191, 36, 0.28), rgba(20, 184, 166, 0.16)); --menu-glow: rgba(251, 191, 36, 0.22); --menu-edge: rgba(251, 191, 36, 0.55); }
+.portal-menu-btn.theme-riwayat { --menu-tint: linear-gradient(145deg, rgba(167, 139, 250, 0.30), rgba(244, 114, 182, 0.18)); --menu-glow: rgba(167, 139, 250, 0.25); --menu-edge: rgba(167, 139, 250, 0.55); }
+.portal-menu-btn.theme-tanyo   { --menu-tint: linear-gradient(145deg, rgba(56, 189, 248, 0.30), rgba(20, 184, 166, 0.20)); --menu-glow: rgba(56, 189, 248, 0.25); --menu-edge: rgba(56, 189, 248, 0.55); }
+.portal-menu-btn.theme-bantuan { --menu-tint: linear-gradient(145deg, rgba(248, 113, 113, 0.30), rgba(251, 146, 60, 0.18)); --menu-glow: rgba(248, 113, 113, 0.25); --menu-edge: rgba(248, 113, 113, 0.55); }
+.portal-menu-btn[class*="theme-"] {
+  border-color: var(--menu-edge);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02)), var(--p-glass-bg);
+}
+.portal-menu-btn.wide {
+  flex-direction: row;
+  justify-content: flex-start;
+  text-align: left;
+  gap: 16px;
+  padding: 16px 18px;
+}
+.portal-menu-text { display: flex; flex-direction: column; gap: 4px; font-size: 17px; }
+.portal-menu-text small { font-size: 13px; font-weight: 500; opacity: 0.75; }
+
+/* --- animasi ilustrasi --- */
+.mart { overflow: visible; }
+.mart * { transform-box: fill-box; transform-origin: center; }
+.mart-beat { animation: mart-beat 1.2s ease-in-out infinite; }
+@keyframes mart-beat { 0%, 100% { transform: scale(1); } 15% { transform: scale(1.18); } 30% { transform: scale(0.96); } 45% { transform: scale(1.1); } }
+.mart-ecg { stroke-dasharray: 60; stroke-dashoffset: 60; animation: mart-draw 2.4s linear infinite; }
+@keyframes mart-draw { 0% { stroke-dashoffset: 60; opacity: 1; } 70% { stroke-dashoffset: 0; opacity: 1; } 100% { stroke-dashoffset: 0; opacity: 0; } }
+.mart-check { stroke-dasharray: 12; stroke-dashoffset: 12; animation: mart-check 3.6s ease-out infinite; }
+.mart-check-2 { animation-delay: 0.5s; }
+.mart-check-3 { animation-delay: 1s; }
+@keyframes mart-check { 0% { stroke-dashoffset: 12; } 20%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 12; } }
+.mart-float { animation: mart-float 3s ease-in-out infinite; }
+@keyframes mart-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.mart-bar { transform-origin: bottom; animation: mart-grow 3.2s ease-in-out infinite; }
+.mart-bar-2 { animation-delay: 0.15s; }
+.mart-bar-3 { animation-delay: 0.3s; }
+.mart-bar-4 { animation-delay: 0.45s; }
+@keyframes mart-grow { 0% { transform: scaleY(0.2); } 30%, 80% { transform: scaleY(1); } 100% { transform: scaleY(0.2); } }
+.mart-trend { stroke-dasharray: 50; stroke-dashoffset: 50; animation: mart-trend 3.2s ease-in-out infinite; }
+@keyframes mart-trend { 0%, 20% { stroke-dashoffset: 50; } 55%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 50; } }
+.mart-blink { animation: mart-blink 1.6s ease-in-out infinite; }
+@keyframes mart-blink { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(1.5); } }
+.mart-sway { animation: mart-sway 4s ease-in-out infinite; transform-origin: 50% 100%; }
+@keyframes mart-sway { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-3deg); } }
+.mart-pop { animation: mart-float 2.6s ease-in-out infinite; }
+.mart-dot { animation: mart-dot 1.2s ease-in-out infinite; }
+.mart-dot-2 { animation-delay: 0.2s; }
+.mart-dot-3 { animation-delay: 0.4s; }
+@keyframes mart-dot { 0%, 60%, 100% { transform: translateY(0); opacity: 0.6; } 30% { transform: translateY(-3px); opacity: 1; } }
+.mart-drive { animation: mart-drive 1.6s ease-in-out infinite; }
+@keyframes mart-drive { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(2px); } }
+.mart-siren { animation: mart-siren 0.8s steps(1) infinite; }
+@keyframes mart-siren { 0% { fill: #3b82f6; } 50% { fill: #ef4444; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mart * { animation: none !important; stroke-dashoffset: 0 !important; }
+}
