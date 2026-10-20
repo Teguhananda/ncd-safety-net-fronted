@@ -137,15 +137,16 @@ export default function Sidebar() {
             boxShadow: "0 4px 18px rgba(0, 0, 0, 0.25)",
           }}
         >
+          {/* 20 Okt 2026: logo Komite Mutu diganti — kiri Pemda Rejang Lebong, kanan RSUD */}
           <img
-            src="/logos/rsud-logo.png"
-            alt="Logo RSUD"
+            src="/logos/pemda-rl.png"
+            alt="Logo Pemerintah Kabupaten Rejang Lebong"
             className="logo-img"
             style={{ width: 56, height: 56, objectFit: "contain" }}
           />
           <img
-            src="/logos/komite-logo.png"
-            alt="Logo Komite Mutu"
+            src="/logos/rsud-logo.png"
+            alt="Logo RSUD Kabupaten Rejang Lebong"
             className="logo-img"
             style={{ width: 56, height: 56, objectFit: "contain" }}
           />
