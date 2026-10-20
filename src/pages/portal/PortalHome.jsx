@@ -7,6 +7,7 @@ import { requestAndRegisterPush, refreshPushTokenSilently, listenForegroundMessa
 import "../../portal-styles.css";
 import { SOS_ENABLED } from "../../lib/features";
 import { ArtCekKondisi, ArtSafetyPlan, ArtRiwayat, ArtTanyo, ArtBantuan } from "./MenuArt";
+import DoctorMascot, { MASCOT_MESSAGE } from "./DoctorMascot";
 
 const STATUS_MAP = {
   SAFE: { emoji: "🟢", label: "AMAN", color: "#34d399" },
@@ -1066,10 +1067,12 @@ export default function PortalHome() {
           )}
 
           <div className={`portal-status-card${snapshot?.currentSafetyStatus === "URGENT" ? " portal-alert-flash" : ""}`} style={{ borderColor: statusInfo.color }}>
-            <div className="portal-status-icon-wrap" style={{ color: statusInfo.color }}>
-              <IconStatus />
+            {/* 20 Okt 2026: karakter dokter — raut wajah & gerakan mengikuti status */}
+            <div className="portal-mascot" style={{ "--mascot-glow": statusInfo.color }}>
+              <DoctorMascot status={snapshot?.currentSafetyStatus || "SAFE"} />
             </div>
             <div className="portal-status-label" style={{ color: statusInfo.color }}>{statusInfo.label}</div>
+            <div className="portal-mascot-msg">{MASCOT_MESSAGE[snapshot?.currentSafetyStatus] || MASCOT_MESSAGE.SAFE}</div>
             <div className="portal-sub">Status Keselamatan Saya</div>
           </div>
 
