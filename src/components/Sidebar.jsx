@@ -42,7 +42,7 @@ function labelFor(item, role) {
   return item.label;
 }
 
-export default function Sidebar() {
+export default function Sidebar({ pageTitle, pageMeta }) {
   const { role, user, logout } = useAuth();
   // 20 Okt 2026: menu Asesmen Pra-RS & UGD disembunyikan selama SOS ditunda.
   const visibleItems = NAV_ITEMS
@@ -76,17 +76,12 @@ export default function Sidebar() {
       {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
 
       <aside className={"sidebar" + (mobileOpen ? " sidebar-open" : "")}>
-      <div className="brand">
-        <img
-          src="/logos/app-logo.png"
-          alt="BERENDO SEHAT"
-          className="app-logo-img"
-          style={{ width: 40, height: 40, objectFit: "contain" }}
-        />
+      <div className="brand page-brand">
+        {/* REVISI (20 Okt 2026): nama aplikasi pindah ke tengah spanduk;
+            di sini kini judul & keterangan halaman yang sedang dibuka. */}
         <div className="brand-text">
-          <div className="name">BERENDO SEHAT</div>
-          <div className="sub">RSUD KAB. REJANG LEBONG</div>
-          <div className="sub" style={{ fontStyle: "italic", textTransform: "none", letterSpacing: 0, opacity: 0.85, marginTop: 2 }}>"Dari Berendo Rumah, RS Tetap Menjago"</div>
+          <div className="page-title">{pageTitle || "BERENDO SEHAT"}</div>
+          {pageMeta && <div className="page-meta">{pageMeta}</div>}
         </div>
       </div>
       <nav>

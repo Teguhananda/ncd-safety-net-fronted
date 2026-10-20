@@ -60,7 +60,7 @@ export default function IncidentReporting() {
   };
 
   return (
-    <Layout title="Incident Reporting" meta="Pencatatan kejadian terkait keselamatan pasien NCD">
+    <Layout title="Incident Reporting" meta="Pencatatan kejadian terkait keselamatan pasien Penyakit Tidak Menular Hipertensi dan Diabetes Mellitus">
       <div className="card" style={{ maxWidth: 520 }}>
         {params.get("patientId") && (
           <div className="alert warn" style={{ marginBottom: 14 }}>

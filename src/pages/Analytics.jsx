@@ -47,7 +47,7 @@ export default function Analytics() {
   const totalLost = filtered.reduce((sum, r) => sum + (r.lostToFollowupCount || 0), 0);
 
   return (
-    <Layout title="Analytics PMKP" meta="Dashboard mutu &amp; keselamatan pasien NCD">
+    <Layout title="Analytics PMKP" meta="Dashboard mutu &amp; keselamatan pasien Penyakit Tidak Menular Hipertensi dan Diabetes Mellitus">
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
         <select value={periodDays} onChange={(e) => setPeriodDays(e.target.value)} style={{ padding: "7px 10px", borderRadius: 8, border: "1px solid var(--line)", fontSize: 13 }}>
           {PERIOD_OPTIONS.map(([v, l]) => (

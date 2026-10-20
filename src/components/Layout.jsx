@@ -43,14 +43,28 @@ function TanyaDokterButton() {
 export default function Layout({ title, meta, children }) {
   return (
     <div className="app">
-      <Sidebar />
+      <Sidebar pageTitle={title} pageMeta={meta} />
       <div className="main">
-        <div className="topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-          <div>
-            <h1>{title}</h1>
-            <div className="meta">{meta}</div>
+        {/* REVISI (20 Okt 2026): identitas aplikasi (logo + BERENDO SEHAT 3D +
+            tagline) di tengah spanduk; judul halaman pindah ke pojok kiri atas
+            (Sidebar). Di HP judul halaman tetap tampil di bawah spanduk. */}
+        <div className="topbar topbar-brand">
+          <div className="topbar-side" aria-hidden="true"></div>
+          <div className="hero-brand">
+            <img src="/logos/app-logo.png" alt="" className="hero-logo" />
+            <div className="hero-text">
+              <div className="hero-title">BERENDO SEHAT</div>
+              <div className="hero-sub">RSUD KABUPATEN REJANG LEBONG</div>
+              <div className="hero-tagline">"Dari Berendo Rumah, RS Tetap Menjago"</div>
+            </div>
           </div>
-          <TanyaDokterButton />
+          <div className="topbar-side topbar-actions">
+            <TanyaDokterButton />
+          </div>
+        </div>
+        <div className="page-heading-mobile">
+          <h1>{title}</h1>
+          <div className="meta">{meta}</div>
         </div>
         <div className="net-divider"></div>
         <div className="content">{children}</div>

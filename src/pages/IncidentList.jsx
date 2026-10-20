@@ -78,7 +78,7 @@ export default function IncidentList() {
   };
 
   return (
-    <Layout title="Daftar Insiden" meta="Rekap laporan keselamatan pasien NCD">
+    <Layout title="Daftar Insiden" meta="Rekap laporan keselamatan pasien Penyakit Tidak Menular Hipertensi dan Diabetes Mellitus">
       <div className="card">
         {loading ? (
           <div className="stat-sub">Memuat...</div>

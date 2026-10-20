@@ -557,7 +557,7 @@ export default function Dashboard() {
   const pct = (n) => Math.round((n / total) * 100);
 
   return (
-    <Layout title="Dashboard" meta="Ringkasan keselamatan pasien NCD">
+    <Layout title="Dashboard" meta="Ringkasan keselamatan pasien Penyakit Tidak Menular Hipertensi dan Diabetes Mellitus">
       {/* BARU (Sept 2026): kedip merah-biru maks 2x/detik (aman untuk
           epilepsi fotosensitif), mati otomatis dengan "kurangi gerakan". */}
       <style>{`

@@ -792,3 +792,88 @@ tbody tr.row-redflag { background: #fde9e9; }
   box-shadow: inset 0 0 0 1px rgba(23, 59, 70, 0.06);
 }
 .nav-item.active .nav-icon { background: #ffffff !important; box-shadow: 0 1px 4px rgba(6, 101, 113, 0.25); }
+
+/* =========================================================================
+   SPANDUK IDENTITAS — BARU (20 Okt 2026)
+   Logo + BERENDO SEHAT (huruf 3D) + nama RSUD + tagline di tengah spanduk
+   gunung. Judul halaman pindah ke pojok kiri atas menu samping; di HP judul
+   halaman tampil di bawah spanduk (.page-heading-mobile).
+   ========================================================================= */
+.topbar.topbar-brand {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 26px;
+  min-height: 132px;
+}
+.topbar-actions { display: flex; justify-content: flex-end; align-items: center; }
+.hero-brand { display: flex; align-items: center; gap: 18px; justify-content: flex-start; padding-left: 8px; }
+.topbar.topbar-brand > .topbar-side:first-child { display: none; }
+.hero-logo {
+  width: 74px;
+  height: 74px;
+  object-fit: contain;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 6px;
+  box-shadow: 0 6px 0 rgba(6, 101, 113, 0.55), 0 10px 22px rgba(6, 60, 66, 0.35);
+}
+.hero-text { text-align: left; line-height: 1.1; }
+.hero-title {
+  font-size: 46px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  /* efek huruf 3D: lapisan bayangan bertingkat tosca → gelap */
+  text-shadow:
+    0 1px 0 #d8f4f0,
+    0 2px 0 #b5e8e1,
+    0 3px 0 #8fd9cf,
+    0 4px 0 #62c6b9,
+    0 5px 0 #34ad9f,
+    0 6px 0 #0f9f9a,
+    0 7px 0 #087f8c,
+    0 9px 6px rgba(0, 0, 0, 0.25),
+    0 14px 18px rgba(0, 0, 0, 0.22);
+}
+.hero-sub {
+  margin-top: 10px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 2.4px;
+  color: #ffe9e5;
+}
+.hero-tagline {
+  margin-top: 4px;
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 600;
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+/* Judul halaman di pojok kiri atas menu samping */
+.sidebar .page-brand { margin-bottom: 18px; padding: 6px 4px 14px; border-bottom: 1px solid var(--border, #d5e8e7); }
+.sidebar .page-title { font-size: 24px; font-weight: 800; color: var(--tosca-deep, #066571); line-height: 1.2; }
+.sidebar .page-meta { margin-top: 6px; font-size: 13.5px; line-height: 1.45; color: var(--ink-soft, #5e737c); }
+
+.page-heading-mobile { display: none; }
+
+@media (max-width: 1100px) {
+  .hero-title { font-size: 36px; }
+  .hero-logo { width: 60px; height: 60px; }
+}
+@media (max-width: 860px) {
+  .topbar.topbar-brand { grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 18px 16px; }
+  .topbar.topbar-brand > .topbar-side:first-child { display: none; }
+  .topbar-actions { justify-content: center; }
+  .hero-brand { flex-direction: column; gap: 10px; }
+  .hero-text { text-align: center; }
+  .hero-title { font-size: 30px; letter-spacing: 1px; }
+  .hero-sub { font-size: 12px; letter-spacing: 1.6px; }
+  .hero-tagline { font-size: 13px; }
+  .page-heading-mobile { display: block; margin: 14px 16px 0; }
+  .page-heading-mobile h1 { margin: 0 0 4px; font-size: 22px; color: var(--tosca-deep, #066571); }
+  .page-heading-mobile .meta { font-size: 14px; color: var(--ink-soft, #5e737c); }
+}
