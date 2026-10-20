@@ -5,8 +5,9 @@ import { callApi } from "../lib/api";
 
 /**
  * TanyaDokter.jsx — BARU (Okt 2026). Kotak masuk "Tanya Dokter" untuk staff.
- *  - Dokter: hanya melihat pasien yang ia DPJP-i, bisa menjawab atau meminta
- *    keterangan tambahan (balasan pasien tidak memakan jatah harian).
+ *  - Dokter: hanya melihat pasien yang ia DPJP-i. REVISI (20 Okt 2026):
+ *    konsultasi dua arah tanpa batas — dokter membalas berkali-kali lalu
+ *    menekan "Selesaikan Konsultasi" bila sudah tuntas.
  *  - Perawat/Admin/Case Manager: melihat semua, TIDAK bisa menjawab, punya
  *    tombol "Ingatkan Dokter" (kirim ulang notifikasi ke HP DPJP).
  * Jawaban hanya edukasi — perubahan dosis obat TIDAK lewat chat.
@@ -48,14 +49,14 @@ const ANSWER_TEMPLATES = [
 
 const STATUS_INFO = {
   open: { label: "Menunggu jawaban dokter", color: "#c0392b" },
-  awaiting_patient: { label: "Menunggu keterangan pasien", color: "#d68910" },
-  answered: { label: "Sudah dijawab", color: "#1e8449" },
+  awaiting_patient: { label: "Sudah dibalas — percakapan terbuka", color: "#d68910" },
+  answered: { label: "Konsultasi selesai", color: "#1e8449" },
 };
 
 const FILTERS = [
   ["open", "Menunggu jawaban"],
-  ["awaiting_patient", "Perlu keterangan pasien"],
-  ["answered", "Sudah dijawab"],
+  ["awaiting_patient", "Sudah dibalas (percakapan terbuka)"],
+  ["answered", "Konsultasi selesai"],
   ["all", "Semua (30 hari)"],
 ];
 
@@ -66,7 +67,6 @@ function fmt(iso) {
 
 function QuestionCard({ q, viewer, onChanged }) {
   const [answer, setAnswer] = useState("");
-  const [clarify, setClarify] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
@@ -75,18 +75,33 @@ function QuestionCard({ q, viewer, onChanged }) {
   const canRemind = ["admin", "petugas", "case_manager"].includes(viewer.role) && q.status === "open";
   const info = STATUS_INFO[q.status] || STATUS_INFO.open;
 
-  const submitAnswer = async () => {
+  const submitAnswer = async (finish) => {
     setBusy(true);
     setErr("");
     setMsg("");
     try {
-      const res = await callApi("patientHistory", { action: "answerDoctorQuestion", questionId: q.id, text: answer, needsClarification: clarify });
+      const res = await callApi("patientHistory", { action: "answerDoctorQuestion", questionId: q.id, text: answer, finish: !!finish });
       setAnswer("");
-      setClarify(false);
       setMsg(res.data.pushSent ? "Terkirim. Notifikasi masuk ke HP pasien." : "Tersimpan. Notifikasi HP pasien belum aktif — jawaban tetap terlihat saat pasien membuka aplikasi.");
       onChanged();
     } catch (e) {
       setErr(e.message || "Gagal mengirim jawaban.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const finishOnly = async () => {
+    if (!window.confirm("Selesaikan konsultasi ini tanpa mengirim pesan? Pasien tetap bisa membalas dan membuka percakapan lagi.")) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      await callApi("patientHistory", { action: "closeDoctorQuestion", questionId: q.id });
+      setMsg("Konsultasi diselesaikan.");
+      onChanged();
+    } catch (e) {
+      setErr(e.message || "Gagal menyelesaikan konsultasi.");
     } finally {
       setBusy(false);
     }
@@ -113,7 +128,7 @@ function QuestionCard({ q, viewer, onChanged }) {
         <div>
           <b>{q.patientName || q.patientId}</b>
           {q.patientMrn && <span className="mono stat-sub"> · RM {q.patientMrn}</span>}
-          <div className="stat-sub">DPJP: {q.dpjpName || "-"} · ditanya {fmt(q.askedAt)}{q.askedOutsideHours ? " (di luar jam layanan)" : ""}</div>
+          <div className="stat-sub">DPJP: {q.dpjpName || "-"} · ditanya {fmt(q.askedAt)}</div>
         </div>
         <div style={{ textAlign: "right" }}>
           <span style={{ color: info.color, fontWeight: 700, fontSize: 13 }}>{info.label}</span>
@@ -141,14 +156,14 @@ function QuestionCard({ q, viewer, onChanged }) {
             }}
           >
             <div className="stat-sub" style={{ fontSize: 11 }}>
-              {m.from === "doctor" ? `👨‍⚕️ ${m.byName || "Dokter"}${m.kind === "clarification" ? " — minta keterangan" : ""}` : "🧑 Pasien"} · {fmt(m.at)}
+              {m.from === "doctor" ? `👨‍⚕️ ${m.byName || "Dokter"}${m.kind === "clarification" ? " — minta keterangan" : m.kind === "answer_final" ? " — menyelesaikan konsultasi" : ""}` : "🧑 Pasien"} · {fmt(m.at)}
             </div>
             <div style={{ whiteSpace: "pre-wrap", fontSize: 14 }}>{m.text}</div>
           </div>
         ))}
       </div>
 
-      {isMyPatient && q.status === "open" && (
+      {isMyPatient && (
         <div style={{ marginTop: 10 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
             {ANSWER_TEMPLATES.map((t) => (
@@ -158,16 +173,25 @@ function QuestionCard({ q, viewer, onChanged }) {
             ))}
           </div>
           <textarea rows={4} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Tulis jawaban edukasi untuk pasien..." style={{ width: "100%" }} maxLength={1500} />
-          <label style={{ fontSize: 13, display: "flex", alignItems: "center", gap: 6, margin: "6px 0" }}>
-            <input type="checkbox" checked={clarify} onChange={(e) => setClarify(e.target.checked)} />
-            Ini pertanyaan balik / minta keterangan tambahan (pasien bisa membalas tanpa memakai jatah harian)
-          </label>
           <div className="stat-sub" style={{ marginBottom: 6 }}>
-            ⚠️ Tanya Dokter hanya untuk edukasi. <b>Jangan mengubah dosis/jenis obat lewat chat</b> — perubahan obat dilakukan saat kontrol atau di Safety Plan.
+            ⚠️ Tanyo Dokter hanya untuk edukasi. <b>Jangan mengubah dosis/jenis obat lewat chat</b> — perubahan obat dilakukan saat kontrol atau di Safety Plan.
           </div>
-          <button className="btn btn-primary" onClick={submitAnswer} disabled={busy || answer.trim().length < 3}>
-            {busy ? "Mengirim..." : clarify ? "Kirim Pertanyaan Balik" : "Kirim Jawaban"}
-          </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className="btn btn-primary" onClick={() => submitAnswer(false)} disabled={busy || answer.trim().length < 3}>
+              {busy ? "Mengirim..." : "Kirim Balasan"}
+            </button>
+            <button className="btn btn-ghost" onClick={() => submitAnswer(true)} disabled={busy || answer.trim().length < 3}>
+              Kirim & Selesaikan Konsultasi
+            </button>
+            {q.status !== "answered" && (
+              <button className="btn btn-ghost" onClick={finishOnly} disabled={busy}>
+                ✔️ Selesaikan tanpa pesan
+              </button>
+            )}
+          </div>
+          <div className="stat-sub" style={{ marginTop: 4 }}>
+            "Kirim Balasan" = percakapan tetap terbuka (pasien bisa menjawab/bertanya lanjut). Pasien tetap bisa membuka lagi konsultasi yang sudah selesai.
+          </div>
         </div>
       )}
 
@@ -202,7 +226,7 @@ export default function TanyaDokter() {
       const res = await callApi("patientHistory", { action: "listDoctorQuestions", days: 30 });
       setData(res.data);
     } catch (e) {
-      setError(e.message || "Gagal memuat Tanya Dokter.");
+      setError(e.message || "Gagal memuat Tanyo Dokter.");
     } finally {
       setLoading(false);
     }
@@ -219,15 +243,15 @@ export default function TanyaDokter() {
 
   return (
     <Layout
-      title="Tanya Dokter"
+      title="Tanyo Dokter"
       meta={viewer.role === "dokter" ? "Pertanyaan edukasi dari pasien yang Anda DPJP-i" : "Pantau pertanyaan pasien & ingatkan dokter"}
     >
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <div>
-            <b>Jam layanan: Senin–Sabtu, 10.00–14.00 WIB</b>
+            <b>Layanan konsultasi 24 jam — jawab saat Anda sempat</b>
             <div className="stat-sub">
-              {data?.service?.open ? "🟢 Sedang buka" : "⚪ Sedang tutup"} · 1 pertanyaan per pasien per hari · pengingat otomatis pukul 10.00 & 13.00
+              Tanpa batas jumlah pertanyaan · notifikasi ringkas ke HP dokter hanya pukul 06.00, 14.00 & 22.00 bila ada pesan yang menunggu
             </div>
           </div>
           <select value={filter} onChange={(e) => setFilter(e.target.value)} style={{ padding: "8px 12px", border: "1px solid var(--line)", borderRadius: 8, fontSize: 13 }}>

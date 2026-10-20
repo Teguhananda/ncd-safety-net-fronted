@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { useAlarmSound } from "../lib/alarmSound";
+import { SOS_ENABLED } from "../lib/features";
 
 /**
  * PrehospitalAlarm.jsx — BARU (Sept 2026). Dipasang SEKALI di App.jsx,
@@ -54,7 +55,8 @@ export default function PrehospitalAlarm() {
   const announcedRef = useRef(new Set());
   const location = useLocation();
 
-  const watchStatuses = role === "ugd" ? UGD_WAIT : role === "ambulance_rsud" ? AMB_WAIT : null;
+  // 20 Okt 2026: alarm dimatikan selama SOS ditunda (lihat lib/features.js).
+  const watchStatuses = !SOS_ENABLED ? null : role === "ugd" ? UGD_WAIT : role === "ambulance_rsud" ? AMB_WAIT : null;
 
   useEffect(() => {
     if (!user || !watchStatuses) return undefined;

@@ -4,6 +4,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { db } from "../lib/firebase";
 import { useAuth } from "../context/AuthContext";
 import { canSeeSignal } from "../lib/signalAccess";
+import { SOS_ENABLED } from "../lib/features";
 
 const ROLE_LABEL = {
   admin: "Admin",
@@ -42,7 +43,10 @@ function labelFor(item, role) {
 
 export default function Sidebar() {
   const { role, user, logout } = useAuth();
-  const visibleItems = NAV_ITEMS.filter((item) => !role || item.roles.includes(role));
+  // 20 Okt 2026: menu Asesmen Pra-RS & UGD disembunyikan selama SOS ditunda.
+  const visibleItems = NAV_ITEMS
+    .filter((item) => SOS_ENABLED || item.to !== "/prehospital")
+    .filter((item) => !role || item.roles.includes(role));
   const [activeSignalCount, setActiveSignalCount] = useState(0);
   const [mobileOpen, setMobileOpen] = useState(false);
 

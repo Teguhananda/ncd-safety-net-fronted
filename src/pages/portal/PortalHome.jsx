@@ -5,6 +5,7 @@ import { callApi } from "../../lib/api";
 import { usePortalPwa } from "../../pwa/usePortalPwa";
 import { requestAndRegisterPush, refreshPushTokenSilently, listenForegroundMessages } from "../../lib/push";
 import "../../portal-styles.css";
+import { SOS_ENABLED } from "../../lib/features";
 
 const STATUS_MAP = {
   SAFE: { emoji: "🟢", label: "AMAN", color: "#34d399" },
@@ -77,7 +78,7 @@ function vitalsAdvice(alert) {
       steps: [
         "Segera makan atau minum yang manis sesuai edukasi petugas (mis. teh manis, air gula, atau permen), lalu duduk dan istirahat.",
         "Cek ulang gula darah 15 menit lagi.",
-        "Jika tidak membaik, bingung, kejang, atau sulit dibangunkan: segera ke IGD atau minta keluarga menghubungi layanan darurat.",
+        "Jika tidak membaik, bingung, kejang, atau sulit dibangunkan: segera minta keluarga mengantar ke UGD RSUD Kab. Rejang Lebong atau UGD rumah sakit terdekat.",
       ],
       signs: null,
     };
@@ -220,9 +221,9 @@ function IconTanya() {
 }
 
 const TANYA_STATUS = {
-  open: "⏳ Menunggu jawaban dokter",
-  awaiting_patient: "✍️ Dokter meminta keterangan tambahan",
-  answered: "✅ Sudah dijawab",
+  open: "⏳ Menunggu balasan dokter",
+  awaiting_patient: "💬 Dokter sudah membalas",
+  answered: "✅ Konsultasi selesai",
 };
 
 const CHECKIN_QUESTIONS = [
@@ -657,7 +658,7 @@ export default function PortalHome() {
       const res = await callApi("patientPortal", { action: "getDoctorQuestions", patientId });
       setTanya(res.data);
     } catch (err) {
-      setTanya({ error: err.message || "Gagal memuat Tanya Dokter." });
+      setTanya({ error: err.message || "Gagal memuat Tanyo Dokter." });
     }
   }
 
@@ -689,7 +690,7 @@ export default function PortalHome() {
       }
       setTanyaDanger(null);
       setTanyaText("");
-      setTanyaMsg(`Pertanyaan terkirim ke ${tanya?.dpjpName || "dokter Anda"}. Akan dijawab ${res.data.service?.nextOpenText || "pada jam layanan"}.`);
+      setTanyaMsg(`Pertanyaan terkirim ke ${tanya?.dpjpName || "dokter Anda"}. Akan dijawab ${res.data.service?.nextOpenText || "saat dokter sempat"}.`);
       await loadTanya();
     } catch (err) {
       setTanyaErr(err.message || "Gagal mengirim pertanyaan.");
@@ -703,9 +704,20 @@ export default function PortalHome() {
     setTanyaErr("");
     try {
       const patientId = await getPatientId();
-      await callApi("patientPortal", { action: "replyDoctorClarification", patientId, questionId, text: replyText[questionId] || "" });
+      const send = (confirmNotEmergency) =>
+        callApi("patientPortal", { action: "replyDoctorClarification", patientId, questionId, text: replyText[questionId] || "", confirmNotEmergency });
+      let res = await send(false);
+      if (res.data && res.data.dangerDetected) {
+        const lanjut = window.confirm(
+          `Pesan Anda menyebut tanda bahaya (${(res.data.keywords || []).join(", ")}).\n\n` +
+          "Jika keluhan itu SEDANG terjadi sekarang, jangan menunggu jawaban chat — segera minta keluarga mengantar ke UGD.\n\n" +
+          "Tekan OK bila BUKAN darurat dan tetap ingin mengirim pesan."
+        );
+        if (!lanjut) return;
+        res = await send(true);
+      }
       setReplyText((r) => ({ ...r, [questionId]: "" }));
-      setTanyaMsg("Balasan terkirim ke dokter.");
+      setTanyaMsg("Pesan terkirim ke dokter.");
       await loadTanya();
     } catch (err) {
       setTanyaErr(err.message || "Gagal mengirim balasan.");
@@ -745,8 +757,7 @@ export default function PortalHome() {
             Kontrol selanjutnya dilakukan di <b>Faskes Tingkat 1</b> (Puskesmas/klinik tempat Anda terdaftar).
           </p>
           <p style={{ lineHeight: 1.6, fontWeight: 700 }}>
-            Jika ada keadaan darurat, segera ke IGD terdekat atau hubungi{" "}
-            <a href="tel:119" style={{ color: "inherit" }}>119</a>.
+            Jika ada keadaan darurat, segera ke UGD rumah sakit terdekat.
           </p>
           <button className="portal-link-btn" style={{ marginTop: 18 }} onClick={handleLogout}>Keluar</button>
         </div>
@@ -900,11 +911,11 @@ export default function PortalHome() {
               </ol>
               {adv.signs && (
                 <div className="portal-vitals-signs">
-                  <b>Segera ke IGD sekarang jika disertai:</b>
+                  <b>Segera ke UGD sekarang jika disertai:</b>
                   <ul>{adv.signs.map((t) => <li key={t}>{t}</li>)}</ul>
                 </div>
               )}
-              {critical && (
+              {critical && SOS_ENABLED && (
                 <button
                   className="portal-primary-btn"
                   style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }}
@@ -912,6 +923,11 @@ export default function PortalHome() {
                 >
                   🆘 Ada tanda bahaya — buka Tombol Emergency
                 </button>
+              )}
+              {critical && !SOS_ENABLED && (
+                <div className="portal-info-card" style={{ borderColor: "#ff5c50", fontWeight: 700, textAlign: "center" }}>
+                  🚨 Jika ada tanda bahaya di atas: segera minta keluarga mengantar ke UGD RSUD Kab. Rejang Lebong atau UGD terdekat.
+                </div>
               )}
               <button className="portal-link-btn" onClick={() => setVitalsAlert(null)}>Saya mengerti</button>
             </div>
@@ -1081,16 +1097,28 @@ export default function PortalHome() {
               <span className="portal-menu-illustration"><IconHistory /></span>
               Riwayat Monitoring
             </button>
-            {snapshot?.tanyaDokter?.enabled && (
+            {/* 20 Okt 2026: selama SOS ditunda, menu Bantuan/Tanda Bahaya (tempat
+                tombol SOS) diganti "Tanyo Dokter". Daftar tanda bahaya + arahan ke
+                UGD ikut pindah ke bagian atas halaman Tanyo Dokter. */}
+            {SOS_ENABLED ? (
+              <>
+                {snapshot?.tanyaDokter?.enabled && (
+                  <button className="portal-menu-btn" onClick={openTanya} style={{ gridColumn: "1 / -1" }}>
+                    <span className="portal-menu-illustration"><IconTanya /></span>
+                    Tanyo Dokter
+                  </button>
+                )}
+                <button className="portal-menu-btn" onClick={() => setView("help")} style={{ gridColumn: "1 / -1" }}>
+                  <span className="portal-menu-illustration warm"><IconHelp /></span>
+                  Bantuan / Tanda Bahaya
+                </button>
+              </>
+            ) : (
               <button className="portal-menu-btn" onClick={openTanya} style={{ gridColumn: "1 / -1" }}>
-                <span className="portal-menu-illustration"><IconTanya /></span>
-                Tanya Dokter
+                <span className="portal-menu-illustration warm"><IconTanya /></span>
+                Tanyo Dokter
               </button>
             )}
-            <button className="portal-menu-btn" onClick={() => setView("help")} style={{ gridColumn: "1 / -1" }}>
-              <span className="portal-menu-illustration warm"><IconHelp /></span>
-              Bantuan / Tanda Bahaya
-            </button>
           </div>
         </>
       )}
@@ -1206,7 +1234,7 @@ export default function PortalHome() {
               </div>
               <div style={{ marginBottom: 16 }}>
                 <b>Jika Terjadi Tanda Bahaya:</b>
-                <div style={{ marginTop: 4 }}>{renderMultiPoint(plan.escalationInstruction)}</div>
+                <div style={{ marginTop: 4 }}>{renderMultiPoint(SOS_ENABLED ? plan.escalationInstruction : (plan.escalationInstruction || "").split(/\r?\n/).filter((l) => !l.includes("Tombol Darurat (SOS)")).join("\n"))}</div>
               </div>
             </>
           )}
@@ -1240,19 +1268,32 @@ export default function PortalHome() {
       {/* ==== BARU (Okt 2026): TANYA DOKTER ==== */}
       {view === "tanya" && (
         <div className="portal-card">
-          <h3 style={{ marginTop: 0 }}>💬 Tanya Dokter</h3>
+          <h3 style={{ marginTop: 0 }}>💬 Tanyo Dokter</h3>
+          {!SOS_ENABLED && (
+            <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
+              <p style={{ marginTop: 0, fontWeight: 700 }}>🚨 Tanda bahaya — JANGAN menunggu jawaban chat:</p>
+              <ul style={{ marginTop: 0 }}>
+                <li>Nyeri dada hebat / sesak napas berat</li>
+                <li>Lemas atau kesemutan separuh badan, wajah mencong, bicara pelo mendadak</li>
+                <li>Penurunan kesadaran / sulit dibangunkan</li>
+                <li>Gula darah sangat rendah/tinggi disertai gejala berat</li>
+              </ul>
+              <p style={{ fontWeight: 700 }}>➡️ Segera minta keluarga mengantar ke UGD RSUD Kab. Rejang Lebong atau UGD terdekat. Jangan menyetir sendiri.</p>
+              <p className="portal-sub" style={{ marginBottom: 0 }}>Tensi atau gula darah tinggi <b>tanpa keluhan</b>: periksakan diri hari ini ke puskesmas, klinik, atau rumah sakit terdekat. Jangan menunggu jadwal kontrol.</p>
+            </div>
+          )}
           {!tanya ? (
             <p>Memuat...</p>
           ) : tanya.error ? (
             <p className="portal-error">{tanya.error}</p>
           ) : !tanya.enabled ? (
-            <p>Dokter penanggung jawab Anda belum dicatat. Minta petugas mengisinya saat kontrol.</p>
+            <p>Dokter penanggung jawab Anda belum dicatat, jadi pertanyaan belum bisa dikirim. Minta petugas mengisinya saat kontrol.</p>
           ) : (
             <>
               <p className="portal-sub" style={{ marginTop: 0 }}>
                 Dokter: <b>{tanya.dpjpName || "-"}</b><br />
-                Jam layanan: {tanya.service?.hoursText}{tanya.service?.open ? " — 🟢 sedang buka" : ""}<br />
-                1 pertanyaan per hari. Untuk edukasi (makanan, cara cek tensi/gula, cara minum obat).
+                Layanan: {tanya.service?.hoursText}. Dokter akan membalas saat sempat — bila darurat jangan menunggu, segera ke UGD.<br />
+                Silakan bertanya dan membalas pesan dokter sepuasnya. Untuk konsultasi & edukasi (keluhan, makanan, cara cek tensi/gula, cara minum obat).
                 Dokter <b>tidak mengubah dosis obat</b> lewat chat — perubahan obat hanya saat kontrol.
               </p>
 
@@ -1266,15 +1307,23 @@ export default function PortalHome() {
                 </div>
               ) : tanyaStep === "precheck" ? (
                 <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
-                  <p style={{ marginTop: 0, fontWeight: 700 }}>Sebelum bertanya: apakah SEKARANG Anda mengalami salah satu ini?</p>
-                  <ul style={{ marginTop: 0 }}>
-                    <li>Nyeri dada</li>
-                    <li>Lemas / kesemutan separuh badan, wajah mencong, atau bicara pelo</li>
-                    <li>Sesak napas</li>
-                  </ul>
-                  <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={goToSos}>
-                    Ya — buka Tombol Emergency
-                  </button>
+                  <p style={{ marginTop: 0, fontWeight: 700 }}>Sebelum bertanya: apakah SEKARANG Anda mengalami {SOS_ENABLED ? "salah satu ini" : "salah satu tanda bahaya di atas"}?</p>
+                  {SOS_ENABLED && (
+                    <ul style={{ marginTop: 0 }}>
+                      <li>Nyeri dada</li>
+                      <li>Lemas / kesemutan separuh badan, wajah mencong, atau bicara pelo</li>
+                      <li>Sesak napas</li>
+                    </ul>
+                  )}
+                  {SOS_ENABLED ? (
+                    <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={goToSos}>
+                      Ya — buka Tombol Emergency
+                    </button>
+                  ) : (
+                    <div className="portal-info-card" style={{ borderColor: "#ff5c50", fontWeight: 700, textAlign: "center" }}>
+                      Jika YA: jangan menunggu jawaban chat — segera minta keluarga mengantar ke UGD RSUD Kab. Rejang Lebong atau UGD terdekat.
+                    </div>
+                  )}
                   <button className="portal-primary-btn" style={{ marginTop: 8 }} onClick={() => setTanyaStep("form")}>
                     Tidak — lanjut menulis pertanyaan
                   </button>
@@ -1282,10 +1331,16 @@ export default function PortalHome() {
               ) : tanyaDanger ? (
                 <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
                   <p style={{ marginTop: 0, fontWeight: 700 }}>🚨 Pertanyaan Anda menyebut tanda bahaya ({tanyaDanger.join(", ")}).</p>
-                  <p className="portal-sub">Jika keluhan itu sedang terjadi sekarang, jangan menunggu jawaban chat — segera tekan Tombol Emergency atau ke IGD.</p>
-                  <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={goToSos}>
-                    🆘 Buka Tombol Emergency
-                  </button>
+                  <p className="portal-sub">Jika keluhan itu sedang terjadi sekarang, jangan menunggu jawaban chat — {SOS_ENABLED ? "segera tekan Tombol Emergency atau ke IGD." : "segera minta keluarga mengantar ke UGD RSUD Kab. Rejang Lebong atau UGD terdekat."}</p>
+                  {SOS_ENABLED ? (
+                    <button className="portal-primary-btn" style={{ background: "linear-gradient(135deg, #ff5c50, #c0392b)" }} onClick={goToSos}>
+                      🆘 Buka Tombol Emergency
+                    </button>
+                  ) : (
+                    <div className="portal-info-card" style={{ borderColor: "#ff5c50", fontWeight: 700, textAlign: "center" }}>
+                      🚨 Segera ke UGD
+                    </div>
+                  )}
                   <button className="portal-link-btn" disabled={tanyaBusy} onClick={() => handleAskDoctor(true)}>
                     {tanyaBusy ? "Mengirim..." : "Bukan darurat sekarang, tetap kirim pertanyaan"}
                   </button>
@@ -1330,18 +1385,26 @@ export default function PortalHome() {
                           <span style={{ whiteSpace: "pre-wrap" }}>{m.text}</span>
                         </div>
                       ))}
-                      {q.status === "awaiting_patient" && (
+                      {/* REVISI (20 Okt 2026): pasien bisa membalas kapan saja */}
+                      {q.status === "answered" && replyText[q.id] === undefined ? (
+                        <button className="portal-link-btn" style={{ marginTop: 6 }} onClick={() => setReplyText((r) => ({ ...r, [q.id]: "" }))}>
+                          Masih ada pertanyaan? Lanjutkan percakapan ini
+                        </button>
+                      ) : (
                         <div style={{ marginTop: 8 }}>
+                          {q.status === "answered" && (
+                            <div className="portal-sub" style={{ fontSize: 13 }}>Konsultasi ini sudah diselesaikan dokter. Tulis pesan Anda, percakapan akan dibuka lagi.</div>
+                          )}
                           <textarea
                             rows={3}
                             maxLength={tanya.maxChars || 500}
                             value={replyText[q.id] || ""}
                             onChange={(e) => setReplyText((r) => ({ ...r, [q.id]: e.target.value }))}
-                            placeholder="Tulis keterangan yang diminta dokter..."
+                            placeholder={q.status === "awaiting_patient" ? "Balas dokter: jawab pertanyaannya atau tanyakan lanjutan..." : "Tulis pesan tambahan untuk dokter..."}
                             style={{ width: "100%", boxSizing: "border-box", font: "inherit", padding: 10, borderRadius: 10 }}
                           />
                           <button className="portal-primary-btn" disabled={tanyaBusy || !(replyText[q.id] || "").trim()} onClick={() => handleReplyClarification(q.id)}>
-                            {tanyaBusy ? "Mengirim..." : "Balas Dokter (tidak memakai jatah)"}
+                            {tanyaBusy ? "Mengirim..." : "Kirim Balasan"}
                           </button>
                         </div>
                       )}
@@ -1358,7 +1421,7 @@ export default function PortalHome() {
       {view === "help" && (
         <div className="portal-card">
           <h3>Bantuan / Tanda Bahaya</h3>
-          <p>Jika Anda mengalami salah satu hal berikut, segera hubungi IGD RSUD Kabupaten Rejang Lebong atau layanan darurat terdekat:</p>
+          <p>Jika Anda mengalami salah satu hal berikut, <b>segera minta keluarga mengantar ke UGD RSUD Kabupaten Rejang Lebong</b> atau UGD rumah sakit terdekat. Jangan menyetir sendiri.</p>
           <ul>
             <li>Nyeri dada hebat / sesak napas berat</li>
             <li>Kelemahan anggota gerak atau bicara pelo mendadak</li>
@@ -1367,6 +1430,16 @@ export default function PortalHome() {
           </ul>
           <p>Aplikasi ini adalah alat bantu pemantauan, <b>bukan pengganti</b> penilaian tenaga kesehatan.</p>
 
+          {/* 20 Okt 2026: Tombol Emergency (SOS) ditunda — lihat lib/features.js */}
+          {!SOS_ENABLED && (
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--p-glass-border)" }}>
+              <div className="portal-info-card" style={{ borderColor: "#ff5c50" }}>
+                <p style={{ marginTop: 0, fontWeight: 700 }}>🚨 Ada tanda bahaya → segera ke UGD</p>
+                <p className="portal-sub" style={{ marginBottom: 0 }}>Tensi atau gula darah tinggi <b>tanpa keluhan</b>: periksakan diri hari ini ke puskesmas, klinik, atau rumah sakit terdekat. Jangan menunggu jadwal kontrol.</p>
+              </div>
+            </div>
+          )}
+          {SOS_ENABLED && (
           <div style={{ marginTop: 20, paddingTop: 20, borderTop: "1px solid var(--p-glass-border)" }}>
             {emergencyStep === "idle" && (
               <button
@@ -1403,6 +1476,7 @@ export default function PortalHome() {
               </div>
             )}
           </div>
+          )}
 
           <button className="portal-link-btn" onClick={() => { setView("home"); setEmergencyStep("idle"); }}>Kembali</button>
         </div>

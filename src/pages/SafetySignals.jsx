@@ -4,6 +4,7 @@ import { callApi } from "../lib/api";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { canCloseSignal } from "../lib/signalAccess";
+import { SOS_ENABLED } from "../lib/features";
 
 const SEVERITY_LABEL = {
   URGENT: { emoji: "🔴", text: "URGENT" },
@@ -243,7 +244,7 @@ export default function SafetySignals() {
                     {isEmergencyButton ? "🔒 SOS ini ditutup oleh tim Ambulans setelah penanganan selesai." : "🔒 Penutupan oleh dokter / case manager."}
                   </div>
                 )}
-                {isEmergencyButton && role === "ambulance_rsud" && (
+                {SOS_ENABLED && isEmergencyButton && role === "ambulance_rsud" && (
                   <Link className="btn btn-primary" style={{ marginTop: 8, marginLeft: 8, display: "inline-block", textDecoration: "none" }} to="/prehospital">
                     🚑 Asesmen Pra-RS
                   </Link>

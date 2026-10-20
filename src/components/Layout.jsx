@@ -25,7 +25,7 @@ function TanyaDokterButton() {
   if (count === null || location.pathname === "/tanya-dokter") return null;
   return (
     <Link to="/tanya-dokter" className="btn btn-ghost" style={{ position: "relative", whiteSpace: "nowrap" }}>
-      💬 Tanya Dokter
+      💬 Tanyo Dokter
       {count > 0 && (
         <span
           style={{

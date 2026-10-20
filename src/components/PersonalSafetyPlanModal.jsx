@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { callApi } from "../lib/api";
+import { SOS_ENABLED } from "../lib/features";
 
 const PARAM_OPTIONS = ["systolicBP", "bloodGlucose"];
 const PARAM_LABEL = { systolicBP: "Tekanan Darah", bloodGlucose: "Gula Darah" };
@@ -72,11 +73,14 @@ const ALL_WARNING_ITEMS = WARNING_GROUPS.flatMap((g) => g.items);
 const ESCALATION_OPTIONS = [
   "Segera ke IGD RSUD Kab. Rejang Lebong",
   "Segera ke IGD rumah sakit atau puskesmas terdekat",
-  "Tekan Tombol Darurat (SOS) di aplikasi ini",
+  // 20 Okt 2026: pilihan SOS disembunyikan selama SOS ditunda (lib/features.js).
+  ...(SOS_ENABLED ? ["Tekan Tombol Darurat (SOS) di aplikasi ini"] : []),
   "Minta keluarga mengantar — jangan menyetir sendiri",
   "Jangan menambah dosis obat sendiri",
 ];
-const DEFAULT_ESCALATION = [ESCALATION_OPTIONS[0], ESCALATION_OPTIONS[2]];
+const DEFAULT_ESCALATION = SOS_ENABLED
+  ? [ESCALATION_OPTIONS[0], ESCALATION_OPTIONS[2]]
+  : [ESCALATION_OPTIONS[0], "Minta keluarga mengantar — jangan menyetir sendiri"];
 
 function splitLines(text) {
   return (text || "").split(/\r?\n+/).map((t) => t.replace(/^\s*(\d+[.)]|[-•])\s*/, "").trim()).filter(Boolean);

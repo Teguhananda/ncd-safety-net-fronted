@@ -371,7 +371,7 @@ export default function Patients() {
                     ? `⚠️ ${doctorsError}`
                     : doctors.length === 0
                       ? "⚠️ Belum ada akun dokter. Buat dulu di menu Administrasi (role Dokter)."
-                      : "Wajib diisi agar pasien bisa memakai menu Tanya Dokter."}
+                      : "Wajib diisi agar pasien bisa memakai menu Tanyo Dokter."}
                 </div>
               </div>
               <div className="field">
@@ -564,7 +564,7 @@ export default function Patients() {
           <div className="card" style={{ width: 380, maxWidth: "92vw" }}>
             <h3>Dokter Penanggung Jawab — {dpjpPatient.name}</h3>
             <div className="stat-sub" style={{ marginBottom: 10 }}>
-              Hanya DPJP yang bisa menjawab pertanyaan Tanya Dokter pasien ini. Pertanyaan yang belum dijawab ikut pindah ke DPJP baru.
+              Hanya DPJP yang bisa menjawab pertanyaan Tanyo Dokter pasien ini. Pertanyaan yang belum dijawab ikut pindah ke DPJP baru.
             </div>
             <div className="field">
               <label>Pilih dokter</label>
