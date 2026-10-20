@@ -483,7 +483,8 @@ export default function Patients() {
                     >
                       {p.monitoringStatus === "ended" ? "▶️ Aktifkan Lagi" : "⏹️ Akhiri Monitoring (PRB)"}
                     </button>
-                    {canDeletePatient && (
+                    {/* 20 Okt 2026: pasien PRB tidak bisa dihapus (data wajib disimpan) */}
+                    {canDeletePatient && p.monitoringStatus !== "ended" && (
                       <button
                         className="btn btn-ghost"
                         style={{ padding: "4px 10px", fontSize: 12, color: "#c0392b" }}
