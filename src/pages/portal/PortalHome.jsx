@@ -312,6 +312,9 @@ export default function PortalHome() {
   const [tanyaErr, setTanyaErr] = useState("");
   const [tanyaDanger, setTanyaDanger] = useState(null); // kata tanda bahaya yang terdeteksi
   const [replyText, setReplyText] = useState({}); // { [questionId]: teks }
+  // BARU (20 Okt 2026): moderasi — komplain pelayanan diarahkan ke Kanal Pengaduan
+  const [tanyaComplaint, setTanyaComplaint] = useState(null); // { keywords, kp3Url, strikes, limit }
+  const [tanyaComplaintOk, setTanyaComplaintOk] = useState(false); // pasien menegaskan "ini pertanyaan penyakit"
 
   function applyNotifications(summaryData) {
       const signalItems = (summaryData.signals || [])
@@ -679,17 +682,40 @@ export default function PortalHome() {
     setView("help");
   };
 
-  const handleAskDoctor = async (confirmNotEmergency = false) => {
+  // REVISI (20 Okt 2026): + moderasi (kata tidak pantas / komplain / akun dikunci)
+  const handleModeration = async (data) => {
+    if (data.locked) {
+      setTanyaComplaint(null);
+      setTanyaErr("");
+      await loadTanya(); // tampilkan layar "fitur dikunci"
+      return true;
+    }
+    if (data.moderation === "abusive") {
+      setTanyaErr(data.message || "Pesan tidak dikirim karena mengandung kata yang tidak pantas.");
+      return true;
+    }
+    if (data.moderation === "complaint") {
+      setTanyaComplaint({ keywords: data.keywords || [], kp3Url: data.kp3Url, strikes: data.strikes, limit: data.limit });
+      return true;
+    }
+    return false;
+  };
+
+  const handleAskDoctor = async (confirmNotEmergency = false, confirmNotComplaint = tanyaComplaintOk) => {
     setTanyaBusy(true);
     setTanyaErr("");
     try {
       const patientId = await getPatientId();
-      const res = await callApi("patientPortal", { action: "askDoctor", patientId, question: tanyaText, confirmNotEmergency });
+      const res = await callApi("patientPortal", { action: "askDoctor", patientId, question: tanyaText, confirmNotEmergency, confirmNotComplaint });
+      if (await handleModeration(res.data)) return;
+      setTanyaComplaint(null);
+      if (confirmNotComplaint) setTanyaComplaintOk(true);
       if (res.data.dangerDetected) {
         setTanyaDanger(res.data.keywords || []);
         return;
       }
       setTanyaDanger(null);
+      setTanyaComplaintOk(false);
       setTanyaText("");
       setTanyaMsg(`Pertanyaan terkirim ke ${tanya?.dpjpName || "dokter Anda"}. Akan dijawab ${res.data.service?.nextOpenText || "saat dokter sempat"}.`);
       await loadTanya();
@@ -705,9 +731,29 @@ export default function PortalHome() {
     setTanyaErr("");
     try {
       const patientId = await getPatientId();
+      let notComplaint = false;
       const send = (confirmNotEmergency) =>
-        callApi("patientPortal", { action: "replyDoctorClarification", patientId, questionId, text: replyText[questionId] || "", confirmNotEmergency });
+        callApi("patientPortal", { action: "replyDoctorClarification", patientId, questionId, text: replyText[questionId] || "", confirmNotEmergency, confirmNotComplaint: notComplaint });
       let res = await send(false);
+      // BARU (20 Okt 2026): moderasi balasan
+      if (res.data && res.data.moderation === "complaint" && !res.data.locked) {
+        const isPenyakit = window.confirm(
+          "Pesan Anda terbaca sebagai KELUHAN PELAYANAN.\n\n" +
+          "Keluhan pelayanan sebaiknya disampaikan lewat Kanal Pengaduan RSUD agar ditindaklanjuti secara resmi.\n\n" +
+          "Tekan OK bila ini sebenarnya pertanyaan tentang PENYAKIT Anda dan tetap ingin dikirim ke dokter.\n" +
+          "Tekan Batal untuk membuka Kanal Pengaduan."
+        );
+        if (!isPenyakit) {
+          window.open(res.data.kp3Url, "_blank");
+          return;
+        }
+        notComplaint = true;
+        res = await send(false);
+      }
+      if (res.data && (res.data.locked || res.data.moderation)) {
+        await handleModeration(res.data);
+        return;
+      }
       if (res.data && res.data.dangerDetected) {
         const lanjut = window.confirm(
           `Pesan Anda menyebut tanda bahaya (${(res.data.keywords || []).join(", ")}).\n\n` +
@@ -1307,7 +1353,35 @@ export default function PortalHome() {
               {tanyaMsg && <div className="portal-info-card" style={{ borderColor: "var(--p-accent)" }}>✅ {tanyaMsg}</div>}
               {tanyaErr && <p className="portal-error">{tanyaErr}</p>}
 
-              {tanya.usedToday ? (
+              {tanya.lock ? (
+                <div className="portal-info-card" style={{ borderColor: "#f59e0b" }}>
+                  <p style={{ marginTop: 0, fontWeight: 700 }}>🔒 Tanyo Dokter tidak dapat digunakan</p>
+                  <p className="portal-sub">{tanya.lock.message}</p>
+                  <a className="portal-primary-btn" href={tanya.kp3Url} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
+                    📢 Kanal Pengaduan RSUD
+                  </a>
+                </div>
+              ) : tanyaComplaint ? (
+                <div className="portal-info-card" style={{ borderColor: "#f59e0b" }}>
+                  <p style={{ marginTop: 0, fontWeight: 700 }}>📢 Pesan Anda terbaca sebagai keluhan pelayanan</p>
+                  <p className="portal-sub">
+                    Tanyo Dokter khusus untuk konsultasi kesehatan. Agar keluhan Anda ditindaklanjuti secara resmi oleh rumah sakit,
+                    silakan sampaikan lewat <b>Kanal Pengaduan RSUD</b>.
+                  </p>
+                  <a className="portal-primary-btn" href={tanyaComplaint.kp3Url} target="_blank" rel="noreferrer" style={{ display: "block", textAlign: "center", textDecoration: "none" }}>
+                    📢 Buka Kanal Pengaduan RSUD
+                  </a>
+                  <button className="portal-link-btn" disabled={tanyaBusy} onClick={() => handleAskDoctor(false, true)}>
+                    {tanyaBusy ? "Mengirim..." : "Ini pertanyaan tentang penyakit saya, tetap kirim ke dokter"}
+                  </button>
+                  <button className="portal-link-btn" onClick={() => setTanyaComplaint(null)}>Ubah pesan</button>
+                  {tanyaComplaint.strikes > 1 && (
+                    <p className="portal-sub" style={{ fontSize: 12 }}>
+                      Catatan: bila keluhan pelayanan terus dikirim ke Tanyo Dokter ({tanyaComplaint.strikes} dari {tanyaComplaint.limit} dalam 7 hari), fitur ini akan dikunci sementara 7 hari.
+                    </p>
+                  )}
+                </div>
+              ) : tanya.usedToday ? (
                 <div className="portal-info-card">
                   🔒 Jatah pertanyaan hari ini sudah dipakai. Anda bisa bertanya lagi besok.
                   {!tanya.service?.open && <div className="portal-sub" style={{ marginTop: 4 }}>Pertanyaan Anda akan dijawab {tanya.service?.nextOpenText}.</div>}
@@ -1393,7 +1467,7 @@ export default function PortalHome() {
                         </div>
                       ))}
                       {/* REVISI (20 Okt 2026): pasien bisa membalas kapan saja */}
-                      {q.status === "answered" && replyText[q.id] === undefined ? (
+                      {tanya.lock ? null : q.status === "answered" && replyText[q.id] === undefined ? (
                         <button className="portal-link-btn" style={{ marginTop: 6 }} onClick={() => setReplyText((r) => ({ ...r, [q.id]: "" }))}>
                           Masih ada pertanyaan? Lanjutkan percakapan ini
                         </button>

@@ -107,6 +107,27 @@ function QuestionCard({ q, viewer, onChanged }) {
     }
   };
 
+  // BARU (20 Okt 2026): DPJP melaporkan pesan tidak pantas / komplain salah tempat.
+  const report = async (category) => {
+    const label = category === "abusive" ? "kata tidak pantas / menghujat / SARA" : "komplain pelayanan (bukan konsultasi)";
+    if (!window.confirm(`Laporkan pesan ini sebagai ${label}?\n\nPercakapan akan ditutup, pasien diberi peringatan, dan pelanggaran dicatat untuk Admin/PMKP.`)) return;
+    setBusy(true);
+    setErr("");
+    setMsg("");
+    try {
+      const res = await callApi("patientHistory", { action: "reportDoctorMessage", questionId: q.id, category });
+      const d = res.data || {};
+      setMsg(d.locked
+        ? (d.lockType === "permanent" ? "Dilaporkan. Tanyo Dokter pasien ini kini dinonaktifkan permanen." : "Dilaporkan. Tanyo Dokter pasien ini dikunci 7 hari.")
+        : `Dilaporkan (pelanggaran ${d.strikes || 1} dari ${d.limit || 3}). Pasien sudah diberi peringatan.`);
+      onChanged();
+    } catch (e) {
+      setErr(e.message || "Gagal melaporkan pesan.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const remind = async () => {
     setBusy(true);
     setErr("");
@@ -136,6 +157,17 @@ function QuestionCard({ q, viewer, onChanged }) {
         </div>
       </div>
 
+      {q.reported && (
+        <div className="alert" style={{ marginTop: 8, background: "rgba(245, 158, 11, 0.12)", border: "1px solid rgba(245, 158, 11, 0.4)", borderRadius: 8, padding: 8 }}>
+          🚩 Dilaporkan sebagai {q.reported.category === "abusive" ? "kata tidak pantas" : "komplain pelayanan"} — percakapan ditutup.
+        </div>
+      )}
+      {!q.reported && q.possibleComplaint && (
+        <div className="stat-sub" style={{ marginTop: 8 }}>
+          ℹ️ Sistem mendeteksi kemungkinan keluhan pelayanan; pasien menyatakan ini pertanyaan penyakit.
+        </div>
+      )}
+
       {q.dangerOverride && (
         <div className="alert redflag" style={{ marginTop: 8 }}>
           <span>🚨</span>
@@ -163,7 +195,7 @@ function QuestionCard({ q, viewer, onChanged }) {
         ))}
       </div>
 
-      {isMyPatient && (
+      {isMyPatient && !q.reported && (
         <div style={{ marginTop: 10 }}>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 6 }}>
             {ANSWER_TEMPLATES.map((t) => (
@@ -189,6 +221,14 @@ function QuestionCard({ q, viewer, onChanged }) {
               </button>
             )}
           </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 8 }}>
+            <button className="btn btn-ghost" style={{ padding: "3px 8px", fontSize: 12, color: "#c0392b" }} onClick={() => report("abusive")} disabled={busy}>
+              🚩 Laporkan: kata tidak pantas
+            </button>
+            <button className="btn btn-ghost" style={{ padding: "3px 8px", fontSize: 12, color: "#b9770e" }} onClick={() => report("complaint")} disabled={busy}>
+              📢 Laporkan: komplain pelayanan
+            </button>
+          </div>
           <div className="stat-sub" style={{ marginTop: 4 }}>
             "Kirim Balasan" = percakapan tetap terbuka (pasien bisa menjawab/bertanya lanjut). Pasien tetap bisa membuka lagi konsultasi yang sudah selesai.
           </div>
@@ -210,6 +250,106 @@ function QuestionCard({ q, viewer, onChanged }) {
       </div>
       {msg && <div className="stat-sub" style={{ marginTop: 6 }}>{msg}</div>}
       {err && <div className="error-text" style={{ marginTop: 6 }}>{err}</div>}
+    </div>
+  );
+}
+
+// BARU (20 Okt 2026): panel moderasi untuk Admin & PMKP.
+const MOD_LABEL = {
+  abusive: "Kata tidak pantas (otomatis)",
+  complaint: "Komplain pelayanan (otomatis)",
+  report_abusive: "Dilaporkan dokter: kata tidak pantas",
+  report_complaint: "Dilaporkan dokter: komplain pelayanan",
+  lock_permanent: "🔒 Dikunci permanen",
+  lock_temporary: "⏳ Dikunci 7 hari",
+  unlock: "🔓 Dibuka Admin",
+};
+
+function ModerationPanel({ role }) {
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  async function load() {
+    setErr("");
+    try {
+      const res = await callApi("patientHistory", { action: "listTanyaModeration" });
+      setData(res.data);
+    } catch (e) {
+      setErr(e.message || "Gagal memuat data moderasi.");
+    }
+  }
+  useEffect(() => { load(); }, []);
+
+  const unlock = async (p) => {
+    if (!window.confirm(`Buka kunci Tanyo Dokter untuk ${p.name || p.patientId} dan hapus catatan pelanggarannya?`)) return;
+    setBusy(true);
+    try {
+      await callApi("patientHistory", { action: "unlockTanya", patientId: p.patientId });
+      await load();
+    } catch (e) {
+      setErr(e.message || "Gagal membuka kunci.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const patients = data?.patients || [];
+  const locked = patients.filter((p) => p.lock).length;
+  return (
+    <div className="card" style={{ marginBottom: 12 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <div>
+          <b>🛡️ Moderasi Tanyo Dokter</b>
+          <div className="stat-sub">
+            {data ? `${patients.length} pasien punya catatan pelanggaran · ${locked} terkunci` : "Memuat..."} · kata kasar 3x = kunci permanen · komplain 3x/7 hari = kunci 7 hari
+          </div>
+        </div>
+        <button className="btn btn-ghost" onClick={() => setOpen((o) => !o)}>{open ? "Sembunyikan" : "Lihat detail"}</button>
+      </div>
+      {err && <div className="error-text" style={{ marginTop: 6 }}>{err}</div>}
+      {open && data && (
+        <div style={{ marginTop: 10 }}>
+          {patients.length === 0 ? (
+            <div className="stat-sub">Belum ada pelanggaran.</div>
+          ) : (
+            <div style={{ overflowX: "auto" }}>
+              <table>
+                <thead><tr><th>Pasien</th><th>Kata kasar</th><th>Komplain (7 hr)</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                  {patients.map((p) => (
+                    <tr key={p.patientId}>
+                      <td>{p.name || p.patientId}{p.mrn ? <span className="stat-sub"> · RM {p.mrn}</span> : null}</td>
+                      <td>{p.abusive}</td>
+                      <td>{p.complaints}</td>
+                      <td>{p.lock ? (p.lock.type === "permanent" ? "🔒 Permanen" : `⏳ s/d ${new Date(p.lock.until).toLocaleDateString("id-ID")}`) : "Aktif"}</td>
+                      <td>
+                        {role === "admin" && (
+                          <button className="btn btn-ghost" style={{ padding: "3px 8px", fontSize: 12 }} disabled={busy} onClick={() => unlock(p)}>
+                            🔓 Buka kunci / hapus catatan
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div style={{ marginTop: 12 }}><b>Riwayat 30 hari</b></div>
+          {(data.events || []).length === 0 ? (
+            <div className="stat-sub">Tidak ada.</div>
+          ) : (
+            (data.events || []).map((e) => (
+              <div key={e.id} style={{ borderTop: "1px solid var(--line)", padding: "6px 0", fontSize: 13 }}>
+                <b>{MOD_LABEL[e.kind] || e.kind}</b> — {e.patientName || e.patientId} · <span className="stat-sub">{fmt(e.at)}</span>
+                {e.excerpt && <div className="stat-sub" style={{ whiteSpace: "pre-wrap" }}>"{e.excerpt}"</div>}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -263,6 +403,8 @@ export default function TanyaDokter() {
           </select>
         </div>
       </div>
+
+      {["admin", "manajemen"].includes(viewer.role) && <ModerationPanel role={viewer.role} />}
 
       {loading ? (
         <div className="stat-sub">Memuat...</div>
