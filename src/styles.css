@@ -877,3 +877,241 @@ tbody tr.row-redflag { background: #fde9e9; }
   .page-heading-mobile h1 { margin: 0 0 4px; font-size: 22px; color: var(--tosca-deep, #066571); }
   .page-heading-mobile .meta { font-size: 14px; color: var(--ink-soft, #5e737c); }
 }
+
+/* =========================================================================
+   TEMA "FOREST MIST" — BARU (21 Okt 2026)
+   Forest Mist × Soft Sage × Emerald × Abstract Tosca. Disetujui Komite PMKP:
+   menu samping hijau hutan, logo + nama aplikasi di menu samping, judul
+   halaman di spanduk abstrak tosca (public/tema/abstrak-mist.svg).
+   MURNI TAMPILAN: tidak ada fungsi, data, atau aturan klinis yang berubah.
+   Kontras teks diuji ≥ 4,5 : 1. Blok ini menimpa tema-tema di atasnya;
+   untuk kembali ke tema "Gunung" cukup hapus blok ini sampai akhir file.
+   ========================================================================= */
+:root {
+  --fm-tosca: #0f9f9a;
+  --fm-action: #087f8c;
+  --fm-action-hover: #076f7b;
+  --fm-forest: #174f46;
+  --fm-forest-dark: #12473d;
+  --fm-emerald: #167a60;
+  --fm-sage: #a3b89a;
+  --fm-sage-soft: #dce8d8;
+  --fm-mint: #e3f3ec;
+  --fm-mint-pale: #f0f8f4;
+  --fm-bg: #f5f7f1;
+  --fm-surface-2: #edf3eb;
+  --fm-sand: #e9ddc8;
+  --fm-border: #dce5db;
+  --fm-ink: #203b35;
+  --fm-ink-soft: #5b6e65;
+  --fm-ink-muted: #6a7a71;
+  --fm-coral: #ff7a6b;
+  --fm-coral-text: #b8463d;
+
+  --tosca: var(--fm-tosca);
+  --tosca-dark: var(--fm-action);
+  --tosca-deep: var(--fm-forest);
+  --tosca-50: var(--fm-mint);
+  --tosca-100: var(--fm-sage-soft);
+  --coral: var(--fm-coral);
+  --coral-text: var(--fm-coral-text);
+  --coral-soft: #fff0ed;
+  --app-bg: var(--fm-bg);
+  --border: var(--fm-border);
+  --bg-1: var(--fm-bg);
+  --bg-2: var(--fm-bg);
+  --bg-3: var(--fm-mint-pale);
+  --glass-border: var(--fm-border);
+  --line: var(--fm-border);
+  --surface: #ffffff;
+  --surface-2: var(--fm-mint-pale);
+  --ink: var(--fm-ink);
+  --ink-soft: var(--fm-ink-soft);
+  --ink-on-glass: var(--fm-ink);
+  --stat-sub-color: var(--fm-ink-soft);
+  --accent: var(--fm-action);
+  --accent-strong: var(--fm-forest);
+  --accent-text: var(--fm-action-hover);
+  --redflag: #b23439;
+  --amber: #8c5806;
+  --green: #12734f;
+  --low: #12734f;
+  --moderate: #8c5806;
+  --shadow: 0 2px 10px rgba(23, 79, 70, 0.06);
+}
+
+body {
+  font-family: "Plus Jakarta Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--fm-ink);
+  background: var(--fm-bg);
+}
+
+.card, .card-list, .login-card {
+  background: #ffffff;
+  border: 1px solid var(--fm-border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+}
+.card h3 { color: var(--fm-ink); font-size: 18px; font-weight: 800; }
+
+/* ---- Menu samping hijau hutan ---- */
+.sidebar {
+  background:
+    url("/tema/abstrak-sidebar.svg") left bottom / 100% 84px no-repeat,
+    var(--fm-forest);
+  border-right: none;
+  color: #ffffff;
+}
+.sidebar .app-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 6px 18px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+}
+.app-brand-logo { width: 42px; height: 48px; object-fit: contain; flex-shrink: 0; }
+.app-brand-name { font-size: 17px; font-weight: 800; letter-spacing: 0.2px; white-space: nowrap; color: #ffffff; line-height: 1.15; }
+.app-brand-sub { margin-top: 3px; font-size: 12px; font-weight: 600; color: #bfd6cc; }
+
+.nav-item { color: #ffffff; font-size: 15.5px; font-weight: 600; border-radius: 12px; }
+.nav-item:hover { background: rgba(255, 255, 255, 0.09); color: #ffffff; }
+.nav-item.active {
+  background: var(--fm-mint);
+  color: var(--fm-forest);
+  font-weight: 800;
+  box-shadow: none;
+}
+.nav-item:focus-visible { outline: 3px solid #a3e4cf; outline-offset: 2px; }
+.nav-icon { box-shadow: none; }
+.nav-item.active .nav-icon { background: #ffffff !important; box-shadow: 0 1px 4px rgba(23, 79, 70, 0.18); }
+
+.sidebar-footer { border-top-color: rgba(255, 255, 255, 0.14); }
+.sidebar-footer .brand-logos-bottom {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+.sidebar .logo-img { border: none; background: transparent; }
+.role-switch { color: #dce8d8; border-top-color: rgba(255, 255, 255, 0.14); }
+.role-switch .btn-ghost {
+  background: transparent;
+  color: #ffffff;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+}
+.role-switch .btn-ghost:hover { background: rgba(255, 255, 255, 0.10); color: #ffffff; border-color: #ffffff; }
+
+/* ---- Spanduk judul halaman: latar abstrak tosca "mist" ---- */
+.topbar.topbar-page {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  margin: 20px 24px 0;
+  padding: 22px 84px 22px 28px; /* ruang kanan untuk tombol lonceng di Dasbor */
+  min-height: 112px;
+  border-radius: 16px;
+  border: 1px solid var(--fm-border);
+  color: var(--fm-ink);
+  background: url("/tema/abstrak-mist.svg") center / 100% 100% no-repeat, var(--fm-mint-pale);
+  box-shadow: none;
+}
+.topbar-page .topbar-heading { flex: 1 1 320px; min-width: 0; }
+.topbar-page h1 { margin: 0 0 6px; font-size: 28px; font-weight: 800; color: var(--fm-forest); }
+.topbar-page .meta { font-size: 15px; line-height: 1.5; color: var(--fm-ink-soft); max-width: 720px; }
+.topbar-page .btn-ghost {
+  background: #ffffff;
+  color: var(--fm-action-hover);
+  border: 1px solid var(--fm-border);
+  box-shadow: 0 2px 10px rgba(23, 79, 70, 0.08);
+}
+.topbar-page .btn-ghost:hover { background: var(--fm-mint); color: var(--fm-forest); border-color: var(--fm-sage); }
+.net-divider { height: 0; margin: 8px 24px; background: none; }
+
+/* ---- Tombol ---- */
+.btn { border-radius: 10px; font-weight: 700; }
+.btn-primary {
+  background: var(--fm-action);
+  color: #ffffff;
+  box-shadow: none;
+}
+.btn-primary:hover { background: var(--fm-action-hover); }
+.btn-ghost {
+  background: #ffffff;
+  color: var(--fm-action-hover);
+  border: 1.5px solid var(--fm-border);
+}
+.btn-ghost:hover { background: var(--fm-mint); border-color: var(--fm-sage); color: var(--fm-forest); }
+.btn:focus-visible { outline: 3px solid var(--fm-action); outline-offset: 2px; }
+
+/* ---- Isian ---- */
+.field > label { color: var(--fm-ink); }
+.field input,
+input[type="text"], input[type="number"], input[type="date"], input[type="email"], input[type="password"], input[type="tel"],
+input:not([type]), select, textarea {
+  border: 1.5px solid var(--fm-border);
+  border-radius: 10px;
+  color: var(--fm-ink);
+}
+input:focus, select:focus, textarea:focus, .field input:focus {
+  border-color: var(--fm-action);
+  box-shadow: 0 0 0 4px var(--fm-mint);
+  outline: none;
+}
+input::placeholder, textarea::placeholder { color: var(--fm-ink-muted); }
+select optgroup { color: var(--fm-forest); }
+.check-item { border-bottom-color: var(--fm-surface-2); }
+.check-item input[type="checkbox"] { accent-color: var(--fm-action); }
+
+/* ---- Angka & teks sekunder ---- */
+.stat-value { color: var(--fm-ink); font-weight: 800; }
+.stat-label { color: var(--fm-ink-soft); font-weight: 700; }
+.stat-sub, .hint { color: var(--fm-ink-soft); }
+
+/* ---- Badge status (warna + ikon; label tetap) ---- */
+.badge { display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; font-weight: 700; }
+.badge .badge-icon { display: inline-flex; }
+.badge.low { background: #e5f5ec; color: #12734f; border: 1px solid #b8e2cb; }
+.badge.moderate { background: #fff3d9; color: #8c5806; border: 1px solid #efd39a; }
+.badge.high { background: #fff0ed; color: #b8463d; border: 1px solid #ffc9c0; }
+.badge.redflag { background: #b23439; color: #ffffff; border: 1px solid #9c2c31; }
+
+/* ---- Tabel ---- */
+thead th { color: var(--fm-ink-soft); background: var(--fm-mint-pale); border-bottom: 1px solid var(--fm-border); font-weight: 700; }
+tbody td { color: var(--fm-ink); border-bottom: 1px solid var(--fm-surface-2); }
+tbody tr:hover { background: #f7faf6; }
+tbody tr.row-redflag { background: #fce9e9; }
+a { color: var(--fm-action-hover); }
+
+/* ---- Peringatan ---- */
+.alert.redflag { background: #fce9e9; border: 1px solid #f2c4c5; color: #8f2a2e; }
+.alert.warn { background: #fff3d9; border: 1px solid #efd39a; color: #6b4500; }
+.alert.info { background: #e8f1fc; border: 1px solid #b6cff3; color: #1f4f91; }
+.error-text { color: #b23439; }
+
+::-webkit-scrollbar-thumb { background: #c7d6c5; }
+
+@media (max-width: 860px) {
+  .mobile-menu-btn {
+    background: var(--fm-forest);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 14px rgba(23, 79, 70, 0.25);
+  }
+  .sidebar {
+    background:
+      url("/tema/abstrak-sidebar.svg") left bottom / 100% 84px no-repeat,
+      var(--fm-forest);
+    box-shadow: 0 0 30px rgba(18, 71, 61, 0.35);
+  }
+  .mobile-overlay { background: rgba(18, 71, 61, 0.35); }
+  .topbar.topbar-page { margin: 64px 12px 0; padding: 18px 18px; min-height: 0; }
+  .topbar-page h1 { font-size: 23px; }
+  .topbar-page .meta { font-size: 14px; }
+  .topbar-page .topbar-actions { width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge .dot-blink { animation: none; }
+}
+.badge .dot-blink { margin-right: 0; }

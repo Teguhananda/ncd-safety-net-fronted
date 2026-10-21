@@ -766,7 +766,7 @@ export default function Dashboard() {
           <h3>Distribusi Risiko</h3>
         <RiskPieChart data={dist} />
         <div style={{ marginTop: 14 }}>
-          {[["Low",dist.low,"#2fae6f"],["Moderate",dist.moderate,"#f5a623"],["High",dist.high,"#e6553f"],["Red Flag",dist.redFlag,"#a5281f"]].map(([l,v,col]) => (
+          {[["Low",dist.low,"#16845B"],["Moderate",dist.moderate,"#D99018"],["High",dist.high,"#FF7A6B"],["Red Flag",dist.redFlag,"#B23439"]].map(([l,v,col]) => (
             <div key={l} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", fontSize:12.5, marginBottom:6 }}>
               <span style={{ display:"flex", alignItems:"center", gap:6 }}><span style={{ width:9, height:9, borderRadius:"50%", background:col, display:"inline-block" }}></span>{l}</span>
               <span className="mono">{v}</span>

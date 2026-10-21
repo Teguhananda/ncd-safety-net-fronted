@@ -90,12 +90,13 @@ export default function Sidebar({ pageTitle, pageMeta }) {
       {mobileOpen && <div className="mobile-overlay" onClick={() => setMobileOpen(false)} />}
 
       <aside className={"sidebar" + (mobileOpen ? " sidebar-open" : "")}>
-      <div className="brand page-brand">
-        {/* REVISI (20 Okt 2026): nama aplikasi pindah ke tengah spanduk;
-            di sini kini judul & keterangan halaman yang sedang dibuka. */}
+      <div className="brand app-brand">
+        {/* REVISI (21 Okt 2026, tema Forest Mist): logo + nama aplikasi kembali
+            di pojok kiri atas; judul halaman pindah ke spanduk atas (Layout). */}
+        <img src="/logos/app-logo.png" alt="" className="app-brand-logo" />
         <div className="brand-text">
-          <div className="page-title">{pageTitle || "BERENDO SEHAT"}</div>
-          {pageMeta && <div className="page-meta">{pageMeta}</div>}
+          <div className="app-brand-name">BERENDO SEHAT</div>
+          <div className="app-brand-sub">RSUD Kab. Rejang Lebong</div>
         </div>
       </div>
       <nav>

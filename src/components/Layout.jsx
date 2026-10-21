@@ -25,7 +25,7 @@ function TanyaDokterButton() {
   if (count === null || location.pathname === "/tanya-dokter") return null;
   return (
     <Link to="/tanya-dokter" className="btn btn-ghost" style={{ position: "relative", whiteSpace: "nowrap" }}>
-      💬 Tanyo Dokter
+      <span aria-hidden="true">💬</span> Tanyo Dokter
       {count > 0 && (
         <span
           style={{
@@ -45,26 +45,17 @@ export default function Layout({ title, meta, children }) {
     <div className="app">
       <Sidebar pageTitle={title} pageMeta={meta} />
       <div className="main">
-        {/* REVISI (20 Okt 2026): identitas aplikasi (logo + BERENDO SEHAT 3D +
-            tagline) di tengah spanduk; judul halaman pindah ke pojok kiri atas
-            (Sidebar). Di HP judul halaman tetap tampil di bawah spanduk. */}
-        <div className="topbar topbar-brand">
-          <div className="topbar-side" aria-hidden="true"></div>
-          <div className="hero-brand">
-            <img src="/logos/app-logo.png" alt="" className="hero-logo" />
-            <div className="hero-text">
-              <div className="hero-title">BERENDO SEHAT</div>
-              <div className="hero-sub">RSUD KABUPATEN REJANG LEBONG</div>
-              <div className="hero-tagline">"Dari Berendo Rumah, RS Tetap Menjago"</div>
-            </div>
+        {/* REVISI (21 Okt 2026, tema Forest Mist): logo + nama aplikasi kembali
+            ke menu samping; spanduk atas berisi judul & keterangan halaman di
+            atas latar abstrak tosca. Fungsi tidak berubah. */}
+        <div className="topbar topbar-page">
+          <div className="topbar-heading">
+            <h1>{title}</h1>
+            {meta && <div className="meta">{meta}</div>}
           </div>
-          <div className="topbar-side topbar-actions">
+          <div className="topbar-actions">
             <TanyaDokterButton />
           </div>
-        </div>
-        <div className="page-heading-mobile">
-          <h1>{title}</h1>
-          <div className="meta">{meta}</div>
         </div>
         <div className="net-divider"></div>
         <div className="content">{children}</div>

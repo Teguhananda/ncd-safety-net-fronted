@@ -750,3 +750,85 @@ html, body { background: #f5fafa; }
 .portal-vitals-signs { background: #fde9e9; border: 1px solid #f1b3b3; color: #7a1f1f; }
 
 .portal-mascot-msg { color: var(--p-ink); }
+
+/* =========================================================================
+   TEMA "FOREST MIST" — BARU (21 Okt 2026)
+   Kepala halaman = latar abstrak tosca gelap (public/tema/abstrak-forest.svg)
+   dengan kontur bukit Rejang Lebong; area kerja ivory-hijau polos. MURNI
+   TAMPILAN: susunan menu, tombol Keluar, animasi gambar menu & karakter
+   dokter tetap sama. Untuk kembali ke tema "Gunung": hapus blok ini.
+   ========================================================================= */
+html, body { background: #f5f7f1; }
+
+.portal-shell {
+  --p-bg-1: #f5f7f1;
+  --p-bg-2: #f5f7f1;
+  --p-bg-3: #f0f8f4;
+  --p-glass-border: #dce5db;
+  --p-ink: #203b35;
+  --p-ink-soft: #5b6e65;
+  --p-accent: #087f8c;
+  --p-accent-strong: #174f46;
+  --p-warm: #b8463d;
+  --p-warm-strong: #9c2c31;
+  --p-shadow: 0 2px 10px rgba(23, 79, 70, 0.06);
+  font-family: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: var(--p-ink);
+  background: #f5f7f1;
+}
+
+.portal-header {
+  border-radius: 24px;
+  background: url("/tema/abstrak-forest.svg") center / 100% 100% no-repeat, #174f46;
+  box-shadow: 0 8px 22px rgba(18, 71, 61, 0.22);
+}
+.portal-header h2 { color: #ffffff; }
+.portal-header .portal-brand-sub { color: #e3f3ec; }
+.portal-logo-img { background: transparent; box-shadow: none; }
+
+.portal-card, .portal-status-card, .portal-info-card {
+  background: #ffffff;
+  border: 1px solid #dce5db;
+  border-radius: 20px;
+  box-shadow: 0 2px 10px rgba(23, 79, 70, 0.06);
+}
+.portal-card h3 { color: #203b35; }
+.portal-info-card { background: #f0f8f4; border-color: #dce5db; }
+.portal-status-card { border-width: 3px; }
+.portal-status-icon-wrap { background: #f0f8f4; }
+.portal-sub { color: #5b6e65; }
+.portal-error { color: #b23439; }
+
+.portal-menu-btn { border: 1px solid #dce5db; border-radius: 20px; box-shadow: 0 2px 12px rgba(23, 79, 70, 0.07); }
+.portal-menu-btn:active { background: #f0f8f4; }
+.portal-menu-btn.theme-cek     { --menu-tint: linear-gradient(145deg, #e3f3ec, #dce8d8); --menu-glow: rgba(15, 159, 154, 0.20); --menu-edge: #a3d9cc; }
+.portal-menu-btn.theme-plan    { --menu-tint: linear-gradient(145deg, #faf8f1, #e9ddc8); --menu-glow: rgba(214, 181, 109, 0.25); --menu-edge: #e1cfa6; }
+.portal-menu-btn.theme-riwayat { --menu-tint: linear-gradient(145deg, #e8f1fc, #e3f3ec); --menu-glow: rgba(40, 108, 181, 0.16); --menu-edge: #b6cff3; }
+.portal-menu-btn.theme-tanyo   { --menu-tint: linear-gradient(145deg, #fff0ed, #e3f3ec); --menu-glow: rgba(255, 122, 107, 0.22); --menu-edge: #ffc9c0; }
+.portal-menu-text { color: #203b35; }
+.portal-menu-text small { color: #5b6e65; }
+
+.portal-primary-btn { background: #087f8c; box-shadow: none; }
+.portal-primary-btn:active { background: #076f7b; }
+.portal-link-btn { color: #076f7b; }
+.portal-primary-btn:focus-visible, .portal-menu-btn:focus-visible { outline: 3px solid #087f8c; outline-offset: 3px; }
+
+.portal-field input, .portal-field select, .portal-shell textarea { border: 1.5px solid #dce5db; color: #203b35; }
+.portal-field input:focus, .portal-field select:focus { border-color: #087f8c; box-shadow: 0 0 0 4px #e3f3ec; }
+.portal-yn button { border: 1.5px solid #dce5db; }
+.portal-question, .portal-history-row { border-bottom-color: #edf3eb; }
+
+.portal-sheet-overlay { background: rgba(18, 71, 61, 0.38); }
+.portal-sheet { border-color: #dce5db; color: #203b35; }
+.portal-sheet-head h3 { color: #203b35; }
+.portal-sheet-close { background: #f0f8f4; color: #174f46; border-color: #dce5db; }
+.portal-notif-item { border-color: #dce5db; border-left-color: #0f9f9a; }
+.portal-notif-text { color: #203b35; }
+.portal-notif-time { color: #5b6e65; }
+.portal-toast { color: #203b35; border-color: #0f9f9a; }
+.portal-toast-hint { color: #076f7b; }
+
+.portal-dose-row { background: #f0f8f4; border-color: #dce5db; }
+.portal-dose-skip-btn { color: #b8463d; border-color: #ff7a6b; }
+.portal-reason-btn { border-color: #dce5db; color: #203b35; }
+.portal-reason-btn:active { background: #f0f8f4; }
