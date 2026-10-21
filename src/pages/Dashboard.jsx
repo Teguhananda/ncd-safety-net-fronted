@@ -662,7 +662,7 @@ export default function Dashboard() {
 
       {notifPanelOpen && (
         <>
-          <div onClick={() => setNotifPanelOpen(false)} style={{ position: "fixed", inset: 0, zIndex: 890, background: "transparent" }} />
+          <div onClick={() => setNotifPanelOpen(false)} style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: 0, zIndex: 890, background: "transparent" }} />
           <div className="card" style={{ position: "fixed", top: 70, right: 18, width: 360, maxHeight: "70vh", overflowY: "auto", zIndex: 899 }}>
             <h3 style={{ marginTop: 0 }}>Notifikasi</h3>
             {unreadNotifs.length === 0 ? (

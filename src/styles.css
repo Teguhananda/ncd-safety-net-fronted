@@ -322,6 +322,7 @@ textarea { resize: vertical; min-height: 60px; }
 .beacon::before {
   content: "";
   position: absolute;
+  top: -6px; right: -6px; bottom: -6px; left: -6px;
   inset: -6px;
   border-radius: 50%;
   background: conic-gradient(
@@ -562,6 +563,7 @@ tbody tr.row-redflag { background: rgba(255,92,80,0.08); }
   .mobile-overlay {
     display: block;
     position: fixed;
+    top: 0; right: 0; bottom: 0; left: 0;
     inset: 0;
     background: rgba(0,0,0,0.5);
     z-index: 240;

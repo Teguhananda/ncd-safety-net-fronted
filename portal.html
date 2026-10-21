@@ -31,6 +31,35 @@
 </head>
 <body>
   <div id="root"></div>
+  <!-- BARU (21 Okt 2026): bila aplikasi gagal tampil di HP/peramban yang
+       terlalu lama, tampilkan petunjuk ramah (bukan layar putih kosong).
+       Ditulis dengan JavaScript lama (ES5) supaya tetap jalan di HP lama;
+       otomatis hilang begitu aplikasi berhasil tampil. -->
+  <script>
+    (function () {
+      var shown = false;
+      function cek() {
+        var root = document.getElementById("root");
+        var box = document.getElementById("berendo-fallback");
+        if (root && root.children.length > 0) { if (box) box.parentNode.removeChild(box); return; }
+        if (!shown) {
+          shown = true;
+          box = document.createElement("div");
+          box.id = "berendo-fallback";
+          box.setAttribute("style", "font-family:sans-serif;max-width:420px;width:calc(100% - 32px);box-sizing:border-box;margin:40px auto;padding:22px;border-radius:16px;background:#ffffff;border:1px solid #dce5db;color:#203b35;font-size:17px;line-height:1.5");
+          box.innerHTML = "<b style='font-size:20px;color:#174f46'>BERENDO SEHAT belum bisa tampil</b>" +
+            "<p>Peramban (browser) di HP ini kemungkinan terlalu lama.</p>" +
+            "<ol style='padding-left:20px'><li>Android: perbarui <b>Chrome</b> lewat Play Store. iPhone: perbarui iOS lewat Pengaturan.</li>" +
+            "<li>Atau pasang dan buka link ini di <b>Firefox</b>.</li>" +
+            "<li>Pastikan tanggal &amp; jam HP sudah benar.</li></ol>" +
+            "<p>Bila masih gagal, tunjukkan layar ini ke petugas RSUD Kab. Rejang Lebong.</p>";
+          document.body.appendChild(box);
+        }
+        setTimeout(cek, 2000);
+      }
+      setTimeout(cek, 20000);
+    })();
+  </script>
   <script type="module" src="/src/portal-main.jsx"></script>
 </body>
 </html>

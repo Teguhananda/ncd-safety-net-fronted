@@ -229,7 +229,7 @@ export default function PersonalSafetyPlanModal({ patient, onClose }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(23,38,43,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+    <div style={{ position: "fixed", top: 0, right: 0, bottom: 0, left: 0, background: "rgba(23,38,43,0.55)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
       <div className="card" style={{ width: 560, maxWidth: "94vw", maxHeight: "88vh", overflowY: "auto" }}>
         <h3 style={{ marginBottom: 10 }}>Personal Safety Plan — {patient.name}</h3>
 

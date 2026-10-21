@@ -1,5 +1,6 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import legacy from "@vitejs/plugin-legacy";
 import { resolve } from "path";
 
 // ==== REVISI PERFORMA (Sept 2026) ====
@@ -52,7 +53,29 @@ function portalFontPlugin() {
 }
 
 export default defineConfig({
-  plugins: [react(), portalFontPlugin()],
+  // BARU (21 Okt 2026): dukungan HP & peramban LAMA (banyak pasien lansia
+  // memakai Android/iPhone lama). Peramban baru tetap memakai berkas modern;
+  // peramban lama otomatis mendapat versi "legacy" + polyfill. Fungsi
+  // aplikasi tidak berubah — hanya cara kode dikemas saat build.
+  //   Android 5+ (Chrome/WebView/Samsung Internet lama), iPhone iOS 10+.
+  plugins: [
+    react(),
+    portalFontPlugin(),
+    legacy({
+      targets: [
+        "chrome >= 49",
+        "android >= 5",
+        "samsung >= 5",
+        "safari >= 10",
+        "ios >= 10",
+        "firefox >= 52",
+        "edge >= 79",
+      ],
+      // Chrome 64–86 memakai berkas modern → tambahkan polyfill seperlunya
+      // (mis. Object.fromEntries, Array.flat) supaya tidak macet.
+      modernPolyfills: true,
+    }),
+  ],
   build: {
     outDir: "dist",
     rollupOptions: {

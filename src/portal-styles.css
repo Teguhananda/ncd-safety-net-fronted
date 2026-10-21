@@ -41,6 +41,7 @@ html, body {
   box-sizing: border-box;
   max-width: 480px;
   margin: 0 auto;
+  padding: 20px 16px 32px; /* cadangan iOS/Android lama tanpa env() */
   padding: calc(20px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(32px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
   min-height: 100vh;
   min-height: 100dvh;
@@ -275,6 +276,7 @@ html, body {
    ukuran huruf besar supaya mudah dibaca pasien lansia. ==== */
 .portal-sheet-overlay {
   position: fixed;
+  top: 0; right: 0; bottom: 0; left: 0; /* cadangan HP lama */
   inset: 0;
   z-index: 60;
   background: rgba(3, 6, 14, 0.78);
@@ -297,6 +299,7 @@ html, body {
   border-bottom: none;
   border-radius: 24px 24px 0 0;
   box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.6);
+  padding: 10px 20px 20px;
   padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   animation: portal-sheet-up 0.22s ease-out;
@@ -369,6 +372,7 @@ html, body {
 /* Pop-up kecil saat notifikasi masuk ketika Portal sedang dibuka */
 .portal-toast {
   position: fixed;
+  top: 12px;
   top: calc(12px + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
@@ -496,6 +500,7 @@ html, body {
   color: #f4fdfb;
   border: 3px solid #f5934a;
   border-radius: 22px;
+  padding: 22px 20px 18px;
   padding: 22px 20px calc(18px + env(safe-area-inset-bottom));
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
